@@ -2,3 +2,4 @@ converted/*.py
 __pycache__
 *.exe
 *.dll
+examples/RRB*.*
