@@ -2,4 +2,5 @@ converted/*.py
 __pycache__
 *.exe
 *.dll
-examples/RRB*.*
+examples/RRBTOSSA.cbl
+examples/RRBTOSSA-Launch.cob
