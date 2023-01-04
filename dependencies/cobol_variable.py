@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from os.path import exists
 
 ADD_COMMAND = "add"
 DISP_COMMAND = "display"
@@ -40,17 +41,23 @@ class COBOLFileVariable:
         self.record = EMPTY_STRING
         self.parent = EMPTY_STRING
 
-    def open_file(self, method: str):
+    def open_file(self, variables_list, method: str):
         filename = os.getenv(self.assign)
         if filename == None:
-            filename = self.assign
-            f = open(filename, "a")
-            f.close()
+            Set_Variable(variables_list, self.file_status, '35', self.file_status)
+            return
+        elif exists(filename) == False:
+            Set_Variable(variables_list, self.file_status, '35', self.file_status)
+            return
 
         self.file_pointer = open(filename, method)
 
+        Set_Variable(variables_list, self.file_status, '00', self.file_status)
+        return
+
     def close_file(self):
-        self.file_pointer.close()
+        if self.file_pointer != None:
+            self.file_pointer.close()
 
     def read(self):
         line = self.file_pointer.readline().replace(NEWLINE, EMPTY_STRING)
@@ -66,10 +73,10 @@ class COBOLFileVariable:
     def write(self, data: str):
         self.file_pointer.write(data)
 
-def Open_File(var_list, name: str, method: str):
+def Open_File(variables_list, var_list, name: str, method: str):
     for var in var_list:
         if var.name == name:
-            var.open_file(convert_open_method(method))
+            var.open_file(variables_list, convert_open_method(method))
             break
 
 def Close_File(var_list, name: str):

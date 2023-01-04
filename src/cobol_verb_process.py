@@ -88,7 +88,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_CONTINUE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0" + NEWLINE)
     elif tokens[0] == COBOL_VERB_OPEN:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Open_File(_FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Open_File(" + VARIABLES_LIST_NAME + ", _FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_CLOSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(_FILE_CONTROLVars, '" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_READ:

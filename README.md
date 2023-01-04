@@ -27,6 +27,16 @@ Only a small set of COBOL verbs and keywords are converted, at this time. As mor
 
 File access is limited to sequential reads starting with the first line. Indexed record lookups are planned and intended. This will help with VSAM file development.
 
+Level 77 and 88 variables are not processed or handled properly in logic statements.
+
+Arrays are not processed or handled properly in logic statements.
+
+## Bug Reporting
+
+If this code is erroneous in some way, you can submit a bug or submit a pull request with the fix. Please note, a bug is NOT a missing feature or keyword processing or anything like that. For the verbs and keywords that are processed, they should be handled correctly.
+
+Thank you!
+
 ## LICENSE
 
 Copyright 2023 Christian Strama

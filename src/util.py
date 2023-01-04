@@ -45,6 +45,9 @@ def delete_file(file: str):
     if exists(file):
         os.remove(file)
 
+def file_exists(file: str):
+    return exists(file)
+
 def insert_beginning_of_file(originalfile,string):
     with open(originalfile,'r') as f:
         with open('newfile.txt','w') as f2: 
