@@ -9,8 +9,11 @@ class LexicalInfo:
         self.highest_ws_level = 0
         self.first_line_section = False
         self.highest_var_name = ""
+        self.highest_var_name_subs = 0
         self.level = 1
         self.import_statement = []
+        self.redefines = ""
+        self.redefines_level = "01"
 
 def read_file(file: str):
     result = ""

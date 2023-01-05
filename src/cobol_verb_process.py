@@ -103,6 +103,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(_FILE_CONTROLVars, _FILE_SECTIONVars, '" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
+    elif tokens[0] == COBOL_VERB_SEARCH:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0")
     
     return level
 
@@ -147,15 +149,29 @@ def close_out_evaluate(verb: str, name: str, level: int):
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
+    reset_evaluate_compare = False
+    operator = EQUALS
+    if len(tokens) > 2:
+        operator = tokens[2]
+        operator_offset = 0
+        if tokens[2] == NOT_KEYWORD:
+            operator = NOT_EQUALS
+            operator_offset = 1
+
+    operand2 = tokens[1]
     if evaluate_compare == EMPTY_STRING:
-        if tokens[1] == "SSA-BIC":
-            x = 0
         evaluate_compare_stack[len(evaluate_compare_stack) - 1] = [evaluate_compare, tokens[1]]
         nested_above_evaluate_compare = tokens[1]
-        level = process_if_verb(tokens, name, level, not is_first_when)
-        if is_first_when:
-            is_first_when = False
-        return level
+        evaluate_compare = tokens[1]
+        reset_evaluate_compare = True
+        if len(tokens) > operator_offset + 3:
+            operand2 = tokens[operator_offset + 3]
+        elif len(tokens) == 3:
+            if tokens[2].startswith(SINGLE_QUOTE):
+                operand2 = tokens[2]
+            else:
+                operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
+            operator = SPACE + IN_KEYWORD + SPACE
 
     prefix = "if "
     if is_first_when == False:
@@ -170,16 +186,17 @@ def process_evaluate_verb(tokens, name: str, level: int):
     else:
         is_evaluating = True
 
-    token = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + evaluate_compare + "','" + evaluate_compare + "') "
-    line = prefix + token + convert_operator(EQUALS) + SPACE + tokens[1]
+    operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + evaluate_compare + "','" + evaluate_compare + "') "
+    line = prefix + operand1 + convert_operator(operator) + SPACE + operand2
 
     append_file(name + PYTHON_EXT, pad(indent_len) + line)
+
+    if reset_evaluate_compare:
+        evaluate_compare = EMPTY_STRING
 
     return level
 
 def process_if_verb(tokens, name: str, level: int, is_elif: bool):
-    if "SSA-HIC" in tokens[1]:
-        x = 9
     line = "if "
     if is_elif:
         line = "elif "

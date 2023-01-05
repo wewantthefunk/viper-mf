@@ -19,15 +19,16 @@ ZERO = "0"
 last_command = ""
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str):
         self.name = name
         self.length = length
         self.data_type = data_type
-        if parent != name:
+        if parent != name and (redefines == EMPTY_STRING or length > 0):
             self.parent = parent
         else:
             self.parent = EMPTY_STRING
         self.value = EMPTY_STRING
+        self.redefines = redefines
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -40,6 +41,7 @@ class COBOLFileVariable:
         self.file_pointer = None
         self.record = EMPTY_STRING
         self.parent = EMPTY_STRING
+        self.redefines = EMPTY_STRING
 
     def open_file(self, variables_list, method: str):
         filename = os.getenv(self.assign)
@@ -129,7 +131,7 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
     return list
 
 
-def Add_Variable(list, name: str, length: int, data_type: str, parent: str):
+def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING):
     global last_command
     check_for_last_command(ADD_COMMAND)
     last_command = ADD_COMMAND
@@ -140,7 +142,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str):
     if data_type == NUMERIC_SIGNED_DATA_TYPE:
         data_type = NUMERIC_DATA_TYPE
 
-    list.append(COBOLVariable(name, length, data_type, parent))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines))
 
     return list
 
@@ -270,6 +272,38 @@ def find_get_variable_length(var_list, name: str, parent):
 
     return result
 
+def Get_Variable_Position(variable_lists, name: str):
+    global last_command
+    check_for_last_command(GET_COMMAND)
+    last_command = GET_COMMAND
+    pos = 0
+    length = 0
+    for var_list in variable_lists:
+        result = find_get_variable_position(var_list, name, [name])
+        pos = pos + result[0]
+        length = result[1]
+
+    return [pos, length]
+
+def find_get_variable_position(var_list, name: str, parent):
+    result = 0
+    length = 0
+    for var in var_list:
+        if "COBOLFileVariable" in str(type(var_list[0])):
+            continue
+        if var.parent == EMPTY_STRING:
+            result = 0
+            length = var.length
+            if var.name == name:
+                break
+        
+        elif var.name == name:
+            return [result, var.length]
+        else:
+            result = result + var.length
+
+    return [result, length]
+
 def Get_Variable_Value(variable_lists, name: str, parent: str):
     global last_command
     check_for_last_command(GET_COMMAND)
@@ -339,9 +373,11 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
             print(EMPTY_STRING)
     else:
         for var_list in variable_lists:
-            search_display_variable_list(var_list, name, parent, 0)
+            found_count = search_display_variable_list(var_list, name, parent, 0, var_list)
+            if found_count > 0:
+                break
 
-def search_display_variable_list(var_list, name: str, parent: str, level: int):
+def search_display_variable_list(var_list, name: str, parent: str, level: int, orig_var_list):
     count = 0
     found_count = 0
     level = level + 1
@@ -351,11 +387,16 @@ def search_display_variable_list(var_list, name: str, parent: str, level: int):
             continue
         if var_list[count].name == name or var_list[count].parent == parent:
             if var_list[count].length == 0:
-                found_count = found_count + search_display_variable_list(var_list[count:], EMPTY_STRING, var_list[count].name, level)
+                found_count = found_count + search_display_variable_list(var_list[count:], EMPTY_STRING, var_list[count].name, level, orig_var_list)
                 count = count + found_count
             else:     
-                found_count = found_count + 1           
-                if var_list[count].data_type == NUMERIC_DATA_TYPE:
+                found_count = found_count + 1
+                if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
+                    pos_length = find_get_variable_position(var_list, var_list[count].name, [var_list[count].name])
+                    result = find_get_variable(orig_var_list, var_list[count].redefines, [var_list[count].redefines])[0]
+                    print(result[pos_length[0]: pos_length[0] + pos_length[1]], end =EMPTY_STRING)
+                    break
+                elif var_list[count].data_type == NUMERIC_DATA_TYPE:
                     print(pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value), end =EMPTY_STRING)
                 else:
                     print(var_list[count].value.ljust(var_list[count].length), end =EMPTY_STRING)

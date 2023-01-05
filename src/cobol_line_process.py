@@ -152,6 +152,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         return
     if len(tokens) < 2:
         return
+
+    if REDEFINES_KEYWORD in tokens:
+        current_line.redefines = tokens[tokens.index(REDEFINES_KEYWORD) + 1]
+        current_line.redefines_level = tokens[0]
+    elif int(tokens[0]) <= int(current_line.redefines_level):
+        current_line.redefines = EMPTY_STRING
+        current_line.redefines_level = tokens[0]
     tokens[1] = tokens[1].replace(PERIOD, EMPTY_STRING)
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
    
@@ -232,9 +239,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         data_info.append(0)
     v_name = tokens[1]
     if v_name == PIC_CLAUSE:
-        v_name = current_line.highest_var_name + "-SUB"
+        current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
+        v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
     append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + v_name + "', " \
-         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "')" + NEWLINE)
+         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "')" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         var_init_list.append([COBOL_VERB_MOVE, tokens[tokens.index(VALUE_CLAUSE) + 1], EMPTY_STRING, v_name])
