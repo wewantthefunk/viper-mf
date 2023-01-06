@@ -14,6 +14,8 @@ class LexicalInfo:
         self.import_statement = []
         self.redefines = ""
         self.redefines_level = "01"
+        self.lambda_functions = []
+        self.skip_the_next_lines = 0
 
 def read_file(file: str):
     result = ""

@@ -158,7 +158,7 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
             nlt = parse_line_tokens(nl[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) < 2:
                 nlt.append(PERIOD)
-            if check_valid_verb(nlt[0]) or nlt[len(nlt) - 1] == PERIOD:
+            if check_valid_verb(nlt[0], temp_tokens[0]) or nlt[len(nlt) - 1] == PERIOD:
                 if nlt[len(nlt) - 1] == PERIOD:
                     for t in nlt:
                         temp_tokens.append(t)

@@ -30,6 +30,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     total = len(raw_lines)
     count = 0
+    skip_the_next_lines_count = 0
     for line in raw_lines:
         count = count + 1
         next_few_lines_count = LINES_AHEAD
@@ -39,6 +40,11 @@ def parse_cobol_file(file: str, target_dir: str):
                 lines_left = lines_left - 1
             next_few_lines_count = lines_left
         next_few_lines = raw_lines[count:count+next_few_lines_count]
+        if skip_the_next_lines_count == current_line.skip_the_next_lines:
+            skip_the_next_lines_count = 0
+        else:
+            skip_the_next_lines_count = skip_the_next_lines_count + 1
+            continue
         result = parse_line(line, current_division, name, first_time, current_line, next_few_lines)
         tmp = result[0]
         current_division = result[1]
@@ -49,6 +55,15 @@ def parse_cobol_file(file: str, target_dir: str):
             lines.append(tmp)
         if current_division == ABEND:
             break
+
+    lc = 0
+    for lambda_func in current_line.lambda_functions:
+        lc = lc + 1
+        append_file(name + PYTHON_EXT, NEWLINE)
+        append_file(name + PYTHON_EXT, "def _ae" + str(lc) + "():" + NEWLINE)
+        process_verb(lambda_func, name, False, 1, args, current_line)
+        append_file(name + PYTHON_EXT, NEWLINE)
+        process_verb([VERB_RESET], name, False, 1, [], current_line)
 
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE + INDENT)
     
@@ -172,8 +187,9 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     elif current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
         result = process_procedure_division_line(line, name, current_line, next_few_lines, args)
         current_line.level = result[1]
+        current_line.skip_the_next_lines = result[0]
 
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
+    parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")

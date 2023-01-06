@@ -7,10 +7,12 @@ CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
 DISP_COMMAND = "display"
+DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
 GET_COMMAND = "get"
 LITERAL = "literal"
 NEWLINE = "\n"
+NOT_EQUALS = "!="
 NUMERIC_DATA_TYPE = "9"
 NUMERIC_SIGNED_DATA_TYPE = "S9"
 OPEN_PARENS = "("
@@ -153,6 +155,44 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length))
 
     return list
+
+def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func):
+    if OPEN_PARENS not in operand1:
+        return
+
+    operand1_split = operand1.split(OPEN_PARENS)
+
+    start_at = 0
+
+    if is_all_array <= 0:
+        start_at = Get_Variable_Value(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING)) - 1
+        if start_at < 0:
+            start_at = 0
+
+    for var_list in variable_lists:
+        array_var = find_variable(var_list, operand1_split[0], [operand1_split[0]])
+        if array_var != None:
+            break
+
+    for x in range(start_at, len(array_var.occurs_indexes)):
+        array_index = array_var.occurs_indexes[x] - 1
+        val1 = array_var.occurs_values[array_index]
+
+        found = False
+
+        if operator == DOUBLE_EQUALS:
+            found = val1 == operand2
+        elif operator == NOT_EQUALS:
+            found = val1 != operand2
+            
+        if found:
+            break
+
+    if found == False:
+        not_found_func()
+
+    return found
+
 
 def Set_Variable(variable_lists, name: str, value: str, parent: str, index_pos = 0):  
     global last_command
@@ -430,23 +470,28 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
 
     return [result, is_numeric_data_type, found_count]
 
-
 def find_variable(var_list, name: str, parent):
     count = 0
-    result = EMPTY_STRING
     for var in var_list:
         if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
         if var.name == name or var.parent in parent:
             count = count + 1
-            if var.length == 0:
-                if (var.name not in parent):
-                    parent.append(var.name)
-                result = result + find_variable(var_list[count:], EMPTY_STRING, parent)
-            else:
-                return var
+            return check_var(var_list, count, var, parent)
+        else:
+            continue
             
     return None
+
+def check_var(var_list, count: int, var: COBOLVariable, parent):
+    if var.length == 0:
+        if (var.name not in parent):
+            parent.append(var.name)
+            return find_variable(var_list[count:], EMPTY_STRING, parent)
+        else:
+            return var
+    else:
+        return var
 
 def find_variable_parent(var_list, parent: str):
     result = None

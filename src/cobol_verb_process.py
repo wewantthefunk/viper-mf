@@ -21,7 +21,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             if tokens[1] == RUN_KEYWORD:
                 tokens[0] = tokens[0] + SPACE + RUN_KEYWORD
 
-    if tokens[0] in COBOL_END_BLOCK_VERBS:
+    if tokens[0] == VERB_RESET:
+        last_cmd_display = False
+        
+    elif tokens[0] in COBOL_END_BLOCK_VERBS:
         if tokens[0] != COBOL_VERB_READ_END:
             level = level - 1
             if tokens[0] == COBOL_VERB_PERFORM_END:
@@ -112,9 +115,39 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
     elif tokens[0] == COBOL_VERB_SEARCH:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0")
+        last_cmd_display = False
+        process_search_verb(tokens, name, indent, level, args, current_line)
+        level = level + 1
     
     return level
+
+def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+    all_offset = 0
+    if tokens[1] == ALL_KEYWORD:
+        all_offset = all_offset + 1
+
+    condition_index = tokens.index(COBOL_VERB_WHEN)
+
+    end_index = 0
+
+    if AT_KEYWORD in tokens and END_KEYWORD in tokens:
+        end_index = tokens.index(END_KEYWORD)
+
+    at_end_func = 'None'
+    if end_index > 0:
+        at_end_slice = tokens[end_index + 1: condition_index]
+        current_line.lambda_functions.append(at_end_slice)
+        at_end_func = "_ae" + str(len(current_line.lambda_functions))
+
+    operand2 = tokens[condition_index + 3]
+
+    if operand2.isnumeric() == False:
+        if operand2.startswith(SINGLE_QUOTE) == False:
+            temp = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
+            operand2 = temp
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if Search_Variable_Array(" + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
+        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + ","  + at_end_func + CLOSE_PARENS + COLON + NEWLINE)
 
 def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     using_args = EMPTY_STRING
@@ -429,7 +462,11 @@ def process_add_verb(tokens, name: str, level: int):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "', '" + tokens[3] + "', '" + giving + "')" + NEWLINE)
     
 
-def check_valid_verb(v: str):
+def check_valid_verb(v: str, compare_verb: str):
+    for multi_verb in COBOL_VERB_MULTI_LIST:
+        if multi_verb[0] == compare_verb and multi_verb[1] == v:
+            return False
+
     if v in COBOL_VERB_LIST:
         return True
     
