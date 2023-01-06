@@ -409,7 +409,7 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                     result = result + r[pos_length[0]: pos_length[0] + pos_length[1]]
                     break
                 elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                    result = pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
+                    result = result + pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
                     is_numeric_data_type = True
                 else:
                     if len(sub_index) == 1:

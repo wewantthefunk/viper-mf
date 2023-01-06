@@ -8,6 +8,8 @@
 
        FILE-CONTROL.  
 
+      * set the environment variable TESTFILE=test-records.txt
+      * prior to running the converted Python file
            SELECT INPUTFILE       ASSIGN TO TESTFILE
                                   FILE STATUS IS FILE-STATUS
                                   ORGANIZATION LINE SEQUENTIAL.
