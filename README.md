@@ -21,6 +21,21 @@ CALL statements call out to other convered Python modules, and any variables in 
 
 This tool is intended, for now, to be a mechanism for automated unit testing. It is "brute force", line-by-line conversion of COBOL code. There is no manipulation to use objected oriented practices or patterns, except with the cobol_variable.py module. Bad COBOL code will be bad Python code. This is not intended for production use.
 
+#### Comments in the COBOL program
+
+The comments in the COBOL are not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. Comments are added to the Python to give an indication of the corresponding COBOL Division and Section, so basic understanding of where the logic is in the Python is gained.
+
+#### Whitespace in the COBOL program
+
+The whitespace in the COBOL isu not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. 
+
+## Challenges
+
+* Hierarchical variable structure of COBOL. Some variables aren't real variables, they are concatenations of other (sub) variables. This presented a challenge.
+* REDEFINES variables in COBOL. See above, then add on more complexity.
+* Arrays in COBOL. See above and add even more complexity.
+* Error handling. COBOL doesn't have error handling, such as try/catch. So there is no error handling added by the converter.
+
 ## What's Next?
 
 Only a small set of COBOL verbs and keywords are converted, at this time. As more modules are used in testing, more verbs and keywords will be added. Conversions for CICS statements are also planned and intended.
@@ -29,13 +44,15 @@ File access is limited to sequential reads starting with the first line. Indexed
 
 Level 77 and 88 variables are not processed or handled properly in logic statements.
 
-Arrays are not processed or handled properly in logic statements.
-
 ## Bug Reporting
 
 If this code is erroneous in some way, you can submit a bug or submit a pull request with the fix. Please note, a bug is NOT a missing feature or keyword processing or anything like that. For the verbs and keywords that are processed, they should be handled correctly.
 
 Thank you!
+
+### Current Known Bugs
+
+* None discovered, but they exist.
 
 ## LICENSE
 

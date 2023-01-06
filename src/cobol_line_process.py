@@ -32,8 +32,40 @@ def process_environment_division_line(line: str, current_section: str, name: str
         current_section = INPUT_OUTPUT_SECTION
         current_line.current_section = current_section
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
+    elif line == CONFIGURATION_SECTION:
+        current_section = CONFIGURATION_SECTION
+        current_line.current_section = current_section
+        append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
+    elif line == SPECIAL_NAMES_SECTION:
+        current_section = SPECIAL_NAMES_SECTION
+        current_line.current_section = current_section
+        append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
+        append_file(name + PYTHON_EXT, UNDERSCORE + format(current_section) + "Vars = []" + NEWLINE)
+        append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + ".append(" + "_" + format(current_section) + "Vars)" + NEWLINE)
+    elif tokens[0] == CLASS_KEYWORD:
+        create_class_variable(tokens, name, next_few_lines, current_section)
 
     return [line, current_line, name, current_section, next_few_lines, args]
+
+def create_class_variable(tokens, name: str, next_few_lines, current_section: str):
+    done_class_line = False
+    for next_line in next_few_lines:
+        nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
+        for nl_token in nl_tokens:
+            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD]:
+                tokens.append(nl_token)
+            else:
+                done_class_line = True
+                break
+
+        if done_class_line:
+            break
+
+    val = tokens[2].replace(SINGLE_QUOTE, EMPTY_STRING)
+    append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + tokens[1] + "', " \
+         + str(len(val)) + ", '" + "X" + "','" + EMPTY_STRING + "','" + EMPTY_STRING + "')" + NEWLINE)
+
+    var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
 
 def create_file_variable(tokens, name: str, next_few_lines, current_section: str):
     done_file_line = False
@@ -161,6 +193,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         current_line.redefines_level = tokens[0]
     tokens[1] = tokens[1].replace(PERIOD, EMPTY_STRING)
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
+
+    occurs_length = 0
    
     if len(tokens) == 2 or PIC_CLAUSE not in tokens:  
         new_level = tokens[0]
@@ -204,6 +238,19 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if (tokens[1] not in data_division_var_stack):
                 data_division_var_stack.append(tokens[1])
                 data_division_level_stack.append(tokens[0])
+
+        if OCCURS_CLAUSE in tokens:
+            i = tokens.index(OCCURS_CLAUSE)
+            occurs_length = int(tokens[i + 1])
+
+        if INDEXED_CLAUSE in tokens:
+            i = tokens.index(INDEXED_CLAUSE) + 1
+            if BY_KEYWORD in tokens:
+                i = i + 1
+            append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
+                + "10, '9','" + tokens[i] + "','',0)" + NEWLINE)
+            
+
     elif current_line.highest_ws_level < int(tokens[0]):
         if len(data_division_var_stack) > 0:
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
@@ -242,7 +289,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
     append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + v_name + "', " \
-         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "')" + NEWLINE)
+         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + ")" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         var_init_list.append([COBOL_VERB_MOVE, tokens[tokens.index(VALUE_CLAUSE) + 1], EMPTY_STRING, v_name])

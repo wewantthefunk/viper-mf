@@ -115,12 +115,12 @@ def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: 
 
         t = e.strip()
         if (t.startswith("'") and not in_literal):
-            literal = literal + t + " "
+            literal = literal + t
             in_literal = True
             if (t.endswith("'") and t != "'"):
                 in_literal = False
         elif (t.endswith("'")):
-            literal = literal + t
+            literal = literal + " " + t
             t = literal
             in_literal = False
             literal = ""

@@ -226,6 +226,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             positions = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
             slice_length = int(positions[0]) -1 + int(positions[1])
             slice_compare = OPEN_BRACKET + str(int(positions[0]) - 1) + COLON + str(slice_length) + CLOSE_BRACKET
+        elif OPEN_PARENS in token and CLOSE_PARENS in token:
+            i = 0
         else:
             if token.startswith(OPEN_PARENS):
                 line = line + OPEN_PARENS
