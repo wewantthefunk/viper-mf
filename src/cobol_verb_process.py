@@ -16,6 +16,11 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
 
+    if tokens[0] == STOP_KEYWORD:
+        if len(tokens) > 1:
+            if tokens[1] == RUN_KEYWORD:
+                tokens[0] = tokens[0] + SPACE + RUN_KEYWORD
+                
     if tokens[0] in COBOL_END_BLOCK_VERBS:
         if tokens[0] != COBOL_VERB_READ_END:
             level = level - 1
@@ -124,10 +129,11 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = main_" + tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING) + OPEN_PARENS)
     append_file(name + PYTHON_EXT, using_args)
     append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "for cr in call_result:" + NEWLINE)
-    count = 0
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
     for param in params:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
 
 def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:

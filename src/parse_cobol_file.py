@@ -176,4 +176,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellowo7_if_statement.cbl", "converted/")
+    parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
