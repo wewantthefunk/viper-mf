@@ -20,7 +20,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         if len(tokens) > 1:
             if tokens[1] == RUN_KEYWORD:
                 tokens[0] = tokens[0] + SPACE + RUN_KEYWORD
-                
+
     if tokens[0] in COBOL_END_BLOCK_VERBS:
         if tokens[0] != COBOL_VERB_READ_END:
             level = level - 1
@@ -35,6 +35,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         last_cmd_display = False
     elif tokens[0] == COBOL_VERB_MOVE:
         process_move_verb(tokens, name, indent, level)
+        last_cmd_display = False
+    elif tokens[0] == COBOL_VERB_SET:
+        process_move_verb([COBOL_VERB_MOVE, tokens[3], tokens[2], tokens[1]], name, indent, level)
         last_cmd_display = False
     elif tokens[0] == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
