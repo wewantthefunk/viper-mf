@@ -3,6 +3,9 @@ import os
 from os.path import exists
 
 ADD_COMMAND = "add"
+CLOSE_PARENS = ")"
+COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
+COLON = ":"
 DISP_COMMAND = "display"
 EMPTY_STRING = ""
 GET_COMMAND = "get"
@@ -10,6 +13,7 @@ LITERAL = "literal"
 NEWLINE = "\n"
 NUMERIC_DATA_TYPE = "9"
 NUMERIC_SIGNED_DATA_TYPE = "S9"
+OPEN_PARENS = "("
 SET_COMMAND = "set"
 SPACE = " "
 SPACES_INITIALIZER = "____spaces"
@@ -19,7 +23,7 @@ ZERO = "0"
 last_command = ""
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -28,7 +32,10 @@ class COBOLVariable:
         else:
             self.parent = EMPTY_STRING
         self.value = EMPTY_STRING
+        self.occurs_values = []
+        self.occurs_indexes = []
         self.redefines = redefines
+        self.occurs_length = occurs_length
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -131,7 +138,7 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
     return list
 
 
-def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING):
+def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0):
     global last_command
     check_for_last_command(ADD_COMMAND)
     last_command = ADD_COMMAND
@@ -142,36 +149,43 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
     if data_type == NUMERIC_SIGNED_DATA_TYPE:
         data_type = NUMERIC_DATA_TYPE
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length))
 
     return list
 
-def Set_Variable(variable_lists, name: str, value: str, parent: str):  
+def Set_Variable(variable_lists, name: str, value: str, parent: str, index_pos = 0):  
     global last_command
     check_for_last_command(SET_COMMAND)
     last_command = SET_COMMAND  
     sub_index = []
-    if "(" in name:
-        s = name.split("(")
-        s1 = s[1].split(":")
-        start = int(s1[0]) - 2
-        if start < 0:
-            start = 0
-        sub_index = [start, int(s1[1].replace("(", EMPTY_STRING).replace(")", EMPTY_STRING)) + int(s1[0]) - 1]
+    if OPEN_PARENS in name:
+        s = name.split(OPEN_PARENS)
+        if COLON in s[1]:
+            s1 = s[1].split(COLON)
+            start = int(s1[0]) - 2
+            if start < 0:
+                start = 0
+            sub_index = [start, int(s1[1].replace(OPEN_PARENS, EMPTY_STRING).replace(CLOSE_PARENS, EMPTY_STRING)) + int(s1[0]) - 1]
+        else:
+            if s[1].replace(CLOSE_PARENS, EMPTY_STRING).isnumeric():
+                sub_index = [int(s[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+            else:
+                val = Get_Variable_Value(variable_lists, s[1].replace(CLOSE_PARENS, EMPTY_STRING), s[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                sub_index = [val]
         name = s[0]
-    if "(" in parent:
-        ps = parent.split("(")
+    if OPEN_PARENS in parent:
+        ps = parent.split(OPEN_PARENS)
         parent = ps[0]
     for var_list in variable_lists:
-        result = search_variable_list(var_list, name, value, [parent], sub_index)
+        result = search_variable_list(var_list, name, value, [parent], sub_index, index_pos, var_list)
         if result:
             break
 
-def search_variable_list(var_list, name: str, value: str, parent: str, sub_index: str):
+def search_variable_list(var_list, name: str, value: str, parent: str, sub_index: str, index_pos: str, orig_var_list):
     count = 0
     found = False
     for var in var_list:
-        if "COBOLFileVariable" in str(type(var_list[0])):
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
         if var.name == name or var.parent in parent:
             name = var.name
@@ -180,7 +194,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
             if var.length == 0:
                 if (var.name not in parent):
                     parent.append(var.name)
-                found = search_variable_list(var_list[count:], EMPTY_STRING, value, parent, sub_index)
+                found = search_variable_list(var_list[count:], EMPTY_STRING, value, parent, sub_index, index_pos, orig_var_list)
             else:
                 is_spaces = False
                 if value == SPACES_INITIALIZER:
@@ -194,23 +208,51 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                         value = 0
                 offset = var.length
                 if len(sub_index) > 0:
-                    if var.length >= sub_index[0]:
-                        var.value = var.value[:sub_index[0]] + str(value) + var.value[sub_index[1]:]
+                    if str(sub_index[0]).isnumeric() == False:
+                        offset = 0
+
+                    elif var.length >= sub_index[0] or len(sub_index) == 1:
+                        t_value = value
+
+                        if len(sub_index) == 2:
+                            var.value[:sub_index[0]] + str(value) + var.value[sub_index[1]:]
+                        _update_var_value(orig_var_list, var, t_value, sub_index)
                     else:
                         offset = 0
                 else:
-                    var.value = str(value)[0:var.length]
+                    _update_var_value(orig_var_list, var, str(value)[0:var.length], [])
+
                 if (len(str(value)) > var.length and (name not in parent or name == EMPTY_STRING) and var.parent != EMPTY_STRING) or is_spaces:
                     if var.parent not in parent:
                         parent.append(var.parent)
                     if is_spaces:
                         value = SPACES_INITIALIZER
                         offset = 0
-                    found = search_variable_list(var_list[count:], EMPTY_STRING, value[offset:], parent, sub_index)
+                    found = search_variable_list(var_list[count:], EMPTY_STRING, value[offset:], parent, sub_index, index_pos, orig_var_list)
 
             break
 
     return found
+
+def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
+    parent = find_variable_parent(var_list, var.parent)
+    occurs_length = 0
+    if parent != None:
+        if parent.occurs_length > 0 and len(sub_index) > 0:
+            if sub_index[0] > parent.occurs_length:
+                return
+            occurs_length = parent.occurs_length
+    
+    if len(sub_index) == 2:
+        var.value = var.value[:sub_index[0]] + str(value) + var.value[sub_index[1]:]
+    elif len(sub_index) == 1 and occurs_length > 0:
+        if sub_index[0] in var.occurs_indexes:
+            var.occurs_values[sub_index[0]] = value
+        else:
+            var.occurs_indexes.append(sub_index[0])
+            var.occurs_values.append(value)
+    else:
+        var.value = str(value)[0:var.length]
 
 def Update_Variable(variable_lists, value: str, name: str, parent: str):
     global last_command
@@ -261,7 +303,7 @@ def Get_Variable_Length(variable_lists, name: str):
 def find_get_variable_length(var_list, name: str, parent):
     result = 0
     for var in var_list:
-        if "COBOLFileVariable" in str(type(var_list[0])):
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
         if var.name == name or var.parent in parent:
             if var.length == 0:
@@ -289,7 +331,7 @@ def find_get_variable_position(var_list, name: str, parent):
     result = 0
     length = 0
     for var in var_list:
-        if "COBOLFileVariable" in str(type(var_list[0])):
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
         if var.parent == EMPTY_STRING:
             result = 0
@@ -310,8 +352,27 @@ def Get_Variable_Value(variable_lists, name: str, parent: str):
     last_command = GET_COMMAND
     t = EMPTY_STRING
     is_numeric_data_type = False
+
+    sub_index = []
+    if OPEN_PARENS in name:
+        s1 = name.split(OPEN_PARENS)
+        name = s1[0]
+        if COLON in s1[1]:
+            subs = s1[1].split(COLON)
+            sub_index = [int(subs[0]), int(subs[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+        else:
+            if s1[1].replace(CLOSE_PARENS, EMPTY_STRING).isnumeric():
+                sub_index = [int(s1[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+            else:
+                val = Get_Variable_Value(variable_lists, s1[1].replace(CLOSE_PARENS, EMPTY_STRING), s1[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                sub_index = [int(val)]
+
+    if OPEN_PARENS in parent:
+        s1 = parent.split(OPEN_PARENS)
+        parent = s1[0]
+
     for var_list in variable_lists:
-        result = find_get_variable(var_list, name, [parent])
+        result = find_get_variable(var_list, name, [parent], variable_lists, sub_index)
         t = t + result[0]
         if result[1] == True:
             is_numeric_data_type = result[1]
@@ -323,34 +384,57 @@ def Get_Variable_Value(variable_lists, name: str, parent: str):
 
     return t
 
-def find_get_variable(var_list, name: str, parent):
+def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index):
     result = EMPTY_STRING
     is_numeric_data_type = False
-    for var in var_list:
-        if "COBOLFileVariable" in str(type(var_list[0])):
+    count = 0
+    found_count = 0
+    while count < len(var_list):
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
+            count = count + 1
             continue
-        if var.name == name or var.parent in parent:
-            if var.length == 0:
-                if (var.name not in parent):
-                    parent.append(var.name)
-            else:
-                padc = SPACE
-                if var.data_type == NUMERIC_DATA_TYPE:
-                    padc = ZERO
-                    result = result + str(var.value).rjust(var.length, padc)[:var.length]
+        if var_list[count].name == name or var_list[count].parent == parent:
+            if var_list[count].length == 0:
+                r = find_get_variable(var_list[count:], EMPTY_STRING, var_list[count].name, orig_var_list, sub_index)
+                found_count = found_count + r[2]
+                result = result + r[0]
+                is_numeric_data_type = r[1]
+                count = count + found_count
+            else:     
+                found_count = found_count + 1
+                if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
+                    pos_length = find_get_variable_position(var_list, var_list[count].name, [var_list[count].name])
+                    r = find_get_variable(orig_var_list, var_list[count].redefines, [var_list[count].redefines], orig_var_list, sub_index)[0]
+                    result = result + r[pos_length[0]: pos_length[0] + pos_length[1]]
+                    break
+                elif var_list[count].data_type == NUMERIC_DATA_TYPE:
+                    result = pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
                     is_numeric_data_type = True
                 else:
-                    is_numeric_data_type = False
-                    result = result + str(var.value).ljust(var.length, padc)[:var.length]
+                    if len(sub_index) == 1:
+                        if sub_index[0] in var_list[count].occurs_indexes:
+                            index = var_list[count].occurs_indexes.index(sub_index[0])
+                            if (index >= 0):
+                                result = result + var_list[count].occurs_values[index].ljust(var_list[count].length)[:var_list[count].length]
+                            else:
+                                result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
+                        else:
+                            result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
+                    else:
+                        result = result + var_list[count].value.ljust(var_list[count].length)[:var_list[count].length]
 
-    return [result, is_numeric_data_type]
+        count = count + 1
+        if count > len(var_list):
+            break
+
+    return [result, is_numeric_data_type, found_count]
 
 
 def find_variable(var_list, name: str, parent):
     count = 0
     result = EMPTY_STRING
     for var in var_list:
-        if "COBOLFileVariable" in str(type(var_list[0])):
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
         if var.name == name or var.parent in parent:
             count = count + 1
@@ -363,31 +447,69 @@ def find_variable(var_list, name: str, parent):
             
     return None
 
+def find_variable_parent(var_list, parent: str):
+    result = None
+    if parent != EMPTY_STRING:
+        for var in var_list:
+            if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
+                continue
+            if var.name == parent:
+                if var.parent != EMPTY_STRING:
+                    result = find_variable_parent(var_list, var.parent)
+                else:
+                    result = var
+                    break
+    
+    return result
+
 def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     global last_command
     check_for_last_command(DISP_COMMAND)
     last_command = DISP_COMMAND
+
+    sub_index = []
+    if OPEN_PARENS in name:
+        s1 = name.split(OPEN_PARENS)
+        name = s1[0]
+        if COLON in s1[1]:
+            subs = s1[1].split(COLON)
+            sub_index = [int(subs[0]), int(subs[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+        else:
+            if s1[1].replace(CLOSE_PARENS, EMPTY_STRING).isnumeric():
+                sub_index = [int(s1[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+            else:
+                val = Get_Variable_Value(variable_lists, s1[1].replace(CLOSE_PARENS, EMPTY_STRING), s1[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                sub_index = [int(val)]
+
+    if OPEN_PARENS in parent:
+        s1 = parent.split(OPEN_PARENS)
+        parent = s1[0]
+
     if (parent == LITERAL):
         print(name, end =EMPTY_STRING)
         if is_last:
             print(EMPTY_STRING)
     else:
         for var_list in variable_lists:
-            found_count = search_display_variable_list(var_list, name, parent, 0, var_list)
+            found_count = search_display_variable_list(var_list, name, parent, 0, var_list, sub_index)
             if found_count > 0:
                 break
 
-def search_display_variable_list(var_list, name: str, parent: str, level: int, orig_var_list):
+def search_display_variable_list(var_list, name: str, parent: str, level: int, orig_var_list, sub_index):
     count = 0
     found_count = 0
     level = level + 1
-    while count < len(var_list):
-        if "COBOLFileVariable" in str(type(var_list[0])):
+    result = find_get_variable(var_list, name, parent, orig_var_list, sub_index)
+    if result[0] != EMPTY_STRING:
+        print(result[0], end=EMPTY_STRING)
+        found_count = found_count + 1
+        """
+        if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             count = count + 1
             continue
         if var_list[count].name == name or var_list[count].parent == parent:
             if var_list[count].length == 0:
-                found_count = found_count + search_display_variable_list(var_list[count:], EMPTY_STRING, var_list[count].name, level, orig_var_list)
+                found_count = found_count + search_display_variable_list(var_list[count:], EMPTY_STRING, var_list[count].name, level, orig_var_list, sub_index)
                 count = count + found_count
             else:     
                 found_count = found_count + 1
@@ -397,14 +519,24 @@ def search_display_variable_list(var_list, name: str, parent: str, level: int, o
                     print(result[pos_length[0]: pos_length[0] + pos_length[1]], end =EMPTY_STRING)
                     break
                 elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                    print(pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value), end =EMPTY_STRING)
+                    print(pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length], end =EMPTY_STRING)
                 else:
-                    print(var_list[count].value.ljust(var_list[count].length), end =EMPTY_STRING)
-
+                    if len(sub_index) == 1:
+                        if sub_index[0] in var_list[count].occurs_indexes:
+                            index = var_list[count].occurs_indexes.index(sub_index[0])
+                            if (index >= 0):
+                                print(var_list[count].occurs_values[index].ljust(var_list[count].length)[:var_list[count].length], end =EMPTY_STRING)
+                            else:
+                                print(EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length], end =EMPTY_STRING)
+                        else:
+                            print(EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length], end =EMPTY_STRING)
+                    else:
+                        print(var_list[count].value.ljust(var_list[count].length)[:var_list[count].length], end =EMPTY_STRING)
+        
         count = count + 1
         if count > len(var_list):
             break
-
+        """
 
     return found_count
 
