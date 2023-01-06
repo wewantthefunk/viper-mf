@@ -13,13 +13,15 @@ The purpose of this utility is to transform COBOL code into Python code. The pro
 
 This converter will brute force translate a COBOL module line-by-line into an equivalent Python statement. Several "helper" functions have been created to accomodate for COBOL's hierarchichal variable structure. These helper functions are located in the cobol_variable.py module. This module must be carried with the converted .py modules as a dependency.
 
-File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file is created that is named the ASSIGN value.
+### Things to know
 
-CALL statements call out to other convered Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module.
+* File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file status of 35 is assigned to the field designated.
+
+* CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module.
 
 ### Limitations and Understanding
 
-This tool is intended, for now, to be a mechanism for automated unit testing. It is "brute force", line-by-line conversion of COBOL code. There is no manipulation to use objected oriented practices or patterns, except with the cobol_variable.py module. Bad COBOL code will be bad Python code. This is not intended for production use.
+This tool is intended, for now, to be a mechanism for automated unit testing. It is a "brute force", line-by-line conversion of COBOL code. There is no manipulation to use objected oriented practices or patterns, except with the cobol_variable.py module. Bad COBOL code will be bad Python code. This is not intended for production use.
 
 #### Comments in the COBOL program
 
@@ -27,7 +29,7 @@ The comments in the COBOL are not copied to the Python program. The Python progr
 
 #### Whitespace in the COBOL program
 
-The whitespace in the COBOL isu not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. 
+The whitespace in the COBOL is not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. 
 
 ## Challenges
 
@@ -35,6 +37,7 @@ The whitespace in the COBOL isu not copied to the Python program. The Python pro
 * REDEFINES variables in COBOL. See above, then add on more complexity.
 * Arrays in COBOL. See above and add even more complexity.
 * Error handling. COBOL doesn't have error handling, such as try/catch. So there is no error handling added by the converter.
+* Quotes for literals MUST be single quotes (') in the COBOL program. Double quotes are not processed as literals.
 
 ## What's Next?
 

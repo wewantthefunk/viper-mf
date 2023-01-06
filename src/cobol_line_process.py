@@ -9,6 +9,8 @@ var_init_list = []
 
 
 def process_identification_division_line(line: str, name: str):
+    global var_init_list
+    var_init_list = []
     if is_valid_verb(line, COBOL_IDENTIFICATION_DIVISION_VERBS):
         if COBOL_IDENTIFICATION_DIVISION_VERBS[0] in line:
             tmp = line.replace(COBOL_IDENTIFICATION_DIVISION_VERBS[0], EMPTY_STRING, 1)

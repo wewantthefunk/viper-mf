@@ -80,7 +80,8 @@ class COBOLFileVariable:
         return [line, at_end]
 
     def write(self, data: str):
-        self.file_pointer.write(data)
+        if self.file_pointer != None:
+            self.file_pointer.write(data)
 
 def Open_File(variables_list, var_list, name: str, method: str):
     for var in var_list:
@@ -101,7 +102,7 @@ def Read_File(var_list, file_rec_var_list, name: str, at_end_clause: str):
             read_result = var.read()
             if read_result[1]:
                 break
-            search_variable_list(file_rec_var_list, var.record, read_result[0], var.record, [])
+            search_variable_list(file_rec_var_list, var.record, read_result[0], var.record, [], 0, file_rec_var_list)
             break
 
     return read_result[1]
@@ -496,7 +497,6 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
                 break
 
 def search_display_variable_list(var_list, name: str, parent: str, level: int, orig_var_list, sub_index):
-    count = 0
     found_count = 0
     level = level + 1
     result = find_get_variable(var_list, name, parent, orig_var_list, sub_index)

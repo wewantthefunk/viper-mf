@@ -1,0 +1,54 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLOW12.
+       AUTHOR. CHRISTIAN STRAMA.
+
+       ENVIRONMENT DIVISION. 
+
+       INPUT-OUTPUT SECTION.
+
+       FILE-CONTROL.  
+
+           SELECT INPUTFILE       ASSIGN TO TESTFILE
+                                  FILE STATUS IS FILE-STATUS
+                                  ORGANIZATION LINE SEQUENTIAL.
+
+       DATA DIVISION.
+
+       FILE SECTION. 
+
+       FD INPUTFILE 
+           RECORD CONTAINS 14 CHARACTERS.
+
+       01  TEST-REC.
+           02 RRB-NUMBER  PIC X(14).
+
+       WORKING-STORAGE SECTION.
+
+       01 NO-MORE-RECORDS  PIC X(1) VALUE 'Y'.
+
+       01 FILE-STATUS      PIC X(2).
+
+       PROCEDURE DIVISION.
+
+           OPEN INPUT INPUTFILE.    
+
+           IF FILE-STATUS = '00'
+              MOVE 'N' TO NO-MORE-RECORDS
+           ELSE 
+              DISPLAY 'error opening file - ' FILE-STATUS 
+           END-IF.
+
+           PERFORM UNTIL NO-MORE-RECORDS = 'Y'
+              READ INPUTFILE
+                 AT END MOVE 'Y' TO NO-MORE-RECORDS
+
+              IF NO-MORE-RECORDS = 'N'
+                 DISPLAY TEST-REC
+              END-IF
+           END-PERFORM.
+
+           CLOSE INPUTFILE.
+       
+
+           STOP RUN.
+
