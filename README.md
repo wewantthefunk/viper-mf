@@ -78,7 +78,6 @@ Thank you!
 ### Current Known Bugs
 
 * PERFORM VARYING UNTIL loop is not correct in translation (hellow25_perform_varying_loop.cbl)
-* ZERO keyword is not acting correctly when doing a comparison (hellow27_zero_keyword.cbl)
 
 ## LICENSE
 

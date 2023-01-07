@@ -293,7 +293,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             line = line + "pad_char(" + str(slice_length) + COMMA + tokens[count + 1] + CLOSE_PARENS
             in_ALL_function = True
         elif token == ZERO_KEYWORD:
-            line = line + "pad_char(" + str(slice_length) + COMMA + SINGLE_QUOTE + ZERO + SINGLE_QUOTE + CLOSE_PARENS
+            line = line + ZERO
         elif is_operator(token):
             if opposite_operator:
                 line = line + SPACE + convert_operator_opposite(token) + SPACE
