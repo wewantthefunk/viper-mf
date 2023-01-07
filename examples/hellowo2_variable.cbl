@@ -12,7 +12,8 @@
            
            MOVE 'hello world' TO HELLO-WORLD.
 
-           DISPLAY HELLO-WORLD.
+           DISPLAY 'expected value hello world'
+           DISPLAY 'actual value   ' HELLO-WORLD.
 
            STOP RUN.
 

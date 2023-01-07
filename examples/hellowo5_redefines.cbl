@@ -24,9 +24,11 @@
            
            MOVE 'hello world' TO HELLO-WORLD.
 
-           DISPLAY HELLO-WORLD.
+           DISPLAY 'expected value hello world'.
+           DISPLAY 'actual value   ' HELLO-WORLD.
 
-           DISPLAY WS-2-TWO.
+           DISPLAY 'expected value ld'
+           DISPLAY 'actual value   ' WS-2-TWO.
 
            STOP RUN.
 

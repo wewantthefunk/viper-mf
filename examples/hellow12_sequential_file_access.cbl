@@ -49,8 +49,7 @@
               END-IF
            END-PERFORM.
 
-           CLOSE INPUTFILE.
-       
+           CLOSE INPUTFILE.       
 
            STOP RUN.
 

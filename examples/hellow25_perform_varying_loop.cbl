@@ -10,6 +10,8 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expecting numbers 1-10 printed from loop'
+           
            PERFORM VARYING TEST-COUNT FROM 1
                 BY 1 UNTIL TEST-COUNT < 10
                 DISPLAY TEST-COUNT

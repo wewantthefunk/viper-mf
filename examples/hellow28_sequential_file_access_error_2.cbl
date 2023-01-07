@@ -1,5 +1,5 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. HELLOW14.
+       PROGRAM-ID. HELLOW28.
        AUTHOR. CHRISTIAN STRAMA.
 
        ENVIRONMENT DIVISION. 
@@ -8,7 +8,7 @@
 
        FILE-CONTROL.  
 
-           SELECT INPUTFILE       ASSIGN TO JUNKFILE
+           SELECT INPUTFILE       ASSIGN TO NOFILE
                                   FILE STATUS IS FILE-STATUS
                                   ORGANIZATION LINE SEQUENTIAL.
 
@@ -33,8 +33,8 @@
            DISPLAY 'file status should be 35'
            DISPLAY 'it is actually        '
               FILE-STATUS
-              
-           CLOSE INPUTFILE.
+
+           CLOSE INPUTFILE.       
 
            STOP RUN.
 

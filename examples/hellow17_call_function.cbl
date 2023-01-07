@@ -4,6 +4,9 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected message:'
+           DISPLAY 'Called module HELLOW18'
+           DISPLAY 'actual message:'
            CALL 'HELLOW18'.
 
            STOP RUN.

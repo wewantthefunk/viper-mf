@@ -16,7 +16,11 @@
            MOVE 'hi' TO VALUE-ONE(TS-INDEX).
       * multi condition if statement
            IF VALUE-ONE(TS-INDEX) = 'hi' AND TS-INDEX = 3
-              DISPLAY 'if condition successful'
+              DISPLAY 'AND if condition successful'
+           END-IF.
+
+           IF VALUE-ONE(TS-INDEX) = 'hello' OR TS-INDEX = 3
+               DISPLAY 'OR if condition successful'
            END-IF.
 
 

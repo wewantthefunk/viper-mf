@@ -22,18 +22,20 @@
 
            MOVE 1 TO TS-INDEX.
 
+           DISPLAY 'expected value is value found'
            SEARCH TEST-ARRAY 
-              AT END DISPLAY 'value not found'
+              AT END DISPLAY 'actual value is   not found'
               WHEN VALUE-ONE(TS-INDEX) = 'gh'
-                 DISPLAY 'value found'
+                 DISPLAY 'actual value is   value found'
            END-SEARCH.
 
            MOVE 4 TO TS-INDEX.
 
+           DISPLAY 'expected value is value not found'
            SEARCH TEST-ARRAY 
-              AT END DISPLAY 'value not found'
+              AT END DISPLAY 'actual value is   value not found'
               WHEN VALUE-ONE(TS-INDEX) = 'ab'
-                 DISPLAY 'value found'
+                 DISPLAY 'actual value is   value found'
            END-SEARCH.
 
            STOP RUN.

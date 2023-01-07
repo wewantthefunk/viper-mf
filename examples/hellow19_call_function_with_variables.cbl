@@ -10,6 +10,10 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected message:'
+           DISPLAY 'Called module HELLOW20'
+
+           DISPLAY 'actual message:'
            CALL 'HELLOW20' USING PASSED-VARIABLE.
 
            DISPLAY 'expecting returned value of HELLOW20'
