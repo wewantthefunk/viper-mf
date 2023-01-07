@@ -1,0 +1,3 @@
+cd ../converted/
+
+rm *.py

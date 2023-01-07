@@ -387,7 +387,7 @@ def find_get_variable_position(var_list, name: str, parent):
 
     return [result, length]
 
-def Get_Variable_Value(variable_lists, name: str, parent: str):
+def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False):
     global last_command
     check_for_last_command(GET_COMMAND)
     last_command = GET_COMMAND
@@ -418,7 +418,7 @@ def Get_Variable_Value(variable_lists, name: str, parent: str):
         if result[1] == True:
             is_numeric_data_type = result[1]
 
-    if is_numeric_data_type:
+    if is_numeric_data_type and force_str == False:
         if t == EMPTY_STRING:
             t = "0"
         return int(t)

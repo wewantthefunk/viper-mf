@@ -1,3 +1,7 @@
+cd ../converted/
+
+rm *.py
+
 cd ../src/
 
 python3 main.py
