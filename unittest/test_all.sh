@@ -116,3 +116,7 @@ echo
 echo HELLOW28 - squential file access, environment variable set, file does not exist
 export NOFILE=missing.txt
 python3 HELLOW28.py
+
+echo
+echo HELLOW29 - nested if statement
+python3 HELLOW29.py
