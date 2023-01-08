@@ -6,12 +6,12 @@
 
        WORKING-STORAGE SECTION.
 
-       01  PASSED-VARIABLE  PIC X(8).
+       01  PASSED-VARIABLE  PIC X(8) VALUE 'default '.
 
        PROCEDURE DIVISION.
 
            DISPLAY 'expected message:'
-           DISPLAY 'Called module HELLOW20'
+           DISPLAY 'Called module HELLOW20 default *'
 
            DISPLAY 'actual message:'
            CALL 'HELLOW20' USING PASSED-VARIABLE.

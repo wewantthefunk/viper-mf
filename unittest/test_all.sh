@@ -124,3 +124,35 @@ python3 HELLOW28.py
 echo
 echo HELLOW29 - nested if statement
 python3 HELLOW29.py
+
+echo
+echo HELLOW30 - add/addition verb
+python3 HELLOW30.py
+
+echo
+echo HELLOW31 - add/addition with giving verb
+python3 HELLOW31.py
+
+echo
+echo HELLOW32 - add/addition verb using a variable
+python3 HELLOW32.py
+
+echo
+echo HELLOW33 - add/addition with giving verb using a variable
+python3 HELLOW33.py
+
+echo
+echo HELLOW34 - call function using a variable
+python3 HELLOW34.py
+
+echo
+echo HELLOW35 - call receive function
+python3 HELLOW35.py
+
+echo
+echo HELLOW36 - call function using a variable passing variables
+python3 HELLOW36.py
+
+echo
+echo HELLOW37 - call receive function with variable arguments
+python3 HELLOW37.py

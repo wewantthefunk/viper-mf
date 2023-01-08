@@ -78,6 +78,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         func_name = tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + CLOSE_PARENS + COLON + NEWLINE)
         level = level + 1
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + CALL_RESULT_INCLUDE + NEWLINE)
         last_cmd_display = False
     elif tokens[0] == COBOL_VERB_EVALUATE:
         is_first_when = True
@@ -152,6 +153,9 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
 def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     using_args = EMPTY_STRING
     params = []
+    quoted = EMPTY_STRING
+    if tokens[1].startswith(SINGLE_QUOTE) == False:
+        quoted = SINGLE_QUOTE
     if (len(tokens) > 2 and tokens[2] == USING_KEYWORD):
         params = parse_line_tokens(tokens[3], COMMA, EMPTY_STRING, False)
         param_count = 0
@@ -159,12 +163,23 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
             if param_count > 0:
                 using_args = using_args + COMMA
             param_count = param_count + 1
-            using_args = using_args + "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')"
+            using_args = using_args + quoted + "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
 
-    current_line.import_statement.append(tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING))
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = main_" + tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING) + OPEN_PARENS)
-    append_file(name + PYTHON_EXT, using_args)
-    append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
+    called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = None" + NEWLINE)
+    if tokens[1].startswith(SINGLE_QUOTE):        
+        current_line.import_statement.append(tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING))
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = main_" + called_program + OPEN_PARENS)
+        append_file(name + PYTHON_EXT, using_args)
+        append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
+    else:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "exec(\"from \" + Get_Variable_Value(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + tokens[1] + "') + \" import *\")" + NEWLINE)
+
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "exec('call_result = main_' + Get_Variable_Value(" + VARIABLES_LIST_NAME + ", \"" + tokens[1] + "\",\"" + tokens[1] + "\") + '('")
+        if using_args != EMPTY_STRING:
+            append_file(name + PYTHON_EXT, " + " + using_args + " + ")
+        append_file(name + PYTHON_EXT, "')')" +  NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
@@ -459,7 +474,11 @@ def process_add_verb(tokens, name: str, level: int):
     giving = tokens[3]
     if GIVING_KEYWORD in tokens:
         giving = tokens[5]
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "', '" + tokens[3] + "', '" + giving + "')" + NEWLINE)
+    mod = "'" + tokens[1] + "'"
+    if tokens[1].isnumeric() == False:
+        mod = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + "," + mod + ", '" + tokens[3] + "', '" + giving + "')" + NEWLINE)
     
 
 def check_valid_verb(v: str, compare_verb: str):

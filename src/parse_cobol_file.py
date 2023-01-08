@@ -159,6 +159,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         count = count + 1
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT)) + CALL_RESULT_INCLUDE + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -176,6 +177,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
+        append_file(name + PYTHON_EXT, "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
         append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + " = []" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
@@ -191,4 +193,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellow27_zero_keyword.cbl", "converted/")
+    parse_cobol_file("examples/hellow34_call_function_with_variable.cbl", "converted/")
