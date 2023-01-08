@@ -10,7 +10,7 @@
 
        PROCEDURE DIVISION USING PASSED-VARIABLE.
 
-           DISPLAY 'Called module HELLOW37'.
+           DISPLAY 'Called module HELLOW37 ' PASSED-VARIABLE '*'.
 
            MOVE 'HELLOW37' TO PASSED-VARIABLE.
 

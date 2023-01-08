@@ -13,7 +13,13 @@
            DISPLAY 'expecting numbers 1-10 printed from loop'
            
            PERFORM VARYING TEST-COUNT FROM 1
-                BY 1 UNTIL TEST-COUNT < 10
+                BY 1 UNTIL TEST-COUNT > 10
+                DISPLAY TEST-COUNT
+           END-PERFORM.
+
+           DISPLAY 'expecting numbers 10 - 1 printed from loop'
+           PERFORM VARYING TEST-COUNT FROM 10
+                BY -1 UNTIL TEST-COUNT = 0
                 DISPLAY TEST-COUNT
            END-PERFORM.
 

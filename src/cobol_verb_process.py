@@ -154,8 +154,7 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     using_args = EMPTY_STRING
     params = []
     quoted = EMPTY_STRING
-    if tokens[1].startswith(SINGLE_QUOTE) == False:
-        quoted = SINGLE_QUOTE
+
     if (len(tokens) > 2 and tokens[2] == USING_KEYWORD):
         params = parse_line_tokens(tokens[3], COMMA, EMPTY_STRING, False)
         param_count = 0
@@ -174,12 +173,17 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, using_args)
         append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
     else:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "exec(\"from \" + Get_Variable_Value(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + tokens[1] + "') + \" import *\")" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function_name = 'main_' + Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module = importlib.import_module(module_name)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function = getattr(module, function_name)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = function(" + using_args + CLOSE_PARENS + NEWLINE)
+        """append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "exec(\"from \" + Get_Variable_Value(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + tokens[1] + "') + \" import *\")" + NEWLINE)
 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "exec('call_result = main_' + Get_Variable_Value(" + VARIABLES_LIST_NAME + ", \"" + tokens[1] + "\",\"" + tokens[1] + "\") + '('")
         if using_args != EMPTY_STRING:
             append_file(name + PYTHON_EXT, " + " + using_args + " + ")
-        append_file(name + PYTHON_EXT, "')')" +  NEWLINE)
+        append_file(name + PYTHON_EXT, "')')" +  NEWLINE)"""
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)

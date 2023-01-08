@@ -177,6 +177,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
+        append_file(name + PYTHON_EXT, "import importlib" + NEWLINE)
         append_file(name + PYTHON_EXT, "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
         append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + " = []" + NEWLINE)
