@@ -93,7 +93,6 @@ Thank you!
 ### Current Known Bugs
 
 * PERFORM VARYING UNTIL loop is not correct in conversion (hellow25_perform_varying_loop.cbl)
-* CALL statement using a variable for the target program, passing variables with a USING statement (hellow36_call_function_with_variable.cbl)
 
 ## LICENSE
 
