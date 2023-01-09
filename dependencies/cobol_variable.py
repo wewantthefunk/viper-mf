@@ -461,29 +461,27 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
             continue
         if var_list[count].name == name or var_list[count].parent == parent:
             if var_list[count].length == 0:
-                if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
-                    x = 0
-                #else:
                 r = find_get_variable(var_list[count:], EMPTY_STRING, var_list[count].name, orig_var_list, sub_index)
                 found_count = found_count + r[2]
                 result = result + r[0]
                 is_numeric_data_type = r[1]
                 if var_list[count].name == parent:
-                    break
-                count = count + found_count
+                    # drop out now, or else we will get the same data twice
+                    break                
             else:     
-                found_count = found_count + 1
                 if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
                     pos_length = find_get_variable_position(var_list, var_list[count].name, var_list[count].name)
                     r1 = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, [])[0]
-                    #what is this all about?
                     if len(sub_index) > 0:
                         result = result + r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]]
+                        found_count = found_count + 1
                     else:
                         result = result + r1[pos_length[0]: pos_length[0] + pos_length[1]]
+                        found_count = found_count + 1
                     break
                 elif var_list[count].data_type == NUMERIC_DATA_TYPE:
                     result = result + pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
+                    found_count = found_count + 1
                     is_numeric_data_type = True
                 else:
                     if len(sub_index) == 1:
@@ -491,17 +489,25 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                             index = var_list[count].occurs_indexes.index(sub_index[0])
                             if (index >= 0):
                                 result = result + var_list[count].occurs_values[index].ljust(var_list[count].length)[:var_list[count].length]
+                                found_count = found_count + 1
                             else:
                                 result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
+                                found_count = found_count + 1
                         else:
                             result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
                     else:
                         result = result + var_list[count].value.ljust(var_list[count].length)[:var_list[count].length]
+                        found_count = found_count + 1
         elif var_list[count].name == parent and var_list[count].redefines != EMPTY_STRING:
             result = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, sub_index)[0]
+            found_count = found_count + 1
             break
 
-        count = count + 1
+        if found_count > 0:
+            count = count + found_count
+            found_count = 0
+        else:
+            count = count + 1
         if count > len(var_list):
             break
 
