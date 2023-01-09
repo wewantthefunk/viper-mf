@@ -150,15 +150,21 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
     skip = 0
     level = current_line.level
+    ignore_until_verbs = []
+
+    if temp_tokens[0] == COBOL_VERB_SEARCH:
+        ignore_until_verbs.append(COBOL_VERB_WHEN)
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         level = process_verb(temp_tokens, name, True, level, args, current_line)
     else:
         for nl in next_few_lines:
             nlt = parse_line_tokens(nl[6:], SPACE, EMPTY_STRING, True)
-            if len(nlt) < 2:
-                nlt.append(PERIOD)
-            if check_valid_verb(nlt[0], temp_tokens[0]) or nlt[len(nlt) - 1] == PERIOD:
+            if len(nlt) == 0:
+                continue
+            #if len(nlt) < 2:
+            #    nlt.append(PERIOD)
+            if (check_valid_verb(nlt[0], temp_tokens[0]) or nlt[len(nlt) - 1] == PERIOD):
                 if nlt[len(nlt) - 1] == PERIOD:
                     for t in nlt:
                         temp_tokens.append(t)
@@ -170,6 +176,12 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
                     temp_tokens.append(t)
 
     return [skip, level]
+
+def check_ignore_verbs(ignore_verbs, v: str):
+    if len(ignore_verbs) == 0:
+        return True
+
+    return v in ignore_verbs
 
 def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args):
     global data_division_var_stack, data_division_level_stack, var_init_list

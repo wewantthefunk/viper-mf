@@ -157,8 +157,11 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
     return list
 
 def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func):
+    found = False
     if OPEN_PARENS not in operand1:
-        return
+        t = operand1
+        operand1 = operand2
+        operand2 = t
 
     operand1_split = operand1.split(OPEN_PARENS)
 
@@ -169,14 +172,20 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
         if start_at < 0:
             start_at = 0
 
+    parent_var = None
     for var_list in variable_lists:
         array_var = find_variable(var_list, operand1_split[0], [operand1_split[0]])
         if array_var != None:
+            parent_var = find_variable_parent(var_list, array_var.parent)
             break
 
-    for x in range(start_at, len(array_var.occurs_indexes)):
-        array_index = array_var.occurs_indexes[x] - 1
-        val1 = array_var.occurs_values[array_index]
+    search_var = array_var
+    if parent_var.occurs_length > 0:
+        search_var = parent_var
+
+    for x in range(start_at, len(search_var.occurs_indexes)):
+        array_index = search_var.occurs_indexes[x] - 1
+        val1 = search_var.occurs_values[array_index]
 
         found = False
 
@@ -188,7 +197,16 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
         if found:
             break
 
-    if found == False:
+    if len(search_var.occurs_indexes) == 0:
+        val = Get_Variable_Value(variable_lists, search_var.name, search_var.name)
+        l = Get_Variable_Length(variable_lists, search_var.name)
+        for x in range(start_at, search_var.occurs_length):
+            r = val[x * l: (x * l) + (l)]
+            if r[0:len(operand2)] == operand2:
+                Set_Variable(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                break
+
+    if found == False and not_found_func != None:
         not_found_func()
 
     return found
@@ -283,6 +301,13 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
             if sub_index[0] > parent.occurs_length:
                 return
             occurs_length = parent.occurs_length
+
+    redefined_by = find_variable_redefined_by(var_list, var.parent)
+    for rdb in redefined_by:
+        if rdb.occurs_length > 0 and len(sub_index) > 0:
+            if sub_index[0] < rdb.occurs_length:
+                rdb.occurs_indexes.append(sub_index[0])
+                rdb.occurs_values.append(value)
     
     if len(sub_index) == 2:
         var.value = var.value[:sub_index[0]] + str(value) + var.value[sub_index[1]:]
@@ -413,7 +438,7 @@ def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False
         parent = s1[0]
 
     for var_list in variable_lists:
-        result = find_get_variable(var_list, name, [parent], variable_lists, sub_index)
+        result = find_get_variable(var_list, name, parent, var_list, sub_index)
         t = t + result[0]
         if result[1] == True:
             is_numeric_data_type = result[1]
@@ -440,16 +465,23 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                 found_count = found_count + r[2]
                 result = result + r[0]
                 is_numeric_data_type = r[1]
-                count = count + found_count
+                if var_list[count].name == parent:
+                    # drop out now, or else we will get the same data twice
+                    break                
             else:     
-                found_count = found_count + 1
                 if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
-                    pos_length = find_get_variable_position(var_list, var_list[count].name, [var_list[count].name])
-                    r = find_get_variable(orig_var_list, var_list[count].redefines, [var_list[count].redefines], orig_var_list, sub_index)[0]
-                    result = result + r[pos_length[0]: pos_length[0] + pos_length[1]]
+                    pos_length = find_get_variable_position(var_list, var_list[count].name, var_list[count].name)
+                    r1 = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, [])[0]
+                    if len(sub_index) > 0:
+                        result = result + r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]]
+                        found_count = found_count + 1
+                    else:
+                        result = result + r1[pos_length[0]: pos_length[0] + pos_length[1]]
+                        found_count = found_count + 1
                     break
                 elif var_list[count].data_type == NUMERIC_DATA_TYPE:
                     result = result + pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
+                    found_count = found_count + 1
                     is_numeric_data_type = True
                 else:
                     if len(sub_index) == 1:
@@ -457,14 +489,25 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                             index = var_list[count].occurs_indexes.index(sub_index[0])
                             if (index >= 0):
                                 result = result + var_list[count].occurs_values[index].ljust(var_list[count].length)[:var_list[count].length]
+                                found_count = found_count + 1
                             else:
                                 result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
+                                found_count = found_count + 1
                         else:
                             result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
                     else:
                         result = result + var_list[count].value.ljust(var_list[count].length)[:var_list[count].length]
+                        found_count = found_count + 1
+        elif var_list[count].name == parent and var_list[count].redefines != EMPTY_STRING:
+            result = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, sub_index)[0]
+            found_count = found_count + 1
+            break
 
-        count = count + 1
+        if found_count > 0:
+            count = count + found_count
+            found_count = 0
+        else:
+            count = count + 1
         if count > len(var_list):
             break
 
@@ -506,6 +549,17 @@ def find_variable_parent(var_list, parent: str):
                     result = var
                     break
     
+    return result
+
+def find_variable_redefined_by(var_list, name: str):
+    result = []
+    if name != EMPTY_STRING:
+        for var in var_list:
+            if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
+                continue
+            if var.redefines == name:
+                result.append(var)
+
     return result
 
 def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):

@@ -220,7 +220,7 @@ def process_evaluate_verb(tokens, name: str, level: int):
             operator_offset = 1
 
     operand2 = tokens[1]
-    if evaluate_compare == EMPTY_STRING:
+    if evaluate_compare == EMPTY_STRING and len(evaluate_compare_stack) > 0:
         evaluate_compare_stack[len(evaluate_compare_stack) - 1] = [evaluate_compare, tokens[1]]
         nested_above_evaluate_compare = tokens[1]
         evaluate_compare = tokens[1]
