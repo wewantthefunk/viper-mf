@@ -19,9 +19,11 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected value YYYYMMDDHHmmSSms'
+
            MOVE FUNCTION CURRENT-DATE to WS-CURRENT-DATE-DATA.
 
-           DISPLAY WS-CURRENT-DATE-DATA.       
+           DISPLAY 'actual value   ' WS-CURRENT-DATE-DATA.       
 
            STOP RUN.
 

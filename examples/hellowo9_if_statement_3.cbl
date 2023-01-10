@@ -12,6 +12,8 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected value AND if condition successful'
+           DISPLAY '                OR if condition successful'
            MOVE 3 TO TS-INDEX.
            MOVE 'hi' TO VALUE-ONE(TS-INDEX).
       * multi condition if statement

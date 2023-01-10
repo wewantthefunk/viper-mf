@@ -12,6 +12,7 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected value if condition successful'
            MOVE 3 TO TS-INDEX.
            MOVE 'hi' TO VALUE-ONE(TS-INDEX).
       *  check array position using variable

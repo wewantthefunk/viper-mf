@@ -32,6 +32,10 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected value test record 1'
+           DISPLAY '               test record 2'
+           DISPLAY '               test record 3'
+           
            OPEN INPUT INPUTFILE.    
 
            IF FILE-STATUS = '00'

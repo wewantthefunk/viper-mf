@@ -12,6 +12,9 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'exepcted value evaluate condition successful'
+           DISPLAY '               evaluate condition successful'
+           
            MOVE 3 TO TS-INDEX.
            MOVE 'hi' TO VALUE-ONE(TS-INDEX).
 

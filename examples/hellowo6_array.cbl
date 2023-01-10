@@ -13,9 +13,9 @@
        PROCEDURE DIVISION.
 
            MOVE 3 TO TS-INDEX.
-           MOVE 'hi' TO VALUE-ONE(TS-INDEX).
+           MOVE 'hi' TO VALUE-ONE    (TS-INDEX).
            DISPLAY 'expected value hi'
-           DISPLAY 'actual value   ' VALUE-ONE(TS-INDEX).
+           DISPLAY 'actual value   ' VALUE-ONE   (TS-INDEX).
 
       *  display a variable that hasn't been set
            DISPLAY 'next line should be blank'.

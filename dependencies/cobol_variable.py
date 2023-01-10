@@ -180,7 +180,7 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
             break
 
     search_var = array_var
-    if parent_var.occurs_length > 0:
+    if parent_var.occurs_length > 0 and len(parent_var.occurs_indexes) > 0:
         search_var = parent_var
 
     for x in range(start_at, len(search_var.occurs_indexes)):
@@ -203,7 +203,9 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
         for x in range(start_at, search_var.occurs_length):
             r = val[x * l: (x * l) + (l)]
             if r[0:len(operand2)] == operand2:
-                Set_Variable(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                # add 1 to the found index to process the transformation of base 1 array to base 0 array properly
+                Set_Variable(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+                found = True
                 break
 
     if found == False and not_found_func != None:
@@ -227,10 +229,10 @@ def Set_Variable(variable_lists, name: str, value: str, parent: str, index_pos =
             sub_index = [start, int(s1[1].replace(OPEN_PARENS, EMPTY_STRING).replace(CLOSE_PARENS, EMPTY_STRING)) + int(s1[0]) - 1]
         else:
             if s[1].replace(CLOSE_PARENS, EMPTY_STRING).isnumeric():
-                sub_index = [int(s[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+                sub_index = [int(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) - 1]
             else:
                 val = Get_Variable_Value(variable_lists, s[1].replace(CLOSE_PARENS, EMPTY_STRING), s[1].replace(CLOSE_PARENS, EMPTY_STRING))
-                sub_index = [val]
+                sub_index = [val - 1]
         name = s[0]
     if OPEN_PARENS in parent:
         ps = parent.split(OPEN_PARENS)
@@ -428,10 +430,10 @@ def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False
             sub_index = [int(subs[0]), int(subs[1].replace(CLOSE_PARENS, EMPTY_STRING))]
         else:
             if s1[1].replace(CLOSE_PARENS, EMPTY_STRING).isnumeric():
-                sub_index = [int(s1[1].replace(CLOSE_PARENS, EMPTY_STRING))]
+                sub_index = [int(s1[1].replace(CLOSE_PARENS, EMPTY_STRING)) - 1]
             else:
                 val = Get_Variable_Value(variable_lists, s1[1].replace(CLOSE_PARENS, EMPTY_STRING), s1[1].replace(CLOSE_PARENS, EMPTY_STRING))
-                sub_index = [int(val)]
+                sub_index = [int(val) - 1]
 
     if OPEN_PARENS in parent:
         s1 = parent.split(OPEN_PARENS)
@@ -579,7 +581,7 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
                 sub_index = [int(s1[1].replace(CLOSE_PARENS, EMPTY_STRING))]
             else:
                 val = Get_Variable_Value(variable_lists, s1[1].replace(CLOSE_PARENS, EMPTY_STRING), s1[1].replace(CLOSE_PARENS, EMPTY_STRING))
-                sub_index = [int(val)]
+                sub_index = [int(val) - 1]
 
     if OPEN_PARENS in parent:
         s1 = parent.split(OPEN_PARENS)

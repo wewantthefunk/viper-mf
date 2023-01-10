@@ -156,3 +156,11 @@ python3 HELLOW36.py
 echo
 echo HELLOW37 - call receive function with variable arguments
 python3 HELLOW37.py
+
+echo
+echo HELLOW38 - search table redefined literals
+python3 HELLOW38.py
+
+echo
+echo HELLOW39 - call search table redefined literals
+python3 HELLOW39.py

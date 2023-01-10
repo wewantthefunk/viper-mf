@@ -1,4 +1,4 @@
-C24398 ID DIVISION.
+       ID DIVISION.
        PROGRAM-ID.    HELLOW38.
 
        ENVIRONMENT DIVISION.
@@ -97,15 +97,15 @@ C24398 ID DIVISION.
            SET   ST-INDEX              TO  +2
 
            SEARCH  STATUS-TABLE
-             END
+             AT END
                SET   ST-INDEX          TO  +1
 
-             WHEN  ST-STATUS-CODE(ST-INDEX) =  FILE-STATUS 
+             WHEN  ST-STATUS-CODE  (ST-INDEX) =  FILE-STATUS 
                CONTINUE
            END-SEARCH
 
            DISPLAY 'FILE STATUS '
                    FILE-STATUS
                    ' IS '
-                   ST-MESSAGE(ST-INDEX)
+                   ST-MESSAGE        (ST-INDEX)
            GOBACK.

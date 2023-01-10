@@ -156,3 +156,6 @@ def pad(l: int):
         result = result + " "
 
     return result
+
+def find(s: str, ch: str):
+    return [i for i, ltr in enumerate(s) if ltr == ch]

@@ -20,7 +20,25 @@ def parse_cobol_file(file: str, target_dir: str):
         if rl == EMPTY_STRING:
             continue
         if (rl[6] != COBOL_COMMENT and rl[7:] != EMPTY_STRING):
-            raw_lines.append(rl)
+            line = rl[7:]
+            t_line = line.split(SPACE, 1)
+            l = pad(7) + t_line[0] + SPACE
+            if len(t_line) > 1:
+                if (SPACE + OPEN_PARENS) in t_line[1]:
+                    sp = t_line[1].split(OPEN_PARENS)
+                    pl = EMPTY_STRING
+                    first = True
+                    for s in sp:
+                        if first == False:
+                            pl = pl + OPEN_PARENS
+                        else:
+                            first = False
+                        pl = pl + s.strip()
+
+                    l = l + pl
+                else:
+                    l = l + t_line[1]
+            raw_lines.append(l)
 
     lines = []
     current_division = EMPTY_STRING
@@ -61,9 +79,10 @@ def parse_cobol_file(file: str, target_dir: str):
         lc = lc + 1
         append_file(name + PYTHON_EXT, NEWLINE)
         append_file(name + PYTHON_EXT, "def _ae" + str(lc) + "():" + NEWLINE)
-        process_verb(lambda_func, name, False, 1, args, current_line)
+        process_verb(lambda_func, name, True, 1, args, current_line)      
+        process_verb([VERB_RESET], name, True, 1, [], current_line)  
+        append_file(name + PYTHON_EXT, pad(len(INDENT)) + RETURN_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, NEWLINE)
-        process_verb([VERB_RESET], name, False, 1, [], current_line)
 
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE + INDENT)
     
@@ -194,4 +213,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellow14_sequential_file_access_error.cbl", "converted/")
+    parse_cobol_file("examples/hellow38_search_table_redefined_literals.cbl", "converted/")
