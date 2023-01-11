@@ -2,9 +2,11 @@ converted/*.py
 __pycache__
 *.exe
 *.dll
-examples/RRBTOSSA.cbl
-examples/RRBTOSSA-Launch.cob
-examples/CABBEBIC.cbl
+examples/CICST001.cbl
+examples/CICST002.cbl
+examples/CICST003.cbl
+examples/CICST004.cbl
+examples/*.cobol
 examples/hw.cbl
 temp/
 .vscode/
