@@ -1,5 +1,7 @@
 import os
+import random
 import shutil
+import string
 from datetime import datetime
 from os.path import exists
 
@@ -159,3 +161,6 @@ def pad(l: int):
 
 def find(s: str, ch: str):
     return [i for i, ltr in enumerate(s) if ltr == ch]
+
+def gen_rand(length: int):
+    return ''.join(random.choices(string.ascii_lowercase, k=length))

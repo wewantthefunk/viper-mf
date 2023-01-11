@@ -164,3 +164,7 @@ python3 HELLOW38.py
 echo
 echo HELLOW39 - call search table redefined literals
 python3 HELLOW39.py
+
+echo
+echo COMPL001 - call search table redefined literals
+python3 COMPL001.py

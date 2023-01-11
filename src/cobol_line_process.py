@@ -192,7 +192,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             nlt = parse_line_tokens(nl[6:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
             for t in nlt:
                 tokens.append(t)
-            break
+
+            if PERIOD in nlt:
+                break
 
     if len(tokens) < 1:
         return
@@ -200,6 +202,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         return
 
     if REDEFINES_KEYWORD in tokens:
+        if tokens[1] == REDEFINES_KEYWORD:
+            tokens.insert(1, REDEFINES_KEYWORD + gen_rand(4))
         current_line.redefines = tokens[tokens.index(REDEFINES_KEYWORD) + 1]
         current_line.redefines_level = tokens[0]
     elif int(tokens[0]) <= int(current_line.redefines_level):

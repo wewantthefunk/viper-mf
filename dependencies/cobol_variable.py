@@ -180,7 +180,7 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
             break
 
     search_var = array_var
-    if parent_var.occurs_length > 0 and len(parent_var.occurs_indexes) > 0:
+    if parent_var.occurs_length > 0 and (len(parent_var.occurs_indexes) > 0 or parent_var.redefines != EMPTY_STRING):
         search_var = parent_var
 
     for x in range(start_at, len(search_var.occurs_indexes)):

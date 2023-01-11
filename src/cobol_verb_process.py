@@ -210,29 +210,45 @@ def close_out_evaluate(verb: str, name: str, level: int):
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
+    if len(tokens) >= 3 and operator_exists_in_list(tokens) == False:
+        tokens.insert(2, IN_KEYWORD)
+        x = 0
+
     reset_evaluate_compare = False
     operator = EQUALS
+    operator_offset = 0
     if len(tokens) > 2:
         operator = tokens[2]
-        operator_offset = 0
         if tokens[2] == NOT_KEYWORD:
             operator = NOT_EQUALS
             operator_offset = 1
 
     operand2 = tokens[1]
-    if evaluate_compare == EMPTY_STRING and len(evaluate_compare_stack) > 0:
-        evaluate_compare_stack[len(evaluate_compare_stack) - 1] = [evaluate_compare, tokens[1]]
-        nested_above_evaluate_compare = tokens[1]
-        evaluate_compare = tokens[1]
-        reset_evaluate_compare = True
-        if len(tokens) > operator_offset + 3:
-            operand2 = tokens[operator_offset + 3]
-        elif len(tokens) == 3:
-            if tokens[2].startswith(SINGLE_QUOTE):
-                operand2 = tokens[2]
-            else:
-                operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
-            operator = SPACE + IN_KEYWORD + SPACE
+    if len(tokens) > 3:
+        operand2 = tokens[3]
+        
+    if evaluate_compare == EMPTY_STRING:
+        if len(evaluate_compare_stack) > 0:
+            evaluate_compare_stack[len(evaluate_compare_stack) - 1] = [evaluate_compare, tokens[1]]
+            nested_above_evaluate_compare = tokens[1]
+            evaluate_compare = tokens[1]
+            reset_evaluate_compare = True
+            if len(tokens) > operator_offset + 3:
+                operand2 = tokens[operator_offset + 3]
+                if operator == IN_KEYWORD:
+                    operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[operator_offset + 3] + "','" + tokens[operator_offset + 3] + "')"
+            elif len(tokens) == 3:
+                if tokens[2].startswith(SINGLE_QUOTE) or tokens[2].isnumeric():
+                    operand2 = tokens[2]
+                else:
+                    operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
+                operator = SPACE + IN_KEYWORD + SPACE
+        else:
+            evaluate_compare = tokens[1]
+            if operand2.startswith(SINGLE_QUOTE) == False and operand2.isnumeric() == False:
+                operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
+
+
 
     prefix = "if "
     if is_first_when == False:
@@ -424,15 +440,22 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
     if value.startswith(SINGLE_QUOTE) == False and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False:
         if OPEN_PARENS in value:
+            old_value = value
             s = value.split(OPEN_PARENS)
-            s1 = s[1].split(COLON)
+            
             get_var_value = "Get_Variable_Value(variables_list,'" + s[0] + "','" + s[0] + "')"
-            end = s1[1].replace(CLOSE_PARENS, EMPTY_STRING)
-            end_offset = s1[0]
-            if s1[0].isnumeric() == False:
-                end_offset = "Get_Variable_Value(variables_list,'" + s1[0] + "','" + s1[0] + "')"
+            end = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            end_offset = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if COLON in s[1]:
+                s1 = s[1].split(COLON)
+                end = s1[1].replace(CLOSE_PARENS, EMPTY_STRING)
+                end_offset = s1[0]
+                if s1[0].isnumeric() == False:
+                    end_offset = "Get_Variable_Value(variables_list,'" + s1[0] + "','" + s1[0] + "')"
 
-            value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
+                    value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
+            else:
+                value = get_var_value = "Get_Variable_Value(variables_list,'" + old_value + "','" + old_value + "')"
         elif value == FUNCTION_KEYWORD:
             value = "Exec_Function('" + tokens[2] + "')"
             target_offset = 4
@@ -514,3 +537,10 @@ def is_operator(operator: str):
 
 def is_boolean_keyword(boolean: str):
     return boolean in COBOL_BOOLEAN_KEYWORDS
+
+def operator_exists_in_list(list):
+    for operator in COBOL_OPERATORS:
+        if operator in list:
+            return True
+
+    return False
