@@ -55,8 +55,10 @@ Make sure the following Python dependencies are installed:
 * glob
 * importlib
 * os
+* random
 * request
 * shutil
+* string
 
 In the src folder, modify the input_dir variable to point to your COBOL source code folder relative to the src folder.
 
