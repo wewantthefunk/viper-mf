@@ -158,6 +158,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     if temp_tokens[0] == COBOL_VERB_SEARCH:
         ignore_until_verbs.append(COBOL_VERB_WHEN)
 
+    fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
+
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         level = process_verb(temp_tokens, name, True, level, args, current_line)
     else:
@@ -177,8 +179,21 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
                 skip = skip + 1
                 for t in nlt:
                     temp_tokens.append(t)
+                    fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
 
     return [skip, level]
+
+def fix_parens(temp_tokens, value: str, value2: str):
+    if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("):
+        s = value.split(OPEN_PARENS)
+        temp_tokens[0] = s[0]
+        temp_tokens.insert(1,  OPEN_PARENS)
+        temp_tokens.insert(2, s[1])
+
+    if value2.endswith(CLOSE_PARENS):
+        s = value.split(CLOSE_PARENS)
+        value = s[0]
+        temp_tokens.append(CLOSE_PARENS)
 
 def check_ignore_verbs(ignore_verbs, v: str):
     if len(ignore_verbs) == 0:

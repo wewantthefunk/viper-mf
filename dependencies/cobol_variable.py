@@ -334,7 +334,7 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
     else:
         var.value = str(value)[0:var.length]
 
-def Update_Variable(variable_lists, value: str, name: str, parent: str):
+def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = ''):
     global last_command
     check_for_last_command(UPD_COMMAND)
     last_command = UPD_COMMAND
@@ -343,11 +343,27 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str):
     for var_list in variable_lists:
         orig = find_variable(var_list, name, [parent])
         target = find_variable(var_list, parent, [parent])
+        
         if orig != None and target != None:
-            v = value
-            if orig.data_type == NUMERIC_DATA_TYPE:
-                v = str(int(value) + int(orig.value))[0:target.length]
-            target.value = v
+            v = str(value)   
+            val = orig.value             
+        elif orig == None:
+            val = name
+        if modifier != EMPTY_STRING:
+            if modifier.lstrip('-+').isdigit():
+                value = str(int(value) * int(modifier))
+
+            if modifier == "*":
+                v = str(int(value) * int(val))[0:target.length]
+            elif modifier == "/":
+                remainder = int(value) / int(val)
+                v = str(int(int(value) / int(val)))[0:target.length]
+            else:
+                v = str(int(value) + int(val))[0:target.length]
+        else:
+            v = str(int(value) + int(val))[0:target.length]
+        target.value = v
+
 
 def Replace_Variable_Value(variable_lists, name: str, orig: str, rep: str):
     global last_command

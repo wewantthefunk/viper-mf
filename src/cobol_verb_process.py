@@ -7,6 +7,7 @@ evaluate_compare_stack = []
 nested_above_evaluate_compare = EMPTY_STRING
 is_evaluating = False
 is_first_when = True
+is_perform_looping = False
 
 def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
@@ -26,9 +27,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         
     elif tokens[0] in COBOL_END_BLOCK_VERBS:
         if tokens[0] != COBOL_VERB_READ_END:
-            level = level - 1
             if tokens[0] == COBOL_VERB_PERFORM_END:
-                x = 0
+                level = close_out_perform_loop(tokens[0], name, level, current_line)
+            else:
+                level = level - 1
         if len(evaluate_compare_stack) > 0:
             evaluate_compare_stack.pop()
             if len(evaluate_compare_stack) > 0:
@@ -45,8 +47,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
         last_cmd_display = True
-    elif tokens[0] == COBOL_VERB_ADD:
-        process_add_verb(tokens, name, level)
+    elif tokens[0] == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
+        process_math_verb(tokens, name, level)
         last_cmd_display = False
     elif tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT:
 
@@ -68,14 +70,14 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, NEWLINE)
         
     elif tokens[0] == COBOL_VERB_PERFORM:
-        level = process_perform_verb(tokens, name, level)
+        level = process_perform_verb(tokens, name, level, current_line)
     elif tokens[0] == COBOL_VERB_IF:
         level = process_if_verb(tokens, name, level, False)
     elif tokens[0] == COBOL_VERB_ELSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
         level = 0
-        func_name = tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+        func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + CLOSE_PARENS + COLON + NEWLINE)
         level = level + 1
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + CALL_RESULT_INCLUDE + NEWLINE)
@@ -83,8 +85,6 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_EVALUATE:
         is_first_when = True
         evaluate_compare = tokens[1]
-        if tokens[1] == TRUE_KEYWORD or tokens[1] == FALSE_KEYWORD:
-            evaluate_compare = EMPTY_STRING
         evaluate_compare_stack.append([evaluate_compare, evaluate_compare])
         level = level + 1
     elif tokens[0] == COBOL_VERB_WHEN:
@@ -206,6 +206,18 @@ def close_out_evaluate(verb: str, name: str, level: int):
     is_evaluating = False
 
     return level
+
+def close_out_perform_loop(verb: str, name: str, level: int, current_line: LexicalInfo):
+    global is_perform_looping
+    if verb != COBOL_VERB_PERFORM_END:
+        return level
+
+    if is_perform_looping:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + current_line.loop_modifier)
+
+    is_perform_looping = False
+
+    return level - 1
     
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
@@ -247,6 +259,10 @@ def process_evaluate_verb(tokens, name: str, level: int):
             evaluate_compare = tokens[1]
             if operand2.startswith(SINGLE_QUOTE) == False and operand2.isnumeric() == False:
                 operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
+    elif evaluate_compare == TRUE_KEYWORD:
+        operand2 = 'True'
+    elif evaluate_compare == FALSE_KEYWORD:
+        operand2 = 'False'
 
 
 
@@ -263,8 +279,13 @@ def process_evaluate_verb(tokens, name: str, level: int):
     else:
         is_evaluating = True
 
-    operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + evaluate_compare + "','" + evaluate_compare + "') "
-    line = prefix + operand1 + convert_operator(operator) + SPACE + operand2
+    operand1_name = evaluate_compare
+
+    if operand2 == 'True' or operand2 == 'False':
+        operand1_name = tokens[1]
+
+    operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
+    line = prefix + operand1 + convert_operator(operator) + SPACE + operand2 + SPACE
 
     append_file(name + PYTHON_EXT, pad(indent_len) + line)
 
@@ -355,15 +376,17 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
 
     return level + 1
 
-def process_perform_verb(tokens, name: str, level: int):
+def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo):
+    global is_perform_looping
     if VARYING_KEYWORD in tokens:
-        process_varying_loop(tokens, name, level)
+        is_perform_looping = True
+        process_varying_loop(tokens, name, level, current_line)
         level = level + 1
     elif len(tokens) == 3 or THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
-        func_name = tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+        func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
         if THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
-            func_name = tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+            func_name = UNDERSCORE + tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
     else:
         if tokens[1] == UNTIL_KEYWORD:
@@ -376,7 +399,7 @@ def process_perform_verb(tokens, name: str, level: int):
 
     return level
 
-def process_varying_loop(tokens, name: str, level: int):
+def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInfo):
     from_index = tokens.index(FROM_KEYWORD)
     varying_index = tokens.index(VARYING_KEYWORD)
     until_index = tokens.index(UNTIL_KEYWORD)
@@ -387,7 +410,7 @@ def process_varying_loop(tokens, name: str, level: int):
     line = "while Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + SPACE \
         + convert_operator_opposite(tokens[until_index + 2]) + SPACE + tokens[until_index + 3]
 
-    append_file(name + PYTHON_EXT, INDENT + line)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + line)
     for or_index in or_indices:
         # convert the 'or' to 'and' because we used the opposite operator above
         operand1 = tokens[or_index + 1]
@@ -419,10 +442,10 @@ def process_varying_loop(tokens, name: str, level: int):
         line = line + convert_operator(tokens[or_index + offset + 1])
         if tokens[or_index + offset + 2] not in COBOL_VERB_LIST and tokens[or_index + offset + 2] != PERIOD:
             line = line + tokens[or_index + offset + 2]
-        append_file(name + PYTHON_EXT, INDENT + INDENT + line)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + line)
     append_file(name + PYTHON_EXT, COLON + NEWLINE)
-    append_file(name + PYTHON_EXT, INDENT + INDENT + "Update_Variable(" + VARIABLES_LIST_NAME + ",'" \
-        + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+    current_line.loop_modifier = "Update_Variable(" + VARIABLES_LIST_NAME + ",'" \
+        + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE
 
 def process_move_verb(tokens, name: str, indent: bool, level: int):
     do_indent = pad(len(INDENT) * level)
@@ -505,18 +528,33 @@ def process_display_verb(tokens, name: str, level: int):
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
-def process_add_verb(tokens, name: str, level: int):
+def process_math_verb(tokens, name: str, level: int):
     giving = tokens[3]
     if GIVING_KEYWORD in tokens:
-        if TO_KEYWORD in tokens:
+        if TO_KEYWORD in tokens or BY_KEYWORD in tokens:
             giving = tokens[5]
         else:
             giving = tokens[4]
     mod = "'" + tokens[1] + "'"
-    if tokens[1].isnumeric() == False:
+    target = tokens[3]
+    if tokens[1].lstrip('+-').isdigit() == False:
         mod = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + "," + mod + ", '" + tokens[3] + "', '" + giving + "')" + NEWLINE)
+    if tokens[0] == COBOL_VERB_MULTIPLY:
+        mod = "'" + tokens[3] + "'"
+        target = tokens[1]
+        if tokens[3].lstrip('+-').isdigit() == False:
+            mod = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
+
+    modifier = EMPTY_STRING
+    if tokens[0] == COBOL_VERB_SUBTRACT:
+        modifier = "-1"
+    elif tokens[0] == COBOL_VERB_MULTIPLY:
+        modifier = "*"
+    elif tokens[0] == COBOL_VERB_DIVIDE:
+        modifier = "/"
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "')" + NEWLINE)
     
 
 def check_valid_verb(v: str, compare_verb: str):
@@ -534,6 +572,10 @@ def convert_operator_opposite(operator: str):
         return GREATER_THAN_EQUAL_TO
     if operator == EQUALS:
         return NOT_EQUALS
+    if operator == GREATER_THAN_EQUAL_TO:
+        return LESS_THAN
+    if operator == GREATER_THAN:
+        return LESS_THAN_EQUAL_TO
 
     return operator
 

@@ -232,3 +232,18 @@ echo
 echo HELLOW42 - LEVEL 88 variables
 python3 HELLOW42.py &
 wait
+
+echo
+echo HELLOW43 - subtract keyword
+python3 HELLOW43.py &
+wait
+
+echo
+echo HELLOW44 - multiply keyword
+python3 HELLOW44.py &
+wait
+
+echo
+echo HELLOW45 - divide keyword
+python3 HELLOW45.py &
+wait
