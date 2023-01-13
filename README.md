@@ -81,6 +81,14 @@ For unit tests of all examples in this repository, navigate to the unittest fold
 * Quotes for literals MUST be single quotes (') in the COBOL program. Double quotes are not processed as literals.
 * PERIODs (.) are semi-optional. Not having a rigid statement delimiter, such as the semi-colon (;) in C based languages, makes for a challenge
 
+## Inspiration
+
+The inspiration for this project came from the Otterkit COBOL Compiler https://github.com/otterkit/otterkit
+
+That compiler converts to C#, I decided to convert to Python.
+
+Thanks for giving me the inspiration!
+
 ## What's Next?
 
 Only a small set of COBOL verbs, functions, and keywords are converted, at this time. As more modules are used in testing, more verbs and keywords will be added. Conversions for CICS statements are also planned.
