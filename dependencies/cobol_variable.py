@@ -328,13 +328,13 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
     elif var.level == LEVEL_88:
         if value == "True":
             parent = find_variable_parent(var_list, var.parent)
-            search_variable_list(var_list, parent.name, var.level88value, parent.name, '', '', [])
+            search_variable_list(var_list, parent.name, var.level88value, parent.name, EMPTY_STRING, EMPTY_STRING, [])
         else:
             var.level88value = value
     else:
         var.value = str(value)[0:var.length]
 
-def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = ''):
+def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = '', remainder_var = ''):
     global last_command
     check_for_last_command(UPD_COMMAND)
     last_command = UPD_COMMAND
@@ -356,7 +356,9 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
             if modifier == "*":
                 v = str(int(value) * int(val))[0:target.length]
             elif modifier == "/":
-                remainder = int(value) / int(val)
+                remainder = int(value) % int(val)
+                if remainder_var != EMPTY_STRING:
+                    Set_Variable(variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
                 v = str(int(int(value) / int(val)))[0:target.length]
             else:
                 v = str(int(value) + int(val))[0:target.length]

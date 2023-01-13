@@ -167,12 +167,12 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
             nlt = parse_line_tokens(nl[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) == 0:
                 continue
-            #if len(nlt) < 2:
-            #    nlt.append(PERIOD)
             if (check_valid_verb(nlt[0], temp_tokens[0]) or nlt[len(nlt) - 1] == PERIOD):
                 if nlt[len(nlt) - 1] == PERIOD:
                     for t in nlt:
                         temp_tokens.append(t)
+                    if check_valid_verb(nlt[0], temp_tokens[0]) == False:
+                        skip = skip + 1
                 level = process_verb(temp_tokens, name, True, level, args, current_line)
                 break
             else:
@@ -189,11 +189,10 @@ def fix_parens(temp_tokens, value: str, value2: str):
         temp_tokens[0] = s[0]
         temp_tokens.insert(1,  OPEN_PARENS)
         temp_tokens.insert(2, s[1])
-
-    if value2.endswith(CLOSE_PARENS):
-        s = value.split(CLOSE_PARENS)
-        value = s[0]
-        temp_tokens.append(CLOSE_PARENS)
+        if value2.endswith(CLOSE_PARENS):
+            s = value.split(CLOSE_PARENS)
+            value = s[0]
+            temp_tokens.append(CLOSE_PARENS)
 
 def check_ignore_verbs(ignore_verbs, v: str):
     if len(ignore_verbs) == 0:

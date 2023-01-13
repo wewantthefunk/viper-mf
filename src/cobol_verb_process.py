@@ -357,7 +357,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
                 line = line + SPACE + convert_operator(token) + SPACE
             opposite_operator = False
         elif is_boolean_keyword(token):
-            line = line + token.lower() + SPACE
+            line = line + SPACE + token.lower() + SPACE
         elif token == SPACE_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
         else:
@@ -547,14 +547,18 @@ def process_math_verb(tokens, name: str, level: int):
             mod = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
 
     modifier = EMPTY_STRING
+    remainder_var = EMPTY_STRING
     if tokens[0] == COBOL_VERB_SUBTRACT:
         modifier = "-1"
     elif tokens[0] == COBOL_VERB_MULTIPLY:
         modifier = "*"
     elif tokens[0] == COBOL_VERB_DIVIDE:
         modifier = "/"
+        if REMAINDER_KEYWORD in tokens:
+            i = tokens.index(REMAINDER_KEYWORD)
+            remainder_var = tokens[i + 1]
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "')" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Update_Variable(" + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')" + NEWLINE)
     
 
 def check_valid_verb(v: str, compare_verb: str):

@@ -29,6 +29,8 @@ This converter will brute force translate a COBOL module line-by-line into an eq
 
 * CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module.
 
+* Paragraphs are converted to functions
+
 ### Limitations and Understanding
 
 This tool is intended, for now, to be a mechanism for automated unit testing. It is a "brute force", line-by-line conversion of COBOL code. There is no manipulation to use objected oriented practices or patterns, except with the cobol_variable.py module. Bad COBOL code will be bad Python code. This is not intended for production use.
@@ -60,7 +62,7 @@ Make sure the following Python dependencies are installed:
 * shutil
 * string
 
-In the src folder, modify the input_dir variable to point to your COBOL source code folder relative to the src folder.
+In the src folder, modify the input_dir variable in the main.py module to point to your COBOL source code folder relative to the src folder.
 
 Navigate to the src folder in a terminal.
 
@@ -77,6 +79,7 @@ For unit tests of all examples in this repository, navigate to the unittest fold
 * Arrays in COBOL. See above and add even more complexity.
 * Error handling. COBOL doesn't have error handling, such as try/catch. So there is no error handling added by the converter. There is an error handling command in CICS. (CICS commands will eventually be converted)
 * Quotes for literals MUST be single quotes (') in the COBOL program. Double quotes are not processed as literals.
+* PERIODs (.) are semi-optional. Not having a rigid statement delimiter, such as the semi-colon (;) in C based languages, makes for a challenge
 
 ## What's Next?
 
@@ -94,7 +97,17 @@ Thank you!
 
 ### Current Known Bugs
 
-* PERFORM VARYING UNTIL loop is not correct in conversion (hellow25_perform_varying_loop.cbl)
+* None found, but they exist
+
+## Things to Think About
+
+***The use of COBOL cripples the mind; its teaching should, therefore, be regarded as a criminal offense. *** - Edsger Wybe Dijkstra (Dutch computer scientist)
+
+***A computer without COBOL and Fortran is like a piece of chocolate cake without ketchup and mustard. *** - Anonymous
+
+***COBOL programs are an exercise in Artificial Inelegance. *** - Anonymous
+
+***COBOL means Completely Obsolete Business Orientated Language. *** - Anonymous
 
 ## LICENSE
 
