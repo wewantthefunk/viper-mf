@@ -101,13 +101,13 @@ Thank you!
 
 ## Things to Think About
 
-***The use of COBOL cripples the mind; its teaching should, therefore, be regarded as a criminal offense. *** - Edsger Wybe Dijkstra (Dutch computer scientist)
+***The use of COBOL cripples the mind; its teaching should, therefore, be regarded as a criminal offense.*** - Edsger Wybe Dijkstra (Dutch computer scientist)
 
-***A computer without COBOL and Fortran is like a piece of chocolate cake without ketchup and mustard. *** - Anonymous
+***A computer without COBOL and Fortran is like a piece of chocolate cake without ketchup and mustard.*** - Anonymous
 
-***COBOL programs are an exercise in Artificial Inelegance. *** - Anonymous
+***COBOL programs are an exercise in Artificial Inelegance.*** - Anonymous
 
-***COBOL means Completely Obsolete Business Orientated Language. *** - Anonymous
+***COBOL means Completely Obsolete Business Orientated Language.*** - Anonymous
 
 ## LICENSE
 
