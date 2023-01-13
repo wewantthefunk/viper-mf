@@ -10,6 +10,7 @@ DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
 GET_COMMAND = "get"
+LEVEL_88 = "88"
 LITERAL = "literal"
 NEWLINE = "\n"
 NOT_EQUALS = "!="
@@ -25,7 +26,7 @@ ZERO = "0"
 last_command = ""
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length, level: str):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -34,10 +35,13 @@ class COBOLVariable:
         else:
             self.parent = EMPTY_STRING
         self.value = EMPTY_STRING
+        self.level88value = EMPTY_STRING
         self.occurs_values = []
         self.occurs_indexes = []
         self.redefines = redefines
         self.occurs_length = occurs_length
+        self.level = level
+        self.decimal_length = decimal_length
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -141,7 +145,7 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
     return list
 
 
-def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0):
+def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, level = "01"):
     global last_command
     check_for_last_command(ADD_COMMAND)
     last_command = ADD_COMMAND
@@ -152,7 +156,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
     if data_type == NUMERIC_SIGNED_DATA_TYPE:
         data_type = NUMERIC_DATA_TYPE
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level))
 
     return list
 
@@ -252,7 +256,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
             name = var.name
             found = True
             count = var_list.index(var) + 1
-            if var.length == 0:
+            if var.length == 0 and var.level != LEVEL_88:
                 if (var.name not in parent):
                     parent.append(var.name)
                 found = search_variable_list(var_list[count:], EMPTY_STRING, value, parent, sub_index, index_pos, orig_var_list)
@@ -280,6 +284,8 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                         _update_var_value(orig_var_list, var, t_value, sub_index)
                     else:
                         offset = 0
+                elif var.level == LEVEL_88:
+                    _update_var_value(orig_var_list, var, str(value), [])
                 else:
                     _update_var_value(orig_var_list, var, str(value)[0:var.length], [])
 
@@ -319,6 +325,12 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
         else:
             var.occurs_indexes.append(sub_index[0])
             var.occurs_values.append(value)
+    elif var.level == LEVEL_88:
+        if value == "True":
+            parent = find_variable_parent(var_list, var.parent)
+            search_variable_list(var_list, parent.name, var.level88value, parent.name, '', '', [])
+        else:
+            var.level88value = value
     else:
         var.value = str(value)[0:var.length]
 

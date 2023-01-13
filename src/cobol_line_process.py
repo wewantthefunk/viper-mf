@@ -127,13 +127,16 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
         current_line.highest_ws_level = 99
         data_division_var_stack = []
         data_division_level_stack = []
+        current_line.skip_the_next_lines = 0
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
         append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = []" + NEWLINE)
         append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + ".append(" + "_" + format(current_section) + "Vars)" + NEWLINE)
     else:
         tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
-        if line.startswith("FD"):
+        if line.startswith(FD_KEYWORD):
             data_division_file_record = tokens[1]
+        elif line.startswith(COPYBOOK_KEYWORD):
+            insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
         else:
             if data_division_file_record != EMPTY_STRING and tokens[0].isnumeric():
                 append_file(name + PYTHON_EXT, "# this is where we will associate the record " + tokens[1] + " to the file " + data_division_file_record + NEWLINE)
@@ -187,8 +190,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
+    skip_lines_count = 0
+
     if not line.endswith(PERIOD):
         for nl in next_few_lines:
+            skip_lines_count = skip_lines_count + 1
             nlt = parse_line_tokens(nl[6:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
             for t in nlt:
                 tokens.append(t)
@@ -196,10 +202,15 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if PERIOD in nlt:
                 break
 
+    current_line.skip_the_next_lines = skip_lines_count
+
     if len(tokens) < 1:
         return
     if len(tokens) < 2:
         return
+
+    if VALUE_CLAUSE == tokens[1]:
+        tokens.insert(1, gen_rand(5))
 
     if REDEFINES_KEYWORD in tokens:
         if tokens[1] == REDEFINES_KEYWORD:
@@ -266,7 +277,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if BY_KEYWORD in tokens:
                 i = i + 1
             append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-                + "10, '9','" + tokens[i] + "','',0)" + NEWLINE)
+                + "10, '9','" + tokens[i] + "','',0,'" + tokens[0] + "')" + NEWLINE)
             
 
     elif current_line.highest_ws_level < int(tokens[0]):
@@ -302,12 +313,15 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         data_info.append("X")
     if len(data_info) < 2:
         data_info.append(0)
+    if len(data_info) < 3:
+        data_info.append(0)
     v_name = tokens[1]
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
     append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + v_name + "', " \
-         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + ")" + NEWLINE)
+         + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
+            + str(data_info[2]) + ",'" + tokens[0] + "')" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         var_init_list.append([COBOL_VERB_MOVE, tokens[tokens.index(VALUE_CLAUSE) + 1], EMPTY_STRING, v_name])
@@ -341,7 +355,57 @@ def get_data_info(tokens):
 def get_type_length(tokens, count: int):
     length = 1
     type_length = tokens[count + 1].split(OPEN_PARENS)
+    decimal_length = 0
     if len(type_length) > 1:
-        length = int(type_length[1].replace(CLOSE_PARENS, EMPTY_STRING).replace(PERIOD, EMPTY_STRING))
+        final_length = type_length[1].replace(CLOSE_PARENS, EMPTY_STRING).replace(PERIOD, EMPTY_STRING)
+        if DECIMAL_INDICATOR in final_length:
+            t = final_length.split(DECIMAL_INDICATOR)
+            final_length = str(int(t[0]) + len(t[1]))
+            decimal_length = len(t[1])
 
-    return [type_length[0], length]
+        length = int(final_length)
+
+    return [type_length[0], length, decimal_length]
+
+def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
+    replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
+    if REPLACING_KEYWORD in copybook:
+        replace_info = copybook.split(REPLACING_DELIMITER)
+        copybook = replace_info[0].replace(REPLACING_KEYWORD, EMPTY_STRING).strip()
+        print(copybook)
+    file_exists = exists(copybook)
+    if file_exists == False:
+        copybook = copybook + COPYBOOK_EXT
+        file_exists = exists(copybook)
+        if file_exists == False:
+            copybook = COPYBOOK_FOLDER + copybook
+            file_exists = exists(copybook)
+            if file_exists == False:
+                copybook = copybook.replace(COPYBOOK_EXT, EMPTY_STRING)
+                file_exists = exists(copybook)
+                if file_exists == False:
+                    return
+
+    raw_lines = read_raw_file_lines(copybook, 0)
+    total = len(raw_lines)
+    count = 0
+    skip_the_next_lines_count = 0
+    for line in raw_lines:
+        count = count + 1
+        next_few_lines_count = LINES_AHEAD
+        lines_left = total - count
+        if lines_left < 0:
+            while lines_left < 0:
+                lines_left = lines_left - 1
+            next_few_lines_count = lines_left
+        next_few_lines = raw_lines[count:count+next_few_lines_count]
+        if skip_the_next_lines_count == current_line.skip_the_next_lines:
+            skip_the_next_lines_count = 0
+        else:
+            skip_the_next_lines_count = skip_the_next_lines_count + 1
+            continue
+        line = line.replace(replace_info[1], replace_info[3]).replace(NEWLINE, EMPTY_STRING).strip()
+        if line != EMPTY_STRING:
+            create_variable(line, current_line, name, current_section, next_few_lines, args)
+    append_file(outfile, NEWLINE)
+    append_file(outfile, NEWLINE)

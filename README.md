@@ -84,7 +84,7 @@ Only a small set of COBOL verbs, functions, and keywords are converted, at this 
 
 File access is limited to sequential reads starting with the first line. Indexed record lookups are planned and intended. This will help with VSAM file development.
 
-Level 77 and 88 variables are not processed or handled properly in logic statements.
+Level 77 variables are not processed or handled properly in logic statements.
 
 ## Bug Reporting
 

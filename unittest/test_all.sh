@@ -217,3 +217,18 @@ echo
 echo COMPL002 - call out to search table redefined literals
 python3 COMPL002.py &
 wait
+
+echo
+echo HELLOW40 - DISPLAY keyword with UPON CONSOLE ignored
+python3 HELLOW40.py &
+wait
+
+echo
+echo HELLOW41 - Declare variable with no name and a VALUE statement
+python3 HELLOW41.py &
+wait
+
+echo
+echo HELLOW42 - LEVEL 88 variables
+python3 HELLOW42.py &
+wait

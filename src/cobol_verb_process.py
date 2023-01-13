@@ -459,6 +459,8 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
         elif value == FUNCTION_KEYWORD:
             value = "Exec_Function('" + tokens[2] + "')"
             target_offset = 4
+        elif value == TRUE_KEYWORD:
+            value = 'True'
         elif value.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() == False:
             value = "Get_Variable_Value(variables_list,'" + value + "','" + value + "')"
     elif value.startswith(SINGLE_QUOTE):
@@ -478,9 +480,15 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
 def process_display_verb(tokens, name: str, level: int):
     count = 0
+    skip_the_rest = False
     for t in tokens:
         t = str(t)
         if t == PERIOD:
+            continue
+        if t == UPON_KEYWORD:
+            skip_the_rest = True
+            continue
+        if skip_the_rest:
             continue
         if count > 0:
             if tokens[count] in COBOL_VERB_LIST:
@@ -500,7 +508,10 @@ def process_display_verb(tokens, name: str, level: int):
 def process_add_verb(tokens, name: str, level: int):
     giving = tokens[3]
     if GIVING_KEYWORD in tokens:
-        giving = tokens[5]
+        if TO_KEYWORD in tokens:
+            giving = tokens[5]
+        else:
+            giving = tokens[4]
     mod = "'" + tokens[1] + "'"
     if tokens[1].isnumeric() == False:
         mod = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
