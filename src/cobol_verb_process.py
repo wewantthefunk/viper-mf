@@ -563,7 +563,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
             target_offset = 4
         elif value == TRUE_KEYWORD:
             value = 'True'
-        elif value.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() == False:
+        elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).isnumeric() == False:
             value = "Get_Variable_Value(variables_list,'" + value + "','" + value + "')"
     elif value.startswith(SINGLE_QUOTE):
         x = 0

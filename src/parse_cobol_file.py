@@ -112,7 +112,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
@@ -213,5 +213,5 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    #parse_cobol_file("examples/hellow50_if_statement_with_computations.cbl", "converted/")
+    #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
+    parse_cobol_file("examples/hellow49_if_statement_4.cbl", "converted/")

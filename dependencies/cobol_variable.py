@@ -157,6 +157,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
 
     if data_type == NUMERIC_SIGNED_DATA_TYPE:
         data_type = NUMERIC_DATA_TYPE
+        length = length + 1
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level))
 
@@ -293,7 +294,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                     else:
                         offset = 0
                 elif var.level == LEVEL_88:
-                    if value.startswith(HEX_PREFIX):
+                    if str(value).startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
                         var.is_hex = True
                         hex_prefix = HEX_PREFIX

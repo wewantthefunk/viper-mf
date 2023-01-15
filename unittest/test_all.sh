@@ -262,3 +262,13 @@ echo
 echo HELLOW48 - compute statement
 python3 HELLOW48.py &
 wait
+
+echo
+echo HELLOW49 - complex if statement
+python3 HELLOW49.py &
+wait
+
+echo
+echo HELLOW50 - another complex if statement
+python3 HELLOW50.py &
+wait
