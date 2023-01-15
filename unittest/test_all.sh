@@ -247,3 +247,13 @@ echo
 echo HELLOW45 - divide keyword
 python3 HELLOW45.py &
 wait
+
+echo
+echo HELLOW46 - value statement hex value
+python3 HELLOW46.py &
+wait
+
+echo
+echo HELLOW47 - move slice of variable to another variable
+python3 HELLOW47.py &
+wait

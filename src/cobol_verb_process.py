@@ -89,8 +89,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         level = level + 1
     elif tokens[0] == COBOL_VERB_WHEN:
         if tokens[1] == WHEN_OTHER_KEYWORD:
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + ELSE + COLON + NEWLINE)
-            level = level + 1
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
         else:
             level = level - 1
             process_evaluate_verb(tokens, name, level)  
@@ -119,6 +118,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         last_cmd_display = False
         process_search_verb(tokens, name, indent, level, args, current_line)
         level = level + 1
+    elif tokens[0] == COBOL_VERB_COMPUTE:
+        append_file(name + PYTHON_EXT, "# compute verb here\n")
     
     return level
 
@@ -360,6 +361,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             line = line + SPACE + token.lower() + SPACE
         elif token == SPACE_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
+        elif token == NEGATIVE_KEYWORD:
+            line = line + " < 0"
         else:
             line = line + "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + token + "','" + token + SINGLE_QUOTE + CLOSE_PARENS + SPACE
 
@@ -459,9 +462,11 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
     elif value == ZERO_KEYWORD:
         value = ZERO
 
+    value = value.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
+
     target_offset = 3
 
-    if value.startswith(SINGLE_QUOTE) == False and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False:
+    if value.startswith(SINGLE_QUOTE) == False and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False and value.startswith(HEX_PREFIX) == False:
         if OPEN_PARENS in value:
             old_value = value
             s = value.split(OPEN_PARENS)
@@ -476,7 +481,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 if s1[0].isnumeric() == False:
                     end_offset = "Get_Variable_Value(variables_list,'" + s1[0] + "','" + s1[0] + "')"
 
-                    value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
+                value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
             else:
                 value = get_var_value = "Get_Variable_Value(variables_list,'" + old_value + "','" + old_value + "')"
         elif value == FUNCTION_KEYWORD:

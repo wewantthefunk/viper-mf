@@ -10,6 +10,7 @@ DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
 GET_COMMAND = "get"
+HEX_PREFIX = "_hex_"
 LEVEL_88 = "88"
 LITERAL = "literal"
 NEWLINE = "\n"
@@ -42,6 +43,7 @@ class COBOLVariable:
         self.occurs_length = occurs_length
         self.level = level
         self.decimal_length = decimal_length
+        self.is_hex = False
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -256,6 +258,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
             name = var.name
             found = True
             count = var_list.index(var) + 1
+            hex_prefix = EMPTY_STRING
             if var.length == 0 and var.level != LEVEL_88:
                 if (var.name not in parent):
                     parent.append(var.name)
@@ -277,16 +280,29 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                         offset = 0
 
                     elif var.length >= sub_index[0] or len(sub_index) == 1:
+                        if value.startswith(HEX_PREFIX):
+                            value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                            var.is_hex = True
+                            hex_prefix = HEX_PREFIX
                         t_value = value
 
                         if len(sub_index) == 2:
                             var.value[:sub_index[0]] + str(value) + var.value[sub_index[1]:]
+                            
                         _update_var_value(orig_var_list, var, t_value, sub_index)
                     else:
                         offset = 0
                 elif var.level == LEVEL_88:
+                    if value.startswith(HEX_PREFIX):
+                        value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                        var.is_hex = True
+                        hex_prefix = HEX_PREFIX
                     _update_var_value(orig_var_list, var, str(value), [])
                 else:
+                    if value.startswith(HEX_PREFIX):
+                        value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                        var.is_hex = True
+                        hex_prefix = HEX_PREFIX
                     _update_var_value(orig_var_list, var, str(value)[0:var.length], [])
 
                 if (len(str(value)) > var.length and (name not in parent or name == EMPTY_STRING) and var.parent != EMPTY_STRING) or is_spaces:
@@ -295,7 +311,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                     if is_spaces:
                         value = SPACES_INITIALIZER
                         offset = 0
-                    found = search_variable_list(var_list[count:], EMPTY_STRING, value[offset:], parent, sub_index, index_pos, orig_var_list)
+                    found = search_variable_list(var_list[count:], EMPTY_STRING, hex_prefix + value[offset:], parent, sub_index, index_pos, orig_var_list)
 
             break
 
@@ -669,3 +685,9 @@ def convert_open_method(method: str):
         return "a"
     elif method == "INPUT-OUTPUT":
         return "a+"
+
+def convert_EBCDIC_hex(input: str):
+    return input
+
+def convert_string_EBCDIC_hex(input: str):
+    return input

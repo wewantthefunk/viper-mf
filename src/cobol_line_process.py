@@ -223,7 +223,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(tokens) < 2:
         return
 
-    if VALUE_CLAUSE == tokens[1]:
+    if VALUE_CLAUSE == tokens[1] or OCCURS_CLAUSE == tokens[1]:
         tokens.insert(1, gen_rand(5))
 
     if REDEFINES_KEYWORD in tokens:
@@ -338,7 +338,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             + str(data_info[2]) + ",'" + tokens[0] + "')" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
-        var_init_list.append([COBOL_VERB_MOVE, tokens[tokens.index(VALUE_CLAUSE) + 1], EMPTY_STRING, v_name])
+        init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
+        if init_val.startswith("X'"):
+            init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
+        var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
 
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]
