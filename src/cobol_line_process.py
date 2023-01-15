@@ -298,6 +298,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         if len(data_division_var_stack) > 0:
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(tokens[0])
+        data_division_var_stack.append(tokens[1])
+        data_division_level_stack.append(tokens[0])
     else:
         while len(data_division_var_stack) > 0:
             if int(data_division_level_stack[len(data_division_level_stack) - 1]) >= int(tokens[0]):
@@ -345,6 +347,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]
+        current_line.highest_ws_level = int(tokens[0])
 
 def init_vars(name: str, args, current_line):
     global var_init_list

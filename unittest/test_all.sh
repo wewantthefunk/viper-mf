@@ -272,3 +272,8 @@ echo
 echo HELLOW50 - another complex if statement
 python3 HELLOW50.py &
 wait
+
+echo
+echo HELLOW51 - another complex if statement
+python3 HELLOW51.py &
+wait

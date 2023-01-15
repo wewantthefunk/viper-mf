@@ -271,7 +271,7 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
-    if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False:
+    if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
         x = 0
 
@@ -355,6 +355,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
     slice_length = 0
     num_spaces = len(INDENT) * level
     last_known_operand1 = tokens[1]
+    skip_next = False
 
     for token in tokens:
         if count == 0:
@@ -363,8 +364,9 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
         if token in COBOL_VERB_LIST or token == PERIOD or token == NUMERIC_KEYWORD:
             continue
         count = count + 1
-        if count == 8:
-            i = 0
+        if skip_next:
+            skip_next = False
+            continue
         need_closed_parens = False
         slice_compare = EMPTY_STRING
         if len(tokens) > count:
@@ -430,7 +432,12 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
         elif token in COBOL_ARITHMATIC_OPERATORS:
             line = line + SPACE + token + SPACE
         else:
-            last_known_operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + token + "','" + token + SINGLE_QUOTE + CLOSE_PARENS + SPACE
+            var = token
+            if count < len(tokens):
+                if tokens[count].startswith(OPEN_PARENS) and tokens[count].endswith(CLOSE_PARENS):
+                    var = var + tokens[count]
+                    skip_next = True
+            last_known_operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + var + "','" + var + SINGLE_QUOTE + CLOSE_PARENS + SPACE
             line = line + last_known_operand1
 
         if count < len(tokens):
@@ -583,6 +590,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 def process_display_verb(tokens, name: str, level: int):
     count = 0
     skip_the_rest = False
+    skip_next = False
     for t in tokens:
         t = str(t)
         if t == PERIOD:
@@ -592,10 +600,17 @@ def process_display_verb(tokens, name: str, level: int):
             continue
         if skip_the_rest:
             continue
+        if skip_next:
+            skip_next = False
+            continue
         if count > 0:
             if tokens[count] in COBOL_VERB_LIST:
                 break
 
+            if count + 1 < len(tokens):
+                if tokens[count + 1].startswith(OPEN_PARENS) and tokens[count + 1].endswith(CLOSE_PARENS):
+                    skip_next = True
+                    t = t + tokens[count + 1]
             is_literal = False
             if t.endswith(PERIOD):
                 is_literal = True
