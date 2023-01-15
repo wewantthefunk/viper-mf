@@ -271,7 +271,7 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
-    if len(tokens) >= 3 and operator_exists_in_list(tokens) == False:
+    if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False:
         tokens.insert(2, IN_KEYWORD)
         x = 0
 
@@ -354,6 +354,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
     in_ALL_function = False
     slice_length = 0
     num_spaces = len(INDENT) * level
+    last_known_operand1 = tokens[1]
+
     for token in tokens:
         if count == 0:
             count = count + 1
@@ -361,6 +363,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
         if token in COBOL_VERB_LIST or token == PERIOD or token == NUMERIC_KEYWORD:
             continue
         count = count + 1
+        if count == 8:
+            i = 0
         need_closed_parens = False
         slice_compare = EMPTY_STRING
         if len(tokens) > count:
@@ -373,8 +377,13 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             positions = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
             slice_length = int(positions[0]) -1 + int(positions[1])
             slice_compare = OPEN_BRACKET + str(int(positions[0]) - 1) + COLON + str(slice_length) + CLOSE_BRACKET
-        elif OPEN_PARENS in token and CLOSE_PARENS in token:
+        elif OPEN_PARENS in token and CLOSE_PARENS in token or (token == OPEN_PARENS or token == CLOSE_PARENS):
             i = 0
+        elif OPEN_PARENS in token and token.startswith(OPEN_PARENS) == False:
+            s = token.split(OPEN_PARENS)
+            if is_boolean_keyword(s[0]):
+                tokens.insert(count, OPEN_PARENS + s[1])
+                token = s[0]
         else:
             if token.startswith(OPEN_PARENS):
                 line = line + OPEN_PARENS
@@ -390,7 +399,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             else:
                 line = line + token + SPACE
 
-        elif token.replace(PLUS_SIGN, EMPTY_STRING).isnumeric():
+        elif token.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() or token.replace(MINUS_SIGN, EMPTY_STRING).isnumeric():
             line = line + token + SPACE
         elif token == NOT_KEYWORD:
             opposite_operator = True
@@ -399,20 +408,37 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
             in_ALL_function = True
         elif token == ZERO_KEYWORD:
             line = line + ZERO
-        elif is_operator(token):
+        elif is_comparison_operator(token):
             if opposite_operator:
                 line = line + SPACE + convert_operator_opposite(token) + SPACE
             else:
                 line = line + SPACE + convert_operator(token) + SPACE
             opposite_operator = False
-        elif is_boolean_keyword(token):
+        elif is_boolean_keyword(token):            
             line = line + SPACE + token.lower() + SPACE
+            not_offset = 0
+            if tokens[count] == NOT_KEYWORD and is_comparison_operator(tokens[count + 1]):
+                not_offset = 1
+            if is_comparison_operator(tokens[count + not_offset]): # and tokens[count + not_offset] == NOT_KEYWORD):
+                line = line + last_known_operand1
         elif token == SPACE_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
         elif token == NEGATIVE_KEYWORD:
             line = line + " < 0"
+        elif token == OPEN_PARENS or token == CLOSE_PARENS:
+            line = line + token
+        elif token in COBOL_ARITHMATIC_OPERATORS:
+            line = line + SPACE + token + SPACE
         else:
-            line = line + "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + token + "','" + token + SINGLE_QUOTE + CLOSE_PARENS + SPACE
+            last_known_operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + token + "','" + token + SINGLE_QUOTE + CLOSE_PARENS + SPACE
+            line = line + last_known_operand1
+
+        if count < len(tokens):
+            if tokens[count].startswith(tuple(COBOL_COMPARISON_OPERATORS)) and len(tokens[count]) > 2:
+                operator = tokens[count][0:1]
+                tokens[count] = tokens[count][1:]
+                tokens.insert(count, operator)
+                i = 0
 
         line = line + slice_compare
         if checking_function:
@@ -642,14 +668,14 @@ def convert_operator(operator: str):
     
     return operator
 
-def is_operator(operator: str):
-    return operator in COBOL_OPERATORS
+def is_comparison_operator(operator: str):
+    return operator in COBOL_COMPARISON_OPERATORS
 
 def is_boolean_keyword(boolean: str):
     return boolean in COBOL_BOOLEAN_KEYWORDS
 
-def operator_exists_in_list(list):
-    for operator in COBOL_OPERATORS:
+def comparison_operator_exists_in_list(list):
+    for operator in COBOL_COMPARISON_OPERATORS:
         if operator in list:
             return True
 
