@@ -272,7 +272,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                     else:
                         value = pad(var.length)
                 if var.data_type == NUMERIC_DATA_TYPE:
-                    if str(value).isnumeric() == False:
+                    if str(value).replace("+", EMPTY_STRING).replace("-", EMPTY_STRING).isdigit() == False:
                         value = 0
                 offset = var.length
                 if len(sub_index) > 0:
@@ -299,7 +299,7 @@ def search_variable_list(var_list, name: str, value: str, parent: str, sub_index
                         hex_prefix = HEX_PREFIX
                     _update_var_value(orig_var_list, var, str(value), [])
                 else:
-                    if value.startswith(HEX_PREFIX):
+                    if str(value).startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
                         var.is_hex = True
                         hex_prefix = HEX_PREFIX
