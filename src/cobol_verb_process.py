@@ -123,14 +123,23 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     return level
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+    count = 0
     end_len = len(tokens)
     if tokens[len(tokens) - 1] == PERIOD:
         end_len = end_len - 1
-    tokens[2] = tokens[2].replace(EQUALS, EMPTY_STRING)
+
+    equals_pos = 0
+    for token in tokens:
+        if token.startswith(EQUALS):
+            equals_pos = count
+            break
+        count = count + 1
+
+    tokens[equals_pos] = tokens[equals_pos].replace(EQUALS, EMPTY_STRING)
 
     count = 0
     for token in tokens:
-        if count < 2:
+        if count < equals_pos:
             count = count + 1
             continue
         set_open_parens = False
@@ -158,7 +167,8 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         tokens[count] = token
         count = count + 1
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "',str(eval('" + ''.join(tokens[2:end_len]) + "')),'" + tokens[1] + "')" + NEWLINE) 
+    for x in range(1,equals_pos):
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')" + NEWLINE) 
     
 
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):

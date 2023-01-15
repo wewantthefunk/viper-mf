@@ -257,3 +257,8 @@ echo
 echo HELLOW47 - move slice of variable to another variable
 python3 HELLOW47.py &
 wait
+
+echo
+echo HELLOW48 - compute statement
+python3 HELLOW48.py &
+wait
