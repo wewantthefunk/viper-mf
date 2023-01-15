@@ -213,5 +213,5 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    #parse_cobol_file("examples/hellow47_move_slice_of_variable.cbl", "converted/")
+    #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
+    parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")

@@ -119,9 +119,47 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_search_verb(tokens, name, indent, level, args, current_line)
         level = level + 1
     elif tokens[0] == COBOL_VERB_COMPUTE:
-        append_file(name + PYTHON_EXT, "# compute verb here\n")
-    
+        process_compute_verb(tokens, name, indent, level, args, current_line)
     return level
+
+def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+    end_len = len(tokens)
+    if tokens[len(tokens) - 1] == PERIOD:
+        end_len = end_len - 1
+    tokens[2] = tokens[2].replace(EQUALS, EMPTY_STRING)
+
+    count = 0
+    for token in tokens:
+        if count < 2:
+            count = count + 1
+            continue
+        set_open_parens = False
+        set_close_parens = False
+        if token in COBOL_ARITHMATIC_OPERATORS or token == EMPTY_STRING:
+            count = count + 1
+            continue
+        else:
+            if token.startswith(OPEN_PARENS):
+                set_open_parens = True
+            elif token.endswith(CLOSE_PARENS):
+                set_close_parens = True
+            
+            token = token.replace(OPEN_PARENS, EMPTY_STRING).replace(CLOSE_PARENS, EMPTY_STRING)
+
+            if token.isnumeric() == False:
+                token = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",\"" + token + "\",\"" + token + "\")"
+
+            if set_open_parens:
+                token = OPEN_PARENS + token
+
+            if set_close_parens:
+                token = token + CLOSE_PARENS
+
+        tokens[count] = token
+        count = count + 1
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "',str(eval('" + ''.join(tokens[2:end_len]) + "')),'" + tokens[1] + "')" + NEWLINE) 
+    
 
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     all_offset = 0
