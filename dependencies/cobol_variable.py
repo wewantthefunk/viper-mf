@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 from os.path import exists
 
+ACCEPT_VALUE_FLAG = "__ACCEPT "
 ADD_COMMAND = "add"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
@@ -21,6 +22,7 @@ OPEN_PARENS = "("
 SET_COMMAND = "set"
 SPACE = " "
 SPACES_INITIALIZER = "____spaces"
+SYSIN_ENV_VARIABLE = "SYSIN"
 UPD_COMMAND = "update"
 ZERO = "0"
 
@@ -244,6 +246,10 @@ def Set_Variable(variable_lists, name: str, value: str, parent: str, index_pos =
     if OPEN_PARENS in parent:
         ps = parent.split(OPEN_PARENS)
         parent = ps[0]
+
+    if str(value).startswith(ACCEPT_VALUE_FLAG):
+        value = parse_accept_statement(value)
+
     for var_list in variable_lists:
         result = search_variable_list(var_list, name, value, [parent], sub_index, index_pos, var_list)
         if result:
@@ -707,3 +713,30 @@ def convert_EBCDIC_hex(input: str):
 
 def convert_string_EBCDIC_hex(input: str):
     return input
+
+def parse_accept_statement(accept: str):
+    result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING)
+    if result != EMPTY_STRING:
+        temp = EMPTY_STRING
+        s = result.split(SPACE)
+        if s[0] == "DAY":
+            tt = datetime.today().timetuple()
+            temp = tt.tm_year * 1000 + tt.tm_yday
+            if len(s) > 1:
+                if s[1] != "YYYYDDD":
+                    temp = str(temp)[2:]
+            else:
+                temp = str(temp)[2:]
+        elif s[0] == 'DATE':
+            temp = datetime.today().strftime("%Y%m%d")
+            if len(s) > 1:
+                if s[1] != "YYYYMMDD":
+                    temp = str(temp)[2:]
+            else:
+                temp = str(temp)[2:]
+
+        result = temp
+    else:
+        result = os.getenv(SYSIN_ENV_VARIABLE)
+
+    return result

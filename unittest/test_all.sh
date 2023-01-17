@@ -277,3 +277,9 @@ echo
 echo HELLOW51 - another complex if statement
 python3 HELLOW51.py &
 wait
+
+echo
+echo HELLOW52 - accept statement
+export SYSIN=sysin_val
+python3 HELLOW52.py &
+wait

@@ -120,6 +120,15 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         level = level + 1
     elif tokens[0] == COBOL_VERB_COMPUTE:
         process_compute_verb(tokens, name, indent, level, args, current_line)
+    elif tokens[0] == COBOL_VERB_ACCEPT:
+        accept_value = UNDERSCORE + UNDERSCORE + COBOL_VERB_ACCEPT + SPACE
+        if len(tokens) > 3:
+            accept_value = accept_value + tokens[3]
+            if len(tokens) > 4:
+                accept_value = accept_value + SPACE + tokens[4]
+
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Set_Variable(" + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')" + NEWLINE)
+
     return level
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
