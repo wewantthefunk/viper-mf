@@ -280,6 +280,8 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
+    if tokens[1] == "W-NUMBER-FIELD":
+        x = 0
     if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
         x = 0
@@ -317,9 +319,9 @@ def process_evaluate_verb(tokens, name: str, level: int):
             evaluate_compare = tokens[1]
             if operand2.startswith(SINGLE_QUOTE) == False and operand2.isnumeric() == False:
                 operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif evaluate_compare == TRUE_KEYWORD:
+    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'True'
-    elif evaluate_compare == FALSE_KEYWORD:
+    elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'False'
 
 
@@ -339,10 +341,16 @@ def process_evaluate_verb(tokens, name: str, level: int):
 
     operand1_name = evaluate_compare
 
-    if operand2 == 'True' or operand2 == 'False':
+    if operand2 == 'True' or operand2 == 'False' or operand2 == NUMERIC_KEYWORD:
         operand1_name = tokens[1]
 
     operand1 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
+    if operand2 == NUMERIC_KEYWORD:
+        operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
+        if evaluate_compare == TRUE_KEYWORD:
+            operand2 = 'True'
+        elif evaluate_compare == FALSE_KEYWORD:
+            operand2 = "False"
     line = prefix + operand1 + convert_operator(operator) + SPACE + operand2 + SPACE
 
     append_file(name + PYTHON_EXT, pad(indent_len) + line)
@@ -484,8 +492,10 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
     else:
         if tokens[1] == UNTIL_KEYWORD:
             operand2 = tokens[4]
-            if tokens[4].startswith(SINGLE_QUOTE) == False:
+            if tokens[4].startswith(SINGLE_QUOTE) == False and tokens[4] != ZERO_KEYWORD:
                 operand2 = "Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
+            elif tokens[4] == ZERO_KEYWORD:
+                operand2 = ZERO
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
                 + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
             level = level + 1
@@ -683,6 +693,8 @@ def convert_operator_opposite(operator: str):
         return LESS_THAN
     if operator == GREATER_THAN:
         return LESS_THAN_EQUAL_TO
+    if operator == LESS_THAN_EQUAL_TO:
+        return GREATER_THAN
 
     return operator
 

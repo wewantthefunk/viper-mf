@@ -238,14 +238,18 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
 
     occurs_length = 0
-   
+
+    if tokens[1].startswith("GREGORIAN-DATE"):
+        x = 0
+
     if len(tokens) == 2 or PIC_CLAUSE not in tokens:  
         new_level = tokens[0]
-        while len(data_division_level_stack) > 0 and int(new_level) < int(data_division_level_stack[len(data_division_level_stack) - 1]):
+        while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
-                if len(data_division_level_stack) > 0:
-                    new_level = data_division_level_stack[len(data_division_level_stack) - 1]
+
+        #if len(data_division_level_stack) > 0:
+        #    new_level = data_division_level_stack[len(data_division_level_stack) - 1]
 
         if len(data_division_var_stack) == 0:
             data_division_level_stack.append(tokens[0])
@@ -261,9 +265,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 data_division_level_stack.append(tokens[0])
         elif int(tokens[0]) == int(data_division_level_stack[len(data_division_level_stack) - 1]):
             if len(data_division_var_stack) > 0:
-                data_division_var_stack.remove(data_division_var_stack[len(data_division_var_stack) - 1])
+                data_division_var_stack.pop()
             if len(data_division_level_stack) > 0:
-                data_division_level_stack.remove(data_division_level_stack[len(data_division_level_stack) - 1])
+                data_division_level_stack.pop()
             if len(data_division_var_stack) == 0:
                 data_division_level_stack.append(tokens[0])
                 data_division_var_stack.append(tokens[1])
@@ -304,9 +308,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         while len(data_division_var_stack) > 0:
             if int(data_division_level_stack[len(data_division_level_stack) - 1]) >= int(tokens[0]):
                 if len(data_division_var_stack) > 0:
-                    data_division_var_stack.remove(data_division_var_stack[len(data_division_var_stack) - 1])
+                    data_division_var_stack.pop()
                 if len(data_division_level_stack) > 0:
-                    data_division_level_stack.remove(data_division_level_stack[len(data_division_level_stack) - 1])
+                    data_division_level_stack.pop()
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
