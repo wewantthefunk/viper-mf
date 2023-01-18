@@ -168,7 +168,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
         if l.name == name:
             return list
 
-    if data_type == NUMERIC_SIGNED_DATA_TYPE:
+    if data_type == NUMERIC_SIGNED_DATA_TYPE or comp_indicator != EMPTY_STRING:
         length = length + 1
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator))
@@ -328,6 +328,8 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                         if value.startswith("-"):
                             neg_indicator = "D"
                             value = value[1:]
+                        elif var.data_type == NUMERIC_DATA_TYPE:
+                            neg_indicator = "F"
                         orig_value = value
                         value = convert_EBCDIC_hex_to_string(value, var)
                         if var.comp_indicator != EMPTY_STRING:

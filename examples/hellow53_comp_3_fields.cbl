@@ -8,6 +8,8 @@
 
        01 COMP-3-FIELD   PIC S9(5) COMP-3.
 
+       01 UNSIGNED-COMP-3 PIC 9(5) COMP-3.
+
        PROCEDURE DIVISION.
 
            MOVE X'75110C' TO COMP-3-FIELD.
@@ -29,6 +31,11 @@
 
            DISPLAY 'expected value 11111D'
            DISPLAY 'actual value   ' COMP-3-FIELD.
+
+           MOVE 1234 TO UNSIGNED-COMP-3.
+
+           DISPLAY 'expected value 01234F'
+           DISPLAY 'actual value   ' UNSIGNED-COMP-3.
 
            STOP RUN.
 
