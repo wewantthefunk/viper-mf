@@ -587,6 +587,9 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                         else:
                             result = result + r1[pos_length[0]: pos_length[0] + pos_length[1]]
                         found_count = found_count + 1
+
+                    result = comp_conversion(var_list[count], result)
+
                     break
                 elif var_list[count].level == LEVEL_88 and var_list[count].name == name:
                     found_count = found_count + 1
@@ -792,6 +795,13 @@ def find_hex_value(value: str):
 
     return EBCDIC_ASCII_CHART[0]
 
+def find_hex_value_by_ascii(value: str):
+    for hv in EBCDIC_ASCII_CHART:
+        if hv.ASCII_value == value:
+            return hv
+
+    return EBCDIC_ASCII_CHART[0]
+
 def parse_accept_statement(accept: str):
     result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING)
     if result != EMPTY_STRING:
@@ -821,6 +831,31 @@ def parse_accept_statement(accept: str):
 
 def get_hex_value(c: str):
     return hex(ord(c))
+
+def comp_conversion(var: COBOLVariable, value: str):
+    result = EMPTY_STRING
+    if var.comp_indicator == "COMP-3":
+        count = 0
+        while count < len(value):
+            result = result + find_hex_value_by_ascii(value[count:count + 1]).hex_value
+            count = count + 1
+
+        if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+            if result.endswith("C") == False and result.endswith("D") == False and result.endswith("F") == False:
+                result = result + "C"
+
+        elif result.endswith("C") == False and result.endswith("D") == False and result.endswith("F") == False:
+            result = result + "F"
+            
+        if len(result) % 2 != 0:
+            if result.startswith(ZERO):
+                result = result[1:]
+            else:
+                result = ZERO + result
+    else:
+        result = value
+
+    return result
 
 def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('00', '\x00', '\x00'))
