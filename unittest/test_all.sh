@@ -288,3 +288,8 @@ echo
 echo HELLOW53 - comp-3 fields
 python3 HELLOW53.py &
 wait
+
+echo
+echo HELLOW54 - comp-3 fields redefines
+python3 HELLOW54.py &
+wait

@@ -20,6 +20,7 @@
            MOVE X'F3F0012345' TO TEST-FIELD.
 
            DISPLAY 'expected value is 30☺#E'
+           DISPLAY '(note: linux may not show some characters)'
            DISPLAY 'actual value is   ' TEST-FIELD.
 
            DISPLAY 'expected value is 12345C'
@@ -30,7 +31,8 @@
 
            MOVE X'F4F254321D' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 42T2∟'
+           DISPLAY 'expected value is 42T2↔'
+           DISPLAY '(note: linux may not show some characters)'
            DISPLAY 'actual value is   ' TEST-FIELD.
 
            DISPLAY 'expected value is 54321D'

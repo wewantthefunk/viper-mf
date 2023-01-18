@@ -40,6 +40,7 @@ class EBCDICASCII:
         self.hex_value = hex_val
         self.EBCDIC_value = ebcdic_val
         self.ASCII_value = ascii_val
+        self.decimal_value = int(hex_val, 16)
 
 class COBOLVariable:
     def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length, level: str, comp_indicator):
