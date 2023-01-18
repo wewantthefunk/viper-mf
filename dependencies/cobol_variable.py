@@ -416,24 +416,26 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
             v = str(value)   
             val = orig.value.rjust(orig.length, ZERO)[:orig.length]       
         elif orig == None:
-            #val = name
+            val = name
             continue
-        if modifier != EMPTY_STRING:
-            if modifier.lstrip('-+').isdigit():
-                value = str(int(value) * int(modifier))
+    
+    if modifier != EMPTY_STRING:
+        if modifier.lstrip('-+').isdigit():
+            value = str(int(value) * int(modifier))
 
-            if modifier == "*":
-                v = str(int(value) * int(val))[0:target.length]
-            elif modifier == "/":
-                remainder = int(value) % int(val)
-                if remainder_var != EMPTY_STRING:
-                    Set_Variable(variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
-                v = str(int(int(value) / int(val)))[0:target.length]
-            else:
-                v = str(int(value) + int(val))[0:target.length]
+        if modifier == "*":
+            v = str(int(value) * int(val))[0:target.length]
+        elif modifier == "/":
+            remainder = int(value) % int(val)
+            if remainder_var != EMPTY_STRING:
+                Set_Variable(variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
+            v = str(int(int(value) / int(val)))[0:target.length]
         else:
             v = str(int(value) + int(val))[0:target.length]
-        target.value = v
+    else:
+        v = str(int(value) + int(val))[0:target.length]
+    
+    target.value = v
 
 
 def Replace_Variable_Value(variable_lists, name: str, orig: str, rep: str):
@@ -706,7 +708,7 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
     last_command = DISP_COMMAND
 
     sub_index = []
-    if OPEN_PARENS in name:
+    if OPEN_PARENS in name and parent != 'literal':
         s1 = name.split(OPEN_PARENS)
         name = s1[0]
         if COLON in s1[1]:
