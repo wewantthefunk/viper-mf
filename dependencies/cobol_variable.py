@@ -537,7 +537,7 @@ def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False
         if result[1] == True:
             is_numeric_data_type = result[1]
 
-    if is_numeric_data_type and force_str == False and t.isnumeric():
+    if is_numeric_data_type and force_str == False and t.replace("-", EMPTY_STRING).isnumeric():
         if t == EMPTY_STRING:
             t = "0"
         return int(t)
