@@ -585,18 +585,17 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                     pos_length = find_get_variable_position(var_list, var_list[count].name, var_list[count].name)
                     r1 = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, [])[0]
                     if len(sub_index) > 0:
-                        result = result + r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]]
+                        result = result + comp_conversion(var_list[count],  r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]])
                         found_count = found_count + 1
                     else:
                         if var_list[count].level == LEVEL_88:
                             result = str(var_list[count].level88value) == r1[pos_length[0]: pos_length[0] + pos_length[1]]
                         else:
-                            result = result + r1[pos_length[0]: pos_length[0] + pos_length[1]]
+                            result = result + comp_conversion(var_list[count], r1[pos_length[0]: pos_length[0] + pos_length[1]])
                         found_count = found_count + 1
 
-                    result = comp_conversion(var_list[count], result)
-
-                    break
+                    if var_list[count].name == name:
+                        break
                 elif var_list[count].level == LEVEL_88 and var_list[count].name == name:
                     found_count = found_count + 1
                     if var_list[count].data_type == NUMERIC_DATA_TYPE:
@@ -635,7 +634,7 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                             result = result + EMPTY_STRING.ljust(var_list[count].length)[:var_list[count].length]
                     else:
                         result = result + var_list[count].value.ljust(var_list[count].length)[:var_list[count].length]
-        elif var_list[count].name == parent and var_list[count].redefines != EMPTY_STRING:
+        elif var_list[count].name == parent and var_list[count].redefines != EMPTY_STRING and var_list[count].length > 0:
             result = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, sub_index)[0]
             found_count = found_count + 1
             break

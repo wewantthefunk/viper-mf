@@ -8,7 +8,7 @@
 
        01 TOP-LEVEL.
            05 TEST-FIELD     PIC X(5).
-           05 REDEFINES TEST-FIELD.
+           05 TEST-FIELD-2 REDEFINES TEST-FIELD.
               10 NUMBER-FIELD   PIC 9(2).
               10 COMP-3-FIELD   PIC S9(5) COMP-3.
            05 REDEFINES TEST-FIELD.
@@ -40,6 +40,9 @@
 
            DISPLAY 'expected value is 54321F'
            DISPLAY 'actual value is   ' COMP-3-FIELD-2.
+
+           DISPLAY 'expected value is 4254321D'
+           DISPLAY 'actual value is   ' TEST-FIELD-2.
 
            STOP RUN.
 
