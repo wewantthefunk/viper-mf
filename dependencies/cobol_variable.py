@@ -1,5 +1,5 @@
 from datetime import datetime
-import os, binascii
+import os, math
 from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
@@ -7,6 +7,7 @@ ADD_COMMAND = "add"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
+COMP_3_INDICATOR = "COMP-3"
 DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
@@ -14,6 +15,7 @@ GET_COMMAND = "get"
 HEX_PREFIX = "_hex_"
 LEVEL_88 = "88"
 LITERAL = "literal"
+NEGATIVE_SIGN = "-"
 NEGATIVE_SIGNED_HEX_FLAG = "D"
 NEWLINE = "\n"
 NOT_EQUALS = "!="
@@ -172,8 +174,19 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
         if l.name == name:
             return list
 
-    if data_type == NUMERIC_SIGNED_DATA_TYPE or comp_indicator != EMPTY_STRING:
-        length = length + 1
+    if (data_type == NUMERIC_SIGNED_DATA_TYPE) and length > 0:
+        if comp_indicator == COMP_3_INDICATOR:
+            if length % 2 != 0:
+                length = length + 1
+            elif length == 2:
+                length = length + 2
+        else:
+            length = length + 1
+    elif comp_indicator == COMP_3_INDICATOR:
+        if length % 2 != 0:
+            length = length + 1
+        elif length == 2:
+            length = length + 2
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator))
 
@@ -280,6 +293,7 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
             found = True
             count = var_list.index(var) + 1
             hex_prefix = EMPTY_STRING
+            hex_pad = 0
             if var.length == 0 and var.level != LEVEL_88:
                 if (var.name not in parent):
                     parent.append(var.name)
@@ -340,10 +354,10 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                             if orig_value.endswith(POSITIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(NEGATIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(UNSIGNED_HEX_FLAG) == False:
                                 value = value + neg_indicator
 
-                            if len(value) % 2 != 0:
+                            if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
                                 value = value.replace("0x", "0x0") 
-                            else:
-                                value = value + neg_indicator
+                            #else:
+                            #    value = value + neg_indicator
                         elif var.data_type == "X":
                             t = EMPTY_STRING
                             for x in range(0, len(orig_value), 2):
@@ -360,7 +374,7 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                     if is_spaces:
                         value = SPACES_INITIALIZER
                         offset = 0
-                    found = search_variable_list(var_list[count:], EMPTY_STRING, hex_prefix + value[offset:], parent, sub_index, index_pos, orig_var_list)
+                    found = search_variable_list(var_list[count:], EMPTY_STRING, hex_prefix + value[offset + hex_pad:], parent, sub_index, index_pos, orig_var_list)
 
             break
 
@@ -612,7 +626,7 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                     r = str(var_list[count].value)[:var_list[count].length + hex_pad]
                     neg_sign = EMPTY_STRING
                     if r.startswith("-"):
-                        neg_sign = "-"
+                        neg_sign = NEGATIVE_SIGN
                         r = r[1:]
                     if var_list[count].is_hex:
                         result = result + r[2:]
@@ -846,7 +860,7 @@ def get_hex_value(c: str):
 
 def comp_conversion(var: COBOLVariable, value: str):
     result = EMPTY_STRING
-    if var.comp_indicator == "COMP-3":
+    if var.comp_indicator == COMP_3_INDICATOR:
         count = 0
         while count < len(value):
             result = result + find_hex_value_by_ebcdic(value[count:count + 1]).hex_value

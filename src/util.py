@@ -19,6 +19,7 @@ class LexicalInfo:
         self.lambda_functions = []
         self.skip_the_next_lines = 0
         self.loop_modifier = ""
+        self.cascade_data_type = ""
 
 def read_file(file: str):
     result = ""

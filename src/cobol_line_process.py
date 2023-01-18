@@ -4,6 +4,7 @@ from cobol_verb_process import *
 
 data_division_var_stack = []
 data_division_level_stack = []
+data_division_cascade_stack = []
 data_division_file_record = EMPTY_STRING
 var_init_list = []
 
@@ -120,13 +121,14 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
         + "','" + organization + "','" + access + "','" + record_key + "','" + file_status + "')" + NEWLINE)
 
 def process_data_division_line(line: str, current_section: str, name: str, current_line: LexicalInfo, next_few_lines, args):
-    global data_division_var_stack, data_division_level_stack, data_division_file_record
+    global data_division_var_stack, data_division_level_stack, data_division_file_record, data_division_cascade_stack
     if line in DATA_DIVISION_SECTIONS:
         current_section = line
         current_line.first_line_section = True
         current_line.highest_ws_level = 99
         data_division_var_stack = []
         data_division_level_stack = []
+        data_division_cascade_stack = []
         current_line.skip_the_next_lines = 0
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
         append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = []" + NEWLINE)
@@ -201,8 +203,16 @@ def check_ignore_verbs(ignore_verbs, v: str):
     return v in ignore_verbs
 
 def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args):
-    global data_division_var_stack, data_division_level_stack, var_init_list
+    global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
+
+
+    cascade_data_type = current_line.cascade_data_type
+
+    if COMP_3_KEYWORD in tokens:
+        cascade_data_type = COMP_3_KEYWORD
+    elif COMP_KEYWORD in tokens:
+        cascade_data_type = COMP_KEYWORD
 
     skip_lines_count = 0
 
@@ -244,10 +254,12 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
+                data_division_cascade_stack.pop()
 
         if len(data_division_var_stack) == 0:
             data_division_level_stack.append(tokens[0])
             data_division_var_stack.append(tokens[1])
+            data_division_cascade_stack.append(cascade_data_type)
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
             
@@ -257,28 +269,37 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if (tokens[1] not in data_division_var_stack):
                 data_division_var_stack.append(tokens[1])
                 data_division_level_stack.append(tokens[0])
+                data_division_cascade_stack.append(cascade_data_type)
         elif int(tokens[0]) == int(data_division_level_stack[len(data_division_level_stack) - 1]):
             if len(data_division_var_stack) > 0:
                 data_division_var_stack.pop()
             if len(data_division_level_stack) > 0:
                 data_division_level_stack.pop()
+            if len(data_division_cascade_stack) > 0:
+                data_division_cascade_stack.pop()
             if len(data_division_var_stack) == 0:
                 data_division_level_stack.append(tokens[0])
                 data_division_var_stack.append(tokens[1])
+                data_division_cascade_stack.append(cascade_data_type)
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
+            cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
             if tokens[1] not in data_division_var_stack:
                 data_division_level_stack.append(tokens[0])
                 data_division_var_stack.append(tokens[1])
+                data_division_cascade_stack.append(cascade_data_type)
         elif len(data_division_var_stack) > 0:            
             if len(data_division_var_stack) == 0:
                 data_division_var_stack.append(tokens[1])
                 data_division_level_stack.append(tokens[0])
+                data_division_cascade_stack.append(cascade_data_type)
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
+            cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
             if (tokens[1] not in data_division_var_stack):
                 data_division_var_stack.append(tokens[1])
                 data_division_level_stack.append(tokens[0])
+                data_division_cascade_stack.append(cascade_data_type)
 
         if OCCURS_CLAUSE in tokens:
             i = tokens.index(OCCURS_CLAUSE)
@@ -298,6 +319,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             current_line.highest_ws_level = int(tokens[0])
         data_division_var_stack.append(tokens[1])
         data_division_level_stack.append(tokens[0])
+        data_division_cascade_stack.append(cascade_data_type)
     else:
         while len(data_division_var_stack) > 0:
             if int(data_division_level_stack[len(data_division_level_stack) - 1]) >= int(tokens[0]):
@@ -305,6 +327,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                     data_division_var_stack.pop()
                 if len(data_division_level_stack) > 0:
                     data_division_level_stack.pop()
+                if len(data_division_cascade_stack) > 0:
+                    data_division_cascade_stack.pop()
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
@@ -316,9 +340,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
             data_division_level_stack.append(tokens[0])
             data_division_var_stack.append(tokens[1])
+            data_division_cascade_stack.append(cascade_data_type)
         else:
             data_division_level_stack.append(tokens[0])
             data_division_var_stack.append(tokens[1])
+            data_division_cascade_stack.append(cascade_data_type)
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
     
@@ -332,18 +358,18 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(data_info) < 4:
         data_info.append(EMPTY_STRING)
 
-    if data_info[3] == COMP_KEYWORD:
-        data_info[3] == "CO"
-    elif data_info[3] == COMP_1_KEYWORD:
-        data_info[3] == "C1"
-    elif data_info[3] == COMP_2_KEYWORD:
-        data_info[3] == "C2"
-    elif data_info[3] == COMP_3_KEYWORD:
-        data_info[3] == "C3"
-    elif data_info[3] == COMP_4_KEYWORD:
-        data_info[3] == "C4"
-    elif data_info[3] == COMP_5_KEYWORD:
-        data_info[3] == "C5"
+    if cascade_data_type == COMP_KEYWORD:
+        data_info[3] = COMP_KEYWORD
+    elif data_info[3] == COMP_1_KEYWORD or cascade_data_type == COMP_1_KEYWORD:
+        data_info[3] = COMP_1_KEYWORD
+    elif data_info[3] == COMP_2_KEYWORD or cascade_data_type == COMP_2_KEYWORD:
+        data_info[3] = COMP_2_KEYWORD
+    elif data_info[3] == COMP_3_KEYWORD or cascade_data_type == COMP_3_KEYWORD:
+        data_info[3] = COMP_3_KEYWORD
+    elif data_info[3] == COMP_4_KEYWORD or cascade_data_type == COMP_4_KEYWORD:
+        data_info[3] = COMP_4_KEYWORD
+    elif data_info[3] == COMP_5_KEYWORD or cascade_data_type == COMP_5_KEYWORD:
+        data_info[3] = COMP_5_KEYWORD
 
     v_name = tokens[1]
     if v_name == PIC_CLAUSE:
@@ -362,6 +388,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]
         current_line.highest_ws_level = int(tokens[0])
+
+    current_line.cascade_data_type = cascade_data_type
 
 def init_vars(name: str, args, current_line):
     global var_init_list
