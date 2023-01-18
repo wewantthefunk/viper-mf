@@ -332,9 +332,12 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                             neg_indicator = "F"
                         orig_value = value
                         value = convert_EBCDIC_hex_to_string(value, var)
-                        if var.comp_indicator != EMPTY_STRING:
-                            if len(orig_value) % 2 == 0:
-                                value = value.replace("0x", "0x0") + neg_indicator
+                        if var.comp_indicator != EMPTY_STRING:                            
+                            if orig_value.endswith("C") == False and orig_value.endswith("D") == False and orig_value.endswith("F") == False:
+                                value = value + neg_indicator
+
+                            if len(value) % 2 != 0:
+                                value = value.replace("0x", "0x0") 
                             else:
                                 value = value + neg_indicator
                         elif var.data_type == "X":

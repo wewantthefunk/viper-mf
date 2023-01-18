@@ -283,3 +283,8 @@ echo HELLOW52 - accept statement
 export SYSIN=sysin_val
 python3 HELLOW52.py &
 wait
+
+echo
+echo HELLOW53 - comp-3 fields
+python3 HELLOW53.py &
+wait
