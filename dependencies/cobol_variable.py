@@ -1,5 +1,5 @@
 from datetime import datetime
-import os
+import os, binascii
 from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
@@ -28,8 +28,18 @@ ZERO = "0"
 
 last_command = ""
 
+EBCDIC_ASCII_CHART = [
+
+]
+
+class EBCDICASCII:
+    def __init__(self, hex_val: str, ebcdic_val: str, ascii_val: str) -> None:
+        self.hex_value = hex_val
+        self.EBCDIC_value = ebcdic_val
+        self.ASCII_value = ascii_val
+
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length, level: str):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length, level: str, comp_indicator):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -46,6 +56,7 @@ class COBOLVariable:
         self.level = level
         self.decimal_length = decimal_length
         self.is_hex = False
+        self.comp_indicator = comp_indicator
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -149,7 +160,7 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
     return list
 
 
-def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, level = "01"):
+def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01"):
     global last_command
     check_for_last_command(ADD_COMMAND)
     last_command = ADD_COMMAND
@@ -158,10 +169,9 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
             return list
 
     if data_type == NUMERIC_SIGNED_DATA_TYPE:
-        data_type = NUMERIC_DATA_TYPE
         length = length + 1
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator))
 
     return list
 
@@ -302,15 +312,31 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                 elif var.level == LEVEL_88:
                     if str(value).startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                        value = convert_EBCDIC_hex_to_string(value)
                         var.is_hex = True
                         hex_prefix = HEX_PREFIX
                     _update_var_value(orig_var_list, var, str(value), [])
                 else:
-                    if str(value).startswith(HEX_PREFIX):
-                        value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                    hex_pad = 0
+                    if str(value).startswith(HEX_PREFIX) or var.comp_indicator != EMPTY_STRING:
                         var.is_hex = True
                         hex_prefix = HEX_PREFIX
-                    _update_var_value(orig_var_list, var, str(value)[0:var.length], [])
+                        hex_pad = 2
+                        value = str(value).replace(HEX_PREFIX, EMPTY_STRING)
+                        
+                        neg_indicator = "C"
+                        if value.startswith("-"):
+                            neg_indicator = "D"
+                            value = value[1:]
+                        orig_value = value
+                        value = convert_EBCDIC_hex_to_string(value, var)
+                        if var.comp_indicator != EMPTY_STRING:
+                            if len(orig_value) % 2 == 0:
+                                value = value.replace("0x", "0x0") + neg_indicator
+                            else:
+                                value = value + neg_indicator
+
+                    _update_var_value(orig_var_list, var, str(value)[0:var.length + hex_pad], [])
 
                 if (len(str(value)) > var.length and (name not in parent or name == EMPTY_STRING) and var.parent != EMPTY_STRING) or is_spaces:
                     if var.parent not in parent:
@@ -325,6 +351,9 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
     return found
 
 def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
+    hex_pad = 0
+    if var.is_hex:
+        hex_pad = 2
     parent = find_variable_parent(var_list, var.parent)
     occurs_length = 0
     if parent != None:
@@ -355,7 +384,7 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
         else:
             var.level88value = value
     else:
-        var.value = str(value)[0:var.length]
+        var.value = str(value)[0:var.length + hex_pad]
 
 def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = '', remainder_var = ''):
     global last_command
@@ -531,7 +560,6 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                 result = result + r[0]
                 is_numeric_data_type = r[1]
                 if var_list[count].name == parent:
-                    #is_numeric_data_type = var_list[count].data_type != 'X'
                     # drop out now, or else we will get the same data twice
                     break                
             else:     
@@ -557,8 +585,19 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                         result = int(r[0]) == int(var_list[count].level88value)
                     else:
                         result = r[0] == str(var_list[count].level88value)
-                elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                    result = result + pad_char(var_list[count].length - len(var_list[count].value), ZERO) + str(var_list[count].value)[:var_list[count].length]
+                elif var_list[count].data_type == NUMERIC_DATA_TYPE or var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
+                    hex_pad = 0
+                    if var_list[count].is_hex:
+                        hex_pad = 2
+                    r = str(var_list[count].value)[:var_list[count].length + hex_pad]
+                    neg_sign = EMPTY_STRING
+                    if r.startswith("-"):
+                        neg_sign = "-"
+                        r = r[1:]
+                    if var_list[count].is_hex:
+                        result = result + r[2:]
+                    else:
+                        result = result + neg_sign + pad_char(var_list[count].length - len(var_list[count].value), ZERO) + r
                     found_count = found_count + 1
                     is_numeric_data_type = True
                 else:
@@ -718,11 +757,28 @@ def convert_open_method(method: str):
     elif method == "INPUT-OUTPUT":
         return "a+"
 
-def convert_EBCDIC_hex(input: str):
-    return input
+def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
+    #result = EMPTY_STRING
+    #for x in range(0, len(input), 2):
+    #    result = result + chr(int(input[x: x + 2], 16))
+    result = "0x" + input
+    return result
 
-def convert_string_EBCDIC_hex(input: str):
-    return input
+def convert_string_to_EBCDIC_value(input: str, var: COBOLVariable):
+    result = EMPTY_STRING
+    for c in input:
+        if (var.data_type == NUMERIC_DATA_TYPE or var.data_type == NUMERIC_SIGNED_DATA_TYPE) and var.comp_indicator != EMPTY_STRING:
+            result = result + c.encode('utf-8').hex().upper()
+        else:            
+            result = result + find_hex_value(c).EBCDIC_value
+    return result
+
+def find_hex_value(value: str):
+    for hv in EBCDIC_ASCII_CHART:
+        if hv.hex_value == value:
+            return hv
+
+    return EBCDIC_ASCII_CHART[0]
 
 def parse_accept_statement(accept: str):
     result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING)
@@ -750,3 +806,130 @@ def parse_accept_statement(accept: str):
         result = os.getenv(SYSIN_ENV_VARIABLE)
 
     return result
+
+def get_hex_value(c: str):
+    return hex(ord(c))
+
+def initialize():
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('00', '\x00', '\x00'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('01', '\x01', '\x01'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('02', '\x02', '\x02'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('03', '\x03', '\x03'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('04', '\x04', '\x04'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('05', '\x05', '\x05'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('06', '\x06', '\x06'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('07', '\x07', '\x07'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('08', '\x08', '\x08'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('09', '\x09', '\x09'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('10', '\x10', '\x10'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('11', '\x11', '\x11'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('12', '\x12', '\x12'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('13', '\x13', '\x13'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x14', '\x14'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('15', '\x15', '\x15'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('16', '\x16', '\x16'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('17', '\x17', '\x17'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('18', '\x18', '\x18'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('19', '\x19', '\x19'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('20', '\x20', '\x20'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('21', '\x21', '\x21'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('22', '\x22', '\x22'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('23', '\x23', '\x23'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('24', '\x24', '\x24'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('25', '\x25', '\x25'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('26', '\x26', '\x26'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('27', '\x27', '\x27'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('28', '\x28', '\x28'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('29', '\x29', '\x29'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x30', '\x30'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('31', '\x31', '\x31'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('32', '\x32', '\x32'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('33', '\x33', '\x33'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('34', '\x34', '\x34'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('35', '\x35', '\x35'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('36', '\x36', '\x36'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('37', '\x37', '\x37'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('38', '\x38', '\x38'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('39', '\x39', '\x39'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('40', ' ', '\x40'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('41', '\x41', '\x41'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('42', '\x42', '\x42'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('43', '\x43', '\x43'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('44', '\x44', '\x44'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('45', '\x45', '\x45'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('46', '\x46', '\x46'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('47', '\x47', '\x47'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('48', '\x48', '\x48'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('49', '\x49', '\x49'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('50', '&', 'P'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('51', '\x51', 'Q'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('52', '\x52', 'R'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('53', '\x53', 'S'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('54', '\x54', 'T'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('55', '\x55', 'U'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('56', '\x56', 'V'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('57', '\x57', 'W'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('58', '\x58', 'X'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\x59', 'Y'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('60', '-', '\x60'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('61', '/', 'a'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('62', '\x62', 'b'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x63', 'c'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x64', 'd'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x65', 'e'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x66', 'f'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x67', 'g'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x68', 'h'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x69', 'i'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('70', '\x70', 'p'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('71', '\x71', 'q'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('72', '\x72', 'r'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('73', '\x73', 's'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('74', '\x74', 'u'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('75', '\x75', 'u'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('76', '\x76', 'v'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('77', '\x77', 'w'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('78', '\x78', 'x'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('79', '\x79', 'y'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('80', '\x80', '\x80'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('81', 'a', '\x81'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('82', 'b', '\x82'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('83', 'c', '\x83'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('84', 'd', '\x84'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('85', 'e', '\x85'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('86', 'f', '\x86'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('87', 'g', '\x87'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('88', 'h', '\x88'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('89', 'i', '\x89'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('90', '\x90', '\x90'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('91', 'j', '\x91'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('92', 'k', '\x92'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('93', 'l', '\x93'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('94', 'm', '\x94'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('95', 'n', '\x95'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('96', 'o', '\x96'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('97', 'p', '\x97'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('98', 'q', '\x98'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('99', 'r', '\x99'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('4C', '<', 'L'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('4D', '(', 'M'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('4E', '+', 'N'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('4F', '|', 'O'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5A', '!', 'Z'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5B', '$', '['))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5C', '*', '/'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5D', ')', ']'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5E', ';', '\x5E'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5F', '\x5F', '_'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6A', '!', 'j'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6B', '.', 'k'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6C', '%', 'l'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6D', '_', 'm'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6E', '>', '\x5E'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6F', '?', 'o'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7A', ':', 'z'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7B', '#', '{'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7C', '@', '!'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7D', "'", '}'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7E', '=', '~'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('7F', '"', '\x7F'))

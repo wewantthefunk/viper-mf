@@ -239,17 +239,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     occurs_length = 0
 
-    if tokens[1].startswith("GREGORIAN-DATE"):
-        x = 0
-
     if len(tokens) == 2 or PIC_CLAUSE not in tokens:  
         new_level = tokens[0]
         while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
-
-        #if len(data_division_level_stack) > 0:
-        #    new_level = data_division_level_stack[len(data_division_level_stack) - 1]
 
         if len(data_division_var_stack) == 0:
             data_division_level_stack.append(tokens[0])
@@ -335,13 +329,29 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         data_info.append(0)
     if len(data_info) < 3:
         data_info.append(0)
+    if len(data_info) < 4:
+        data_info.append(EMPTY_STRING)
+
+    if data_info[3] == COMP_KEYWORD:
+        data_info[3] == "CO"
+    elif data_info[3] == COMP_1_KEYWORD:
+        data_info[3] == "C1"
+    elif data_info[3] == COMP_2_KEYWORD:
+        data_info[3] == "C2"
+    elif data_info[3] == COMP_3_KEYWORD:
+        data_info[3] == "C3"
+    elif data_info[3] == COMP_4_KEYWORD:
+        data_info[3] == "C4"
+    elif data_info[3] == COMP_5_KEYWORD:
+        data_info[3] == "C5"
+
     v_name = tokens[1]
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
     append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
-            + str(data_info[2]) + ",'" + tokens[0] + "')" + NEWLINE)
+            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "')" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
@@ -389,7 +399,22 @@ def get_type_length(tokens, count: int):
 
         length = int(final_length)
 
-    return [type_length[0], length, decimal_length]
+    comp_indicator = EMPTY_STRING
+
+    if COMP_KEYWORD in tokens:
+        comp_indicator = COMP_KEYWORD
+    if COMP_1_KEYWORD in tokens:
+        comp_indicator = COMP_1_KEYWORD
+    if COMP_2_KEYWORD in tokens:
+        comp_indicator = COMP_2_KEYWORD
+    if COMP_3_KEYWORD in tokens:
+        comp_indicator = COMP_3_KEYWORD
+    if COMP_4_KEYWORD in tokens:
+        comp_indicator = COMP_4_KEYWORD
+    if COMP_5_KEYWORD in tokens:
+        comp_indicator = COMP_5_KEYWORD
+
+    return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
