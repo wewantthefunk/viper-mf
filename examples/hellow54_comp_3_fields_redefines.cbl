@@ -19,11 +19,25 @@
 
            MOVE X'F3F0012345' TO TEST-FIELD.
 
-           DISPLAY TEST-FIELD.
+           DISPLAY 'expected value is 30☺#E'
+           DISPLAY 'actual value is   ' TEST-FIELD.
 
-           DISPLAY COMP-3-FIELD.
+           DISPLAY 'expected value is 12345C'
+           DISPLAY 'actual value is   ' COMP-3-FIELD.
 
-           DISPLAY COMP-3-FIELD-2.
+           DISPLAY 'expected value is 12345F'
+           DISPLAY 'actual value is   ' COMP-3-FIELD-2.
+
+           MOVE X'F4F254321D' TO TEST-FIELD.
+
+           DISPLAY 'expected value is 42T2∟'
+           DISPLAY 'actual value is   ' TEST-FIELD.
+
+           DISPLAY 'expected value is 54321D'
+           DISPLAY 'actual value is   ' COMP-3-FIELD.
+
+           DISPLAY 'expected value is 54321F'
+           DISPLAY 'actual value is   ' COMP-3-FIELD-2.
 
            STOP RUN.
 
