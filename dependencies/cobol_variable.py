@@ -335,6 +335,13 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                                 value = value.replace("0x", "0x0") + neg_indicator
                             else:
                                 value = value + neg_indicator
+                        elif var.data_type == "X":
+                            t = EMPTY_STRING
+                            for x in range(0, len(orig_value), 2):
+                                t = t + find_hex_value(orig_value[x:x+2]).EBCDIC_value
+                            hex_prefix = EMPTY_STRING
+                            hex_pad = 0
+                            value = t
 
                     _update_var_value(orig_var_list, var, str(value)[0:var.length + hex_pad], [])
 
@@ -398,7 +405,7 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
         
         if orig != None and target != None:
             v = str(value)   
-            val = orig.value.ljust(orig.length, ZERO)[:orig.length]       
+            val = orig.value.rjust(orig.length, ZERO)[:orig.length]       
         elif orig == None:
             #val = name
             continue
@@ -933,3 +940,44 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('7D', "'", '}'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('7E', '=', '~'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('7F', '"', '\x7F'))
+
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C0', '{', '\xC0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C1', 'A', '\xC1'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C2', 'B', '\xC2'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C3', 'C', '\xC3'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C4', 'D', '\xC4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C5', 'E', '\xC5'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C6', 'F', '\xC6'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C7', 'G', '\xC7'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C8', 'H', '\xC8'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('C9', 'I', '\xC9'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D0', '}', '\xD0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D1', 'J', '\xD1'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D2', 'K', '\xD2'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D3', 'L', '\xD3'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D4', 'M', '\xD4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D5', 'N', '\xD5'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('d6', 'O', '\xD6'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D7', 'P', '\xD7'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D8', 'Q', '\xD8'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('D9', 'R', '\xD9'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E0', '\xE0', '\xE0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E1', 'X\E1', '\xE1'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E2', 'S', '\xE2'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E3', 'T', '\xE3'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E4', 'U', '\xE4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E5', 'V', '\xE5'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E6', 'W', '\xE6'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E7', 'X', '\xE7'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E8', 'Y', '\xE8'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E9', 'Z', '\xE9'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F0', '0', '\xF0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F1', '1', '\xF1'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F2', '2', '\xF2'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F3', '3', '\xF3'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F4', '4', '\xF4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F5', '5', '\xF5'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F6', '6', '\xF6'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F7', '7', '\xF7'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F8', '8', '\xF8'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('F9', '9', '\xF9'))
