@@ -1,5 +1,5 @@
 from datetime import datetime
-import os
+import os, math
 from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
@@ -8,7 +8,6 @@ CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
 COMP_3_INDICATOR = "COMP-3"
-CURRENT_DATE_FUNCTION = "CURRENT-DATE"
 DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
@@ -149,7 +148,7 @@ def Set_File_Record(var_list, name: str, record: str):
 
 def Exec_Function(func_name: str):
     result = EMPTY_STRING
-    if func_name == CURRENT_DATE_FUNCTION:
+    if func_name == "CURRENT-DATE":
         result = datetime.today().strftime('%Y%m%d%H%M%S%f')
 
     return result
@@ -357,7 +356,8 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
 
                             if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
                                 value = value.replace("0x", "0x0") 
-
+                            #else:
+                            #    value = value + neg_indicator
                         elif var.data_type == "X":
                             t = EMPTY_STRING
                             for x in range(0, len(orig_value), 2):
@@ -428,7 +428,16 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
         
         if orig != None and target != None:
             v = str(value)   
-            val = orig.value.rjust(orig.length, ZERO)[:orig.length]       
+            val = orig.value.rjust(orig.length, ZERO)[:orig.length]
+            
+            if orig.comp_indicator == COMP_3_INDICATOR:
+                val = int(orig.value[2: len(orig.value) - 1])
+                if orig.value[len(orig.value) - 1] == NEGATIVE_SIGNED_HEX_FLAG:
+                    val = val * -1
+            elif orig.is_hex:
+                val = int(orig.value, 16)
+
+            break
         elif orig == None:
             val = name
             continue
@@ -449,7 +458,20 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
     else:
         v = str(int(value) + int(val))[0:target.length]
     
-    target.value = v
+    if target.is_hex:
+        if target.comp_indicator == COMP_3_INDICATOR:
+            x = '0x' + v.rjust(target.length - 1, ZERO)[:target.length]
+            if target.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                if int(v) >= 0:
+                    x = x + POSITIVE_SIGNED_HEX_FLAG
+                else:
+                    x = x + NEGATIVE_SIGNED_HEX_FLAG
+            else:
+                x = x + UNSIGNED_HEX_FLAG
+
+            target.value = x
+    else:
+        target.value = v
 
 
 def Replace_Variable_Value(variable_lists, name: str, orig: str, rep: str):
@@ -721,7 +743,7 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
     last_command = DISP_COMMAND
 
     sub_index = []
-    if OPEN_PARENS in name and parent != LITERAL:
+    if OPEN_PARENS in name and parent != 'literal':
         s1 = name.split(OPEN_PARENS)
         name = s1[0]
         if COLON in s1[1]:
@@ -792,6 +814,9 @@ def convert_open_method(method: str):
         return "a+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
+    #result = EMPTY_STRING
+    #for x in range(0, len(input), 2):
+    #    result = result + chr(int(input[x: x + 2], 16))
     result = "0x" + input
     return result
 
