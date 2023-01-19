@@ -10,6 +10,7 @@ COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
 COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
+COMP_5_INDICATOR = "COMP-5"
 DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
@@ -34,6 +35,11 @@ UPD_COMMAND = "update"
 ZERO = "0"
 
 last_command = ""
+
+BINARY_COMP_LIST = [
+    COMP_5_INDICATOR
+    , COMP_INDICATOR
+]
 
 EBCDIC_ASCII_CHART = [
 
@@ -183,7 +189,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
                     length = length + 1
                 elif length == 2:
                     length = length + 2
-            elif comp_indicator == COMP_INDICATOR:
+            elif comp_indicator in BINARY_COMP_LIST:
                 if length <= 4:
                     length = 4
                 elif length <= 8:
@@ -197,7 +203,7 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
                 length = length + 1
             elif length == 2:
                 length = length + 2
-        elif comp_indicator == COMP_INDICATOR:
+        elif comp_indicator in BINARY_COMP_LIST:
             if length <= 4:
                 length = 4
             elif length <= 8:
@@ -383,7 +389,7 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                                 hex_prefix = EMPTY_STRING
                                 hex_pad = 0
                                 value = t
-                        elif var.comp_indicator == COMP_INDICATOR:
+                        elif var.comp_indicator in BINARY_COMP_LIST:
                             if str(raw_value).startswith(HEX_PREFIX):
                                 value = raw_value.replace(HEX_PREFIX, "0x")
                             else:
@@ -500,7 +506,7 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
                 x = x + UNSIGNED_HEX_FLAG
 
             target.value = x
-        elif target.comp_indicator == COMP_INDICATOR:
+        elif target.comp_indicator in BINARY_COMP_LIST:
             x = tohex(int(v), int(target.length / 2))
             target.value = x
     else:
