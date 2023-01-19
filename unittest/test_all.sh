@@ -298,3 +298,8 @@ echo
 echo HELLOW55 - comp-3 fields cascading
 python3 HELLOW55.py &
 wait
+
+echo
+echo HELLOW56 - comp-3 fields math
+python3 HELLOW56.py &
+wait
