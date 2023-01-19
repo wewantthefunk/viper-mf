@@ -566,7 +566,9 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
     target_offset = 3
 
-    if value.startswith(SINGLE_QUOTE) == False and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False and value.startswith(HEX_PREFIX) == False:
+    if value.startswith(SINGLE_QUOTE) == False \
+            and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False \
+            and value.startswith(HEX_PREFIX) == False:
         if OPEN_PARENS in value:
             old_value = value
             s = value.split(OPEN_PARENS)
@@ -589,7 +591,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
             target_offset = 4
         elif value == TRUE_KEYWORD:
             value = 'True'
-        elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).isnumeric() == False:
+        elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
             value = "Get_Variable_Value(variables_list,'" + value + "','" + value + "')"
     elif value.startswith(SINGLE_QUOTE):
         x = 0
@@ -633,7 +635,11 @@ def process_display_verb(tokens, name: str, level: int):
             is_literal = False
             if t.endswith(PERIOD):
                 is_literal = True
-            t = t.replace(PERIOD, EMPTY_STRING)
+            elif t.startswith(SINGLE_QUOTE):
+                is_literal = True
+                
+            if is_literal == False:
+                t = t.replace(PERIOD, EMPTY_STRING)
             parent = t
             if (t.startswith(SINGLE_QUOTE) and t.endswith(SINGLE_QUOTE)) or t == EMPTY_STRING:
                 t = t.replace(SINGLE_QUOTE, EMPTY_STRING)

@@ -332,6 +332,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
+                else:
+                    current_line.cascade_data_type = EMPTY_STRING
+                    cascade_data_type = EMPTY_STRING
             else:
                 break
         if len(data_division_var_stack) > 0:
@@ -350,7 +353,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     
     data_info = get_data_info(tokens)
     if len(data_info) < 1:
-        data_info.append("X")
+        data_info.append(ALPHANUMERIC_DATA_TYPE)
     if len(data_info) < 2:
         data_info.append(0)
     if len(data_info) < 3:
@@ -404,7 +407,7 @@ def is_valid_verb(line: str, verb_list):
     return False
 
 def get_data_info(tokens):
-    info = ['X', 0]
+    info = [ALPHANUMERIC_DATA_TYPE, 0]
     count = 0
     for t in tokens:
         if (t == PIC_CLAUSE):
