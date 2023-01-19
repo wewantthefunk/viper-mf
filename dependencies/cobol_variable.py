@@ -1,5 +1,5 @@
 from datetime import datetime
-import os, math
+import os
 from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
@@ -8,6 +8,7 @@ CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
 COMP_3_INDICATOR = "COMP-3"
+CURRENT_DATE_FUNCTION = "CURRENT-DATE"
 DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
 EMPTY_STRING = ""
@@ -148,7 +149,7 @@ def Set_File_Record(var_list, name: str, record: str):
 
 def Exec_Function(func_name: str):
     result = EMPTY_STRING
-    if func_name == "CURRENT-DATE":
+    if func_name == CURRENT_DATE_FUNCTION:
         result = datetime.today().strftime('%Y%m%d%H%M%S%f')
 
     return result
@@ -356,8 +357,7 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
 
                             if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
                                 value = value.replace("0x", "0x0") 
-                            #else:
-                            #    value = value + neg_indicator
+
                         elif var.data_type == "X":
                             t = EMPTY_STRING
                             for x in range(0, len(orig_value), 2):
@@ -721,7 +721,7 @@ def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, i
     last_command = DISP_COMMAND
 
     sub_index = []
-    if OPEN_PARENS in name and parent != 'literal':
+    if OPEN_PARENS in name and parent != LITERAL:
         s1 = name.split(OPEN_PARENS)
         name = s1[0]
         if COLON in s1[1]:
@@ -792,9 +792,6 @@ def convert_open_method(method: str):
         return "a+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
-    #result = EMPTY_STRING
-    #for x in range(0, len(input), 2):
-    #    result = result + chr(int(input[x: x + 2], 16))
     result = "0x" + input
     return result
 

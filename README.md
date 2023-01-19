@@ -77,6 +77,8 @@ For unit tests of all examples in this repository, navigate to the unittest fold
 * Hierarchical variable structure of COBOL. Some variables aren't real variables, they are concatenations of other (sub) variables. This presented a challenge.
 * REDEFINES variables in COBOL. See above, then add on more complexity.
 * Arrays in COBOL. See above and add even more complexity.
+* Level 88 variables, the poor man's enum.
+* COMP(-X) fields. 
 * Error handling. COBOL doesn't have error handling, such as try/catch. So there is no error handling added by the converter. There is an error handling command in CICS. (CICS commands will eventually be converted)
 * Quotes for literals MUST be single quotes (') in the COBOL program. Double quotes are not processed as literals.
 * PERIODs (.) are semi-optional. Not having a rigid statement delimiter, such as the semi-colon (;) in C based languages, makes for a challenge
