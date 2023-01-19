@@ -4,9 +4,11 @@ from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
 ADD_COMMAND = "add"
+ALPHANUMERIC_DATA_TYPE = "X"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
+COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
 DISP_COMMAND = "display"
 DOUBLE_EQUALS = "=="
@@ -174,19 +176,34 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
         if l.name == name:
             return list
 
-    if (data_type == NUMERIC_SIGNED_DATA_TYPE) and length > 0:
-        if comp_indicator == COMP_3_INDICATOR:
+    if length > 0:
+        if (data_type == NUMERIC_SIGNED_DATA_TYPE):
+            if comp_indicator == COMP_3_INDICATOR:
+                if length % 2 != 0:
+                    length = length + 1
+                elif length == 2:
+                    length = length + 2
+            elif comp_indicator == COMP_INDICATOR:
+                if length <= 4:
+                    length = 4
+                elif length <= 8:
+                    length = 8
+                else:
+                    length = 16
+            else:
+                length = length + 1
+        elif comp_indicator == COMP_3_INDICATOR:
             if length % 2 != 0:
                 length = length + 1
             elif length == 2:
                 length = length + 2
-        else:
-            length = length + 1
-    elif comp_indicator == COMP_3_INDICATOR:
-        if length % 2 != 0:
-            length = length + 1
-        elif length == 2:
-            length = length + 2
+        elif comp_indicator == COMP_INDICATOR:
+            if length <= 4:
+                length = 4
+            elif length <= 8:
+                length = 8
+            else:
+                length = 16
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator))
 
@@ -340,31 +357,44 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                         var.is_hex = True
                         hex_prefix = HEX_PREFIX
                         hex_pad = 2
+                        raw_value = value
                         value = str(value).replace(HEX_PREFIX, EMPTY_STRING)
-                        
-                        neg_indicator = POSITIVE_SIGNED_HEX_FLAG
-                        if value.startswith("-"):
-                            neg_indicator = NEGATIVE_SIGNED_HEX_FLAG
-                            value = value[1:]
-                        elif var.data_type == NUMERIC_DATA_TYPE:
-                            neg_indicator = UNSIGNED_HEX_FLAG 
-                        orig_value = value
-                        value = convert_EBCDIC_hex_to_string(value, var)
-                        if var.comp_indicator != EMPTY_STRING:                            
-                            if orig_value.endswith(POSITIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(NEGATIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(UNSIGNED_HEX_FLAG) == False:
-                                value = value + neg_indicator
+                        if var.comp_indicator == COMP_3_INDICATOR:                            
+                            neg_indicator = POSITIVE_SIGNED_HEX_FLAG
+                            if value.startswith("-"):
+                                neg_indicator = NEGATIVE_SIGNED_HEX_FLAG
+                                value = value[1:]
+                            elif var.data_type == NUMERIC_DATA_TYPE:
+                                neg_indicator = UNSIGNED_HEX_FLAG 
+                            orig_value = value
+                            value = convert_EBCDIC_hex_to_string(value, var)
+                            if var.comp_indicator != EMPTY_STRING:                            
+                                if orig_value.endswith(POSITIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(NEGATIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(UNSIGNED_HEX_FLAG) == False:
+                                    value = value + neg_indicator
 
-                            if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
-                                value = value.replace("0x", "0x0") 
-                            #else:
-                            #    value = value + neg_indicator
-                        elif var.data_type == "X":
-                            t = EMPTY_STRING
-                            for x in range(0, len(orig_value), 2):
-                                t = t + find_hex_value(orig_value[x:x+2]).EBCDIC_value
-                            hex_prefix = EMPTY_STRING
-                            hex_pad = 0
-                            value = t
+                                if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
+                                    value = value.replace("0x", "0x0") 
+                                #else:
+                                #    value = value + neg_indicator
+                            elif var.data_type == ALPHANUMERIC_DATA_TYPE:
+                                t = EMPTY_STRING
+                                for x in range(0, len(orig_value), 2):
+                                    t = t + find_hex_value(orig_value[x:x+2]).EBCDIC_value
+                                hex_prefix = EMPTY_STRING
+                                hex_pad = 0
+                                value = t
+                        elif var.comp_indicator == COMP_INDICATOR:
+                            if str(raw_value).startswith(HEX_PREFIX):
+                                value = raw_value.replace(HEX_PREFIX, "0x")
+                            else:
+                                length = 0
+                                if var.length <= 4:
+                                    length = 2
+                                elif var.length <= 8:
+                                    length = 4
+                                else:
+                                    length = 8
+                                value = tohex(int(value), length)
 
                     _update_var_value(orig_var_list, var, str(value)[0:var.length + hex_pad], [])
 
@@ -469,6 +499,9 @@ def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier
             else:
                 x = x + UNSIGNED_HEX_FLAG
 
+            target.value = x
+        elif target.comp_indicator == COMP_INDICATOR:
+            x = tohex(int(v), int(target.length / 2))
             target.value = x
     else:
         target.value = v
@@ -879,6 +912,11 @@ def parse_accept_statement(accept: str):
 
 def get_hex_value(c: str):
     return hex(ord(c))
+
+def tohex(val: int, bytes: int):
+    nbits = bytes * 8
+    h = hex((val + (1 << nbits)) % (1 << nbits))[2:]
+    return '0x' + h.rjust(bytes * 2, ZERO).upper()
 
 def comp_conversion(var: COBOLVariable, value: str):
     result = EMPTY_STRING

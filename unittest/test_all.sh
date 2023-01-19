@@ -303,3 +303,13 @@ echo
 echo HELLOW56 - comp-3 fields math
 python3 HELLOW56.py &
 wait
+
+echo
+echo HELLOW57 - comp fields
+python3 HELLOW57.py &
+wait
+
+echo
+echo HELLOW58 - comp fields math
+python3 HELLOW58.py &
+wait
