@@ -25,6 +25,7 @@ NOT_EQUALS = "!="
 NUMERIC_DATA_TYPE = "9"
 NUMERIC_SIGNED_DATA_TYPE = "S9"
 OPEN_PARENS = "("
+PERIOD = "."
 POSITIVE_SIGNED_HEX_FLAG = "C"
 SET_COMMAND = "set"
 SPACE = " "
@@ -185,10 +186,13 @@ def Add_Variable(list, name: str, length: int, data_type: str, parent: str, rede
     if length > 0:
         if (data_type == NUMERIC_SIGNED_DATA_TYPE):
             if comp_indicator == COMP_3_INDICATOR:
-                if length % 2 != 0:
-                    length = length + 1
-                elif length == 2:
-                    length = length + 2
+                do = 0
+                if decimal_len > 0:
+                    do = 1
+                if length + do % 2 != 0:
+                    length = length + do + 1
+                elif length + do == 2:
+                    length = length + do + 2
             elif comp_indicator in BINARY_COMP_LIST:
                 if length <= 4:
                     length = 4
@@ -373,15 +377,23 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                             elif var.data_type == NUMERIC_DATA_TYPE:
                                 neg_indicator = UNSIGNED_HEX_FLAG 
                             orig_value = value
-                            value = convert_EBCDIC_hex_to_string(value, var)
+                            if PERIOD in value:
+                                s = value.split(PERIOD)
+                                s1 = s[0]
+                                s2 = s[1].ljust(var.decimal_length, ZERO)
+                                value = s1 + s2
+                                filler = 1
+                                if var.length % 2 != 0:
+                                    filler = 0
+                                value = value.rjust(var.length + filler, ZERO)
+                            else:
+                                value = convert_EBCDIC_hex_to_string(value, var)
                             if var.comp_indicator != EMPTY_STRING:                            
                                 if orig_value.endswith(POSITIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(NEGATIVE_SIGNED_HEX_FLAG) == False and orig_value.endswith(UNSIGNED_HEX_FLAG) == False:
                                     value = value + neg_indicator
 
                                 if len(value) % 2 != 0 or (var.length + hex_pad) % 2 != 0:
                                     value = value.replace("0x", "0x0") 
-                                #else:
-                                #    value = value + neg_indicator
                             elif var.data_type == ALPHANUMERIC_DATA_TYPE:
                                 t = EMPTY_STRING
                                 for x in range(0, len(orig_value), 2):
@@ -450,6 +462,12 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
         else:
             var.level88value = value
     else:
+        if var.decimal_length > 0:
+            if PERIOD in str(value):
+                s = str(value).split(PERIOD)
+                value = s[0] + PERIOD + s[1][0:var.decimal_length].ljust(var.decimal_length, ZERO)
+            else:
+                value = str(value) + PERIOD + EMPTY_STRING.ljust(var.decimal_length, ZERO)
         var.value = str(value)[0:var.length + hex_pad]
 
 def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = '', remainder_var = ''):
