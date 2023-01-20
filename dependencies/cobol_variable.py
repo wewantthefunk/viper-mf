@@ -58,7 +58,9 @@ class COBOLVariable:
         self.name = name
         self.length = length
         self.data_type = data_type
-        if parent != name and (redefines == EMPTY_STRING or length > 0):
+        self.parent = parent
+        if parent != name:
+            # and (redefines == EMPTY_STRING or length > 0):
             self.parent = parent
         else:
             self.parent = EMPTY_STRING
@@ -412,6 +414,8 @@ def search_variable_list(var_list, name: str, value: str, parent, sub_index: str
                                     length = 4
                                 else:
                                     length = 8
+                                if value.strip() == EMPTY_STRING:
+                                    value = value.replace(SPACE, ZERO)
                                 value = tohex(int(value), length)
 
                     _update_var_value(orig_var_list, var, str(value)[0:var.length + hex_pad], [])
@@ -462,12 +466,12 @@ def _update_var_value(var_list, var: COBOLVariable, value: str, sub_index: int):
         else:
             var.level88value = value
     else:
-        if var.decimal_length > 0:
+        if int(var.decimal_length) > 0:
             if PERIOD in str(value):
                 s = str(value).split(PERIOD)
                 value = s[0] + PERIOD + s[1][0:var.decimal_length].ljust(var.decimal_length, ZERO)
             else:
-                value = str(value) + PERIOD + EMPTY_STRING.ljust(var.decimal_length, ZERO)
+                value = str(value) + PERIOD + EMPTY_STRING.ljust(int(var.decimal_length), ZERO)
         var.value = str(value)[0:var.length + hex_pad]
 
 def Update_Variable(variable_lists, value: str, name: str, parent: str, modifier = '', remainder_var = ''):
@@ -596,16 +600,21 @@ def find_get_variable_position(var_list, name: str, parent):
     for var in var_list:
         if COBOL_FILE_VARIABLE_TYPE in str(type(var_list[0])):
             continue
-        if var.parent == EMPTY_STRING:
+        if var.parent == EMPTY_STRING or var.name == parent:
             result = 0
             length = var.length
             if var.level == LEVEL_88:
                 length = len(var.level88value)
             if var.name == name:
-                break
-        
+                break        
         elif var.name == name:
-            return [result, var.length]
+            l = var.length
+            if var.level == LEVEL_88:
+                result = result - len(var.level88value)
+                l = len(var.level88value)
+            if result < 0:
+                result = 0
+            return [result, l]
         else:
             result = result + var.length
         
@@ -658,6 +667,7 @@ def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False
 def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index):
     result = EMPTY_STRING
     is_numeric_data_type = False
+    is_hex_return_type = False
     count = 0
     found_count = 0
     while count < len(var_list):
@@ -665,26 +675,29 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
             count = count + 1
             continue
         if var_list[count].name == name or var_list[count].parent == parent:
+            is_hex_return_type = var_list[count].is_hex
             if var_list[count].length == 0 and var_list[count].level != LEVEL_88:
                 r = find_get_variable(var_list[count:], EMPTY_STRING, var_list[count].name, orig_var_list, sub_index)
                 found_count = found_count + r[2]
                 result = result + r[0]
                 is_numeric_data_type = r[1]
+                is_hex_return_type = r[3]
                 if var_list[count].name == parent:
                     # drop out now, or else we will get the same data twice
                     break                
             else:     
                 if var_list[count].redefines != EMPTY_STRING and var_list[count].redefines != parent:
-                    pos_length = find_get_variable_position(var_list, var_list[count].name, var_list[count].name)
+                    pos_length = find_get_variable_position(orig_var_list, var_list[count].name, var_list[count].redefines)
                     r1 = find_get_variable(orig_var_list, var_list[count].redefines, var_list[count].redefines, orig_var_list, [])[0]
+                    og = find_variable(orig_var_list, var_list[count].redefines, [var_list[count].redefines])
                     if len(sub_index) > 0:
-                        result = result + comp_conversion(var_list[count],  r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]])
+                        result = result + comp_conversion(og,  r1[(pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[0]: (pos_length[0] + pos_length[1]) * sub_index[0] + pos_length[1]])
                         found_count = found_count + 1
                     else:
                         if var_list[count].level == LEVEL_88:
                             result = str(var_list[count].level88value) == r1[pos_length[0]: pos_length[0] + pos_length[1]]
                         else:
-                            result = result + comp_conversion(var_list[count], r1[pos_length[0]: pos_length[0] + pos_length[1]])
+                            result = result + comp_conversion(og, r1[pos_length[0]: pos_length[0] + pos_length[1]])
                         found_count = found_count + 1
 
                     if var_list[count].name == name:
@@ -695,7 +708,10 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
                         is_numeric_data_type = True
                     r = find_get_variable(orig_var_list, var_list[count].parent, '----------', orig_var_list, sub_index)
                     if r[1]:
-                        result = int(r[0]) == int(var_list[count].level88value)
+                        i = r[0]
+                        if r[3]:
+                            i = int(r[0], 16)
+                        result = int(i) == int(var_list[count].level88value)
                     else:
                         result = r[0] == str(var_list[count].level88value)
                 elif var_list[count].data_type == NUMERIC_DATA_TYPE or var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
@@ -743,7 +759,7 @@ def find_get_variable(var_list, name: str, parent: str, orig_var_list, sub_index
         if count > len(var_list):
             break
 
-    return [result, is_numeric_data_type, found_count]
+    return [result, is_numeric_data_type, found_count, is_hex_return_type]
 
 def find_variable(var_list, name: str, parent):
     count = 0

@@ -107,7 +107,7 @@ Thank you!
 
 ### Current Known Bugs
 
-* None found, but they exist
+* COMP-3 fields (hellow53_comp_3_fields.cbl, hellow54_comp_3_fields_redefines.cbl, hellow55_comp_3_cascading.cbl, hellow56_comp_3_math.cbl)
 
 ## Things to Think About
 

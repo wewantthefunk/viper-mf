@@ -17,7 +17,7 @@
 
        PROCEDURE DIVISION.
 
-           MOVE X'F3F0012345' TO TEST-FIELD.
+           MOVE X'F3F0123450' TO TEST-FIELD.
 
            DISPLAY 'expected value is 30☺#E'
            DISPLAY '(note: linux may not show some characters)'

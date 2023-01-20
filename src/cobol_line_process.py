@@ -310,7 +310,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if BY_KEYWORD in tokens:
                 i = i + 1
             append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-                + "10, '9','" + tokens[i] + "','',0,'" + tokens[0] + "')" + NEWLINE)
+                + "10, '9','" + tokens[i] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
             
 
     elif current_line.highest_ws_level < int(tokens[0]):
@@ -332,6 +332,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
+                    current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
+                    cascade_data_type = current_line.cascade_data_type
                 else:
                     current_line.cascade_data_type = EMPTY_STRING
                     cascade_data_type = EMPTY_STRING
