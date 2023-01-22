@@ -14,27 +14,27 @@
 
            MOVE X'75110C' TO COMP-3-FIELD.
 
-           DISPLAY 'expected value 75110C'
+           DISPLAY 'expected value +75110'
            DISPLAY 'actual value   ' COMP-3-FIELD.
 
            MOVE 12345 TO COMP-3-FIELD.
 
-           DISPLAY 'expected value 12345C'
+           DISPLAY 'expected value +12345'
            DISPLAY 'actual value   ' COMP-3-FIELD.
 
            MOVE 1234 TO COMP-3-FIELD.
 
-           DISPLAY 'expected value 01234C'
+           DISPLAY 'expected value +01234'
            DISPLAY 'actual value   ' COMP-3-FIELD.
 
            MOVE -11111 TO COMP-3-FIELD.
 
-           DISPLAY 'expected value 11111D'
+           DISPLAY 'expected value -11111'
            DISPLAY 'actual value   ' COMP-3-FIELD.
 
            MOVE 1234 TO UNSIGNED-COMP-3.
 
-           DISPLAY 'expected value 01234F'
+           DISPLAY 'expected value 01234'
            DISPLAY 'actual value   ' UNSIGNED-COMP-3.
 
            STOP RUN.

@@ -19,29 +19,29 @@
 
            MOVE X'F3F0123450' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 30☺#E'
+           DISPLAY 'expected value is 30↕☺&'
            DISPLAY '(note: linux may not show some characters)'
            DISPLAY 'actual value is   ' TEST-FIELD.
 
-           DISPLAY 'expected value is 12345C'
+           DISPLAY 'expected value is +12345'
            DISPLAY 'actual value is   ' COMP-3-FIELD.
 
-           DISPLAY 'expected value is 12345F'
+           DISPLAY 'expected value is 12345'
            DISPLAY 'actual value is   ' COMP-3-FIELD-2.
 
            MOVE X'F4F254321D' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 42T2↔'
+           DISPLAY 'expected value is 42T▬↔'
            DISPLAY '(note: linux may not show some characters)'
            DISPLAY 'actual value is   ' TEST-FIELD.
 
-           DISPLAY 'expected value is 54321D'
+           DISPLAY 'expected value is -54321'
            DISPLAY 'actual value is   ' COMP-3-FIELD.
 
-           DISPLAY 'expected value is 54321F'
+           DISPLAY 'expected value is 54321'
            DISPLAY 'actual value is   ' COMP-3-FIELD-2.
 
-           DISPLAY 'expected value is 4254321D'
+           DISPLAY 'expected value is 42-54321'
            DISPLAY 'actual value is   ' TEST-FIELD-2.
 
            STOP RUN.

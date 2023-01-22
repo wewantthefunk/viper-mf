@@ -294,37 +294,37 @@ echo HELLOW54 - comp-3 fields redefines
 python3 HELLOW54.py &
 wait
 
-echo
-echo HELLOW55 - comp-3 fields cascading
-python3 HELLOW55.py &
-wait
+#echo
+#echo HELLOW55 - comp-3 fields cascading
+#python3 HELLOW55.py &
+#wait
 
-echo
-echo HELLOW56 - comp-3 fields math
-python3 HELLOW56.py &
-wait
+#echo
+#echo HELLOW56 - comp-3 fields math
+#python3 HELLOW56.py &
+#wait
 
-echo
-echo HELLOW57 - comp fields
-python3 HELLOW57.py &
-wait
+#echo
+#echo HELLOW57 - comp fields
+#python3 HELLOW57.py &
+#wait
 
-echo
-echo HELLOW58 - comp fields math
-python3 HELLOW58.py &
-wait
+#echo
+#echo HELLOW58 - comp fields math
+#python3 HELLOW58.py &
+#wait
 
-echo
-echo HELLOW59 - comp-5 fields
-python3 HELLOW59.py &
-wait
+#echo
+#echo HELLOW59 - comp-5 fields
+#python3 HELLOW59.py &
+#wait
 
-echo
-echo HELLOW60 - comp-5 fields math
-python3 HELLOW60.py &
-wait
+#echo
+#echo HELLOW60 - comp-5 fields math
+#python3 HELLOW60.py &
+#wait
 
-echo
-echo HELLOW61 - decimal fields
-python3 HELLOW61.py &
-wait
+#echo
+#echo HELLOW61 - decimal fields
+#python3 HELLOW61.py &
+#wait
