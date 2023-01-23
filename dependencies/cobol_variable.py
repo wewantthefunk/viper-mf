@@ -151,6 +151,8 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
         if l.name == name:
             return list
 
+    unpacked_length = length
+
     if comp_indicator == COMP_3_INDICATOR:
         length = math.ceil((length + 1) / 2)
 
@@ -169,8 +171,6 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
                 next_pos = -1
     else:
         next_pos = len(main_variable_memory)
-
-    unpacked_length = length
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length))
 
@@ -544,7 +544,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         t = NEGATIVE_SIGN + t[0:len(t) - 1]
                     else:
                         if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
-                            var_list[count].sign == POSITIVE_SIGN
+                            var_list[count].sign = POSITIVE_SIGN
                         t = t[0:len(t) - 1]
                     temp_result = t
                 result = result +  var_list[count].sign + temp_result
@@ -748,7 +748,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('27', '\x27', '\x27'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('28', '\x28', '\x28'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('29', '\x29', '\x29'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x2A', '\x2A'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x5C', '\x2A'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2B', '\x2B', '\x2B'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2C', '\x2C', '\x2C'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2D', '\x05', '\x2D'))
