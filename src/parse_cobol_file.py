@@ -112,7 +112,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
@@ -178,7 +178,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         count = count + 1
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT)) + CALL_RESULT_INCLUDE + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT)) + CALL_RESULT_INCLUDE + COMMA + name + MEMORY + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -216,4 +216,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/COMPL002.cbl", "converted/")
+    parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")

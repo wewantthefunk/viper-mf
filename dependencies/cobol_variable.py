@@ -172,7 +172,9 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length))
 
-    skip_add = _update_parent_child_length(list, parent, length)
+    result = _update_parent_child_length(main_variable_memory, list, parent, length)
+    skip_add = result[0]
+    main_variable_memory = result[1]
 
     pc = SPACE
     if data_type in NUMERIC_DATA_TYPES:
@@ -183,10 +185,9 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
         for x in range(0, occurs_length):
             main_variable_memory = main_variable_memory + pad_char(length, pc)
 
-    return list
+    return [list, main_variable_memory]
 
-def _update_parent_child_length(list, name: str, length: int):
-    global main_variable_memory
+def _update_parent_child_length(main_variable_memory, list, name: str, length: int):
     skip_add = False
     if name == EMPTY_STRING:
         return skip_add
@@ -201,10 +202,12 @@ def _update_parent_child_length(list, name: str, length: int):
                 main_variable_memory = main_variable_memory + pad_char(l.occurs_length * length, pc)
                 skip_add = True
             if l.parent != EMPTY_STRING:
-                _update_parent_child_length(list, l.parent, length)
+                result = _update_parent_child_length(main_variable_memory, list, l.parent, length)
+                skip_add = result[0]
+                main_variable_memory = result[1]
             break
 
-    return skip_add
+    return [skip_add, main_variable_memory]
 
 def _find_variable(list, name: str):
     result = None
@@ -325,7 +328,7 @@ def Set_Variable(main_variable_memory, variable_lists, name: str, value: str, pa
     found = False
     for var_list in variable_lists:
         found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists)
-        if found:
+        if found[0]:
             break
     return found
 
@@ -344,7 +347,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
         if offset_val.isnumeric():
             occurrence = int(offset_val)
         else:
-            occurrence = int(Get_Variable_Value(orig_var_list, offset_val, offset_val))
+            occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
     if str(value).startswith(ACCEPT_VALUE_FLAG):
         value = parse_accept_statement(value)
@@ -354,14 +357,14 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
             count = count + 1
             if var.level == LEVEL_88:
                 if value == 'True':
-                    Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)
+                    main_variable_memory = Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)[1]
                 else:
                     var.level88value = value
-                return True
+                return [True, main_variable_memory]
             elif var.length == 0:
                 if var.name not in parent:
                     parent.append(var.name)
-                _set_variable(main_variable_memory, var_list[count:], EMPTY_STRING, value, parent, index_pos, orig_var_list)
+                main_variable_memory = _set_variable(main_variable_memory, var_list[count:], EMPTY_STRING, value, parent, index_pos, orig_var_list)[1]
             else:
                 if value == SPACES_INITIALIZER:
                     new_value = pad(var.length)
@@ -405,12 +408,12 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     start = (pl * (occurrence - 1)) + start
                 main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
                 if remaining_value != EMPTY_STRING:
-                    _set_variable(main_variable_memory, var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)
-            return True
+                    main_variable_memory = _set_variable(main_variable_memory, var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)[1]
+            return [True, main_variable_memory]
         else:
             count = count + 1
 
-    return False
+    return [False, main_variable_memory]
 
 def Update_Variable(main_variable_memory, variable_lists, value: str, name: str, giving: str, modifier = '', remainder_var = ''):
     curr_val = Get_Variable_Value(main_variable_memory, variable_lists, name, name)
@@ -432,7 +435,7 @@ def Update_Variable(main_variable_memory, variable_lists, value: str, name: str,
     elif modifier == DIVISION_OPERATOR:
         remainder = int(value) % int(curr_val)
         if remainder_var != EMPTY_STRING:
-            Set_Variable(main_variable_memory, variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
+            main_variable_memory = Set_Variable(main_variable_memory, variable_lists, str(remainder_var), str(remainder), remainder_var, 0)[1] 
         curr_val = str(int(int(value) / int(curr_val)))
     else:
         curr_val = (int(value) * int(modifier)) + curr_val
@@ -493,7 +496,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         else:
             occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
-    var = _find_variable(main_variable_memory, var_list, var_name)
+    var = _find_variable(var_list, var_name)
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:

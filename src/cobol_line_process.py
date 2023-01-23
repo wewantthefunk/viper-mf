@@ -65,8 +65,10 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
             break
 
     val = tokens[2].replace(SINGLE_QUOTE, EMPTY_STRING)
-    append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + tokens[1] + "', " \
+    append_file(name + PYTHON_EXT, "result = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + tokens[1] + "', " \
          + str(len(val)) + ", '" + "X" + "','" + EMPTY_STRING + "','" + EMPTY_STRING + "')" + NEWLINE)
+    append_file(name + PYTHON_EXT, UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, name + MEMORY + " = result[1]" + NEWLINE)
 
     var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
 
@@ -309,8 +311,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             i = tokens.index(INDEXED_CLAUSE) + 1
             if BY_KEYWORD in tokens:
                 i = i + 1
-            append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
+            append_file(name + PYTHON_EXT, "result = _" + format(current_section) + "Vars = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
                 + "10, '9','" + tokens[i] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
+            append_file(name + PYTHON_EXT, UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+            append_file(name + PYTHON_EXT, name + MEMORY + " = result[1]" + NEWLINE)
             
 
     elif current_line.highest_ws_level < int(tokens[0]):
@@ -380,9 +384,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
-    append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + v_name + "', " \
+    append_file(name + PYTHON_EXT, "result = Add_Variable(" + name + MEMORY + ",_" + format(current_section) + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
             + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "')" + NEWLINE)
+    append_file(name + PYTHON_EXT, "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, name + MEMORY + " = result[1]" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
