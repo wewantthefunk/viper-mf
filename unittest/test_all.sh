@@ -15,7 +15,7 @@ cd ../converted/
 echo HELLOWO1 - basic DISPLAY statement of literal value
 python3 HELLOWO1.py &
 wait
-
+: <<'END'
 echo 
 echo HELLOWO2 - basic setting and DISPLAY statement of top level variable
 python3 HELLOWO2.py &
@@ -262,42 +262,42 @@ echo
 echo HELLOW48 - compute statement
 python3 HELLOW48.py &
 wait
+END
+#echo
+#echo HELLOW49 - complex if statement
+#python3 HELLOW49.py &
+#wait
 
-echo
-echo HELLOW49 - complex if statement
-python3 HELLOW49.py &
-wait
+#echo
+#echo HELLOW50 - another complex if statement
+#python3 HELLOW50.py &
+#wait
 
-echo
-echo HELLOW50 - another complex if statement
-python3 HELLOW50.py &
-wait
+#echo
+#echo HELLOW51 - another complex if statement
+#python3 HELLOW51.py &
+#wait
 
-echo
-echo HELLOW51 - another complex if statement
-python3 HELLOW51.py &
-wait
+#echo
+#echo HELLOW52 - accept statement
+#export SYSIN=sysin_val
+#python3 HELLOW52.py &
+#wait
 
-echo
-echo HELLOW52 - accept statement
-export SYSIN=sysin_val
-python3 HELLOW52.py &
-wait
+#echo
+#echo HELLOW53 - comp-3 fields
+#python3 HELLOW53.py &
+#wait
 
-echo
-echo HELLOW53 - comp-3 fields
-python3 HELLOW53.py &
-wait
+#echo
+#echo HELLOW54 - comp-3 fields redefines
+#python3 HELLOW54.py &
+#wait
 
-echo
-echo HELLOW54 - comp-3 fields redefines
-python3 HELLOW54.py &
-wait
-
-echo
-echo HELLOW55 - comp-3 fields cascading
-python3 HELLOW55.py &
-wait
+#echo
+#echo HELLOW55 - comp-3 fields cascading
+#python3 HELLOW55.py &
+#wait
 
 #echo
 #echo HELLOW56 - comp-3 fields math

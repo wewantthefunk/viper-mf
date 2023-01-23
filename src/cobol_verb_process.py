@@ -14,7 +14,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     level = close_out_evaluate(tokens[0], name, level)
     
     if last_cmd_display == True:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + name + MEMORY + "," + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(self." + name + MEMORY + ",self." + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
 
     if tokens[0] == STOP_KEYWORD:
@@ -76,11 +76,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_ELSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
-        level = 0
+        level = BASE_LEVEL
         func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + CLOSE_PARENS + COLON + NEWLINE)
         level = level + 1
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + CALL_RESULT_INCLUDE + COMMA + name + MEMORY + NEWLINE)
         last_cmd_display = False
     elif tokens[0] == COBOL_VERB_EVALUATE:
         is_first_when = True
@@ -567,7 +566,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
             old_value = value
             s = value.split(OPEN_PARENS)
             
-            get_var_value = "Get_Variable_Value(variables_list,'" + s[0] + "','" + s[0] + "')"
+            get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "variables_list,'" + s[0] + "','" + s[0] + "')"
             end = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             end_offset = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if COLON in s[1]:
@@ -575,24 +574,24 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 end = s1[1].replace(CLOSE_PARENS, EMPTY_STRING)
                 end_offset = s1[0]
                 if s1[0].isnumeric() == False:
-                    end_offset = "Get_Variable_Value(" + name + MEMORY + ",variables_list,'" + s1[0] + "','" + s1[0] + "')"
+                    end_offset = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
 
                 value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
             else:
-                value = get_var_value = "Get_Variable_Value(" + name + MEMORY + ",variables_list,'" + old_value + "','" + old_value + "')"
+                value = get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + ",variables_list,'" + old_value + "','" + old_value + "')"
         elif value == FUNCTION_KEYWORD:
             value = "Exec_Function('" + tokens[2] + "')"
             target_offset = 4
         elif value == TRUE_KEYWORD:
             value = 'True'
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
-            value = "Get_Variable_Value(" + name + MEMORY + ",variables_list,'" + value + "','" + value + "')"
+            value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + ",variables_list,'" + value + "','" + value + "')"
     elif value.startswith(SINGLE_QUOTE):
         x = 0
 
     target = tokens[target_offset].replace(PERIOD, EMPTY_STRING)
 
-    append_file(name + PYTHON_EXT, do_indent + name + MEMORY + " = Set_Variable(" + name + MEMORY + "," + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "')[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, do_indent + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "')[1]" + NEWLINE)
 
     if len(tokens) > 1 + target_offset and tokens[1 + target_offset] != PERIOD and tokens[1 + target_offset] != NEG_ONE and tokens[1 + target_offset] not in COBOL_END_BLOCK_VERBS and tokens[1 + target_offset] not in COBOL_VERB_LIST:
         limit = len(tokens)
@@ -638,7 +637,7 @@ def process_display_verb(tokens, name: str, level: int):
             if (t.startswith(SINGLE_QUOTE) and t.endswith(SINGLE_QUOTE)) or t == EMPTY_STRING:
                 t = t.replace(SINGLE_QUOTE, EMPTY_STRING)
                 parent = LITERAL
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + name + MEMORY + "," + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
 def process_math_verb(tokens, name: str, level: int):

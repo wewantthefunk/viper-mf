@@ -45,6 +45,7 @@ def parse_cobol_file(file: str, target_dir: str):
     name = "abend"
     first_time = False
     current_line = LexicalInfo()
+    current_line.level = BASE_LEVEL
 
     total = len(raw_lines)
     count = 0
@@ -84,12 +85,13 @@ def parse_cobol_file(file: str, target_dir: str):
         append_file(name + PYTHON_EXT, pad(len(INDENT)) + RETURN_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, NEWLINE)
 
-    append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE + INDENT)
+    append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
     
     if len(args) > 0:
         append_file(name + PYTHON_EXT, "print" + OPEN_PARENS)
 
-    append_file(name + PYTHON_EXT, "main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS)
+    append_file(name + PYTHON_EXT, "main_obj.main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS)
 
     arg_count = 0
     if len(args) > 0:
@@ -112,7 +114,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
@@ -162,7 +164,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
             append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
-                append_file(name + PYTHON_EXT, "def main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS + "self")
 
                 if USING_KEYWORD in line:
                     args = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
@@ -178,7 +180,6 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         count = count + 1
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT)) + CALL_RESULT_INCLUDE + COMMA + name + MEMORY + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -197,11 +198,14 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
         append_file(name + PYTHON_EXT, "import importlib" + NEWLINE)
-        append_file(name + PYTHON_EXT, "call_result = None" + NEWLINE)
+        
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
-        append_file(name + PYTHON_EXT, name + MEMORY + " = EMPTY_STRING" + NEWLINE)
-        append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + " = []" + NEWLINE)
-        append_file(name + PYTHON_EXT, "initialize()" + NEWLINE)
+        append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + " = []" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
         result = process_environment_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
     elif current_division == COBOL_DIVISIONS[DATA_DIVISION_POS]:
@@ -216,4 +220,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
+    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")

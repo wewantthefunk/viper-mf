@@ -114,16 +114,16 @@ class COBOLFileVariable:
     def open_file(self, main_variable_memory, variables_list, method: str):
         filename = os.getenv(self.assign)
         if filename == None:
-            Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
-            return
+            result = Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
+            return result[1]
         elif exists(filename) == False:
-            Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
-            return
+            result = Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
+            return result[1]
 
         self.file_pointer = open(filename, method)
 
-        Set_Variable(main_variable_memory, variables_list, self.file_status, '00', self.file_status)
-        return
+        result = Set_Variable(main_variable_memory, variables_list, self.file_status, '00', self.file_status)
+        return result[1]
 
     def close_file(self):
         if self.file_pointer != None:
