@@ -260,14 +260,12 @@ def Write_File(var_list, file_rec_var_list, name: str):
             break
 
 def Set_File_Record(var_list, name: str, record: str):
-    success = False
     for var in var_list:
         if var.name == name:
             var.record = record
-            success = True
             break
 
-    return success
+    return var_list
 
 def Exec_Function(func_name: str):
     result = EMPTY_STRING

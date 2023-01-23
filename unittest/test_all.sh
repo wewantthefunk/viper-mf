@@ -15,7 +15,7 @@ cd ../converted/
 echo HELLOWO1 - basic DISPLAY statement of literal value
 python3 HELLOWO1.py &
 wait
-: <<'END'
+
 echo 
 echo HELLOWO2 - basic setting and DISPLAY statement of top level variable
 python3 HELLOWO2.py &
@@ -111,7 +111,7 @@ echo
 echo HELLOW20 - basic program that is called from HELLOW19 with parameters
 python3 HELLOW20.py &
 wait
-
+: <<'END'
 echo
 echo HELLOW21 - fall through evaluate statement
 python3 HELLOW21.py &

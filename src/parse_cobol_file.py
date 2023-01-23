@@ -114,11 +114,11 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
-        insert_beginning_of_file(originalfile, "from " + imp + " import *" + NEWLINE)
+        insert_beginning_of_file(originalfile, "from " + imp + " import *" + NEWLINE)        
 
 def parse_line(line: str, current_division: str, name: str, first_time: bool, current_line: LexicalInfo, next_few_lines):
     tmp = line[6:].replace(NEWLINE, EMPTY_STRING).strip()
@@ -171,12 +171,9 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                     count = 0
                     arg_count = 0
                     for arg in args:
-                        if count > 3:
-                            append_file(name + PYTHON_EXT, COMMA)
-
                         if count > 2:
                             arg_count = arg_count + 1
-                            append_file(name + PYTHON_EXT, MAIN_ARG_VARIABLE_PREFIX + str(arg_count))
+                            append_file(name + PYTHON_EXT, COMMA + MAIN_ARG_VARIABLE_PREFIX + str(arg_count))
                         count = count + 1
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
@@ -220,4 +217,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
