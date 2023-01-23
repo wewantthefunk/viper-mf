@@ -112,7 +112,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
@@ -199,6 +199,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, "import importlib" + NEWLINE)
         append_file(name + PYTHON_EXT, "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
+        append_file(name + PYTHON_EXT, name + MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, VARIABLES_LIST_NAME + " = []" + NEWLINE)
         append_file(name + PYTHON_EXT, "initialize()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
@@ -215,4 +216,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/hellow54_comp_3_fields_redefines.cbl", "converted/")
+    parse_cobol_file("examples/COMPL002.cbl", "converted/")

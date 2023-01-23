@@ -40,9 +40,6 @@ UPD_COMMAND = "update"
 ZERO = 0
 ZERO_STRING = "0"
 
-last_command = EMPTY_STRING
-main_variable_memory = EMPTY_STRING
-
 BINARY_COMP_LIST = [
     COMP_5_INDICATOR
     , COMP_INDICATOR
@@ -114,18 +111,18 @@ class COBOLFileVariable:
         self.parent = EMPTY_STRING
         self.redefines = EMPTY_STRING
 
-    def open_file(self, variables_list, method: str):
+    def open_file(self, main_variable_memory, variables_list, method: str):
         filename = os.getenv(self.assign)
         if filename == None:
-            Set_Variable(variables_list, self.file_status, '35', self.file_status)
+            Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
             return
         elif exists(filename) == False:
-            Set_Variable(variables_list, self.file_status, '35', self.file_status)
+            Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
             return
 
         self.file_pointer = open(filename, method)
 
-        Set_Variable(variables_list, self.file_status, '00', self.file_status)
+        Set_Variable(main_variable_memory, variables_list, self.file_status, '00', self.file_status)
         return
 
     def close_file(self):
@@ -147,8 +144,7 @@ class COBOLFileVariable:
         if self.file_pointer != None:
             self.file_pointer.write(data)
 
-def Add_Variable(list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01"):
-    global main_variable_memory
+def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01"):
     for l in list:
         if l.name == name:
             return list
@@ -220,19 +216,27 @@ def _find_variable(list, name: str):
 
     return result
 
-def Open_File(variables_list, var_list, name: str, method: str):
+def Open_File(main_variable_memory, variables_list, var_list, name: str, method: str):
+    success = False
     for var in var_list:
         if var.name == name:
-            var.open_file(variables_list, convert_open_method(method))
+            var.open_file(main_variable_memory, variables_list, convert_open_method(method))
+            success = True
             break
 
+    return success
+
 def Close_File(var_list, name: str):
+    success = False
     for var in var_list:
         if var.name == name:
             var.close_file()
+            success = True
             break
 
-def Read_File(var_list, file_rec_var_list, name: str, at_end_clause: str):
+    return success
+
+def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_end_clause: str):
     read_result = [EMPTY_STRING, False]
     for var in var_list:
         if var.name == name:
@@ -240,7 +244,7 @@ def Read_File(var_list, file_rec_var_list, name: str, at_end_clause: str):
             if read_result[1]:
                 break
             # set the variable from the read
-            _set_variable(file_rec_var_list, var.record, read_result[0], [var.record], 0, file_rec_var_list)
+            _set_variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0, file_rec_var_list)
             break
 
     return read_result[1]
@@ -253,10 +257,14 @@ def Write_File(var_list, file_rec_var_list, name: str):
             break
 
 def Set_File_Record(var_list, name: str, record: str):
+    success = False
     for var in var_list:
         if var.name == name:
             var.record = record
+            success = True
             break
+
+    return success
 
 def Exec_Function(func_name: str):
     result = EMPTY_STRING
@@ -274,7 +282,7 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
 
     return list
 
-def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func):
+def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func):
     found = False
     if OPEN_PARENS not in operand1:
         t = operand1
@@ -286,26 +294,26 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
     start_at = 0
 
     if is_all_array <= 0:
-        start_at = int(Get_Variable_Value(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))) - 1
+        start_at = int(Get_Variable_Value(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))) - 1
         if start_at < 0:
             start_at = 0
 
     parent_var = None
     for var_list in variable_lists:
-        array_var = _find_variable(var_list, operand1_split[0])
+        array_var = _find_variable(main_variable_memory, var_list, operand1_split[0])
         if array_var != None:
-            parent_var = _find_variable(var_list, array_var.parent)
+            parent_var = _find_variable(main_variable_memory, var_list, array_var.parent)
             break
 
     for x in range(start_at,parent_var.occurs_length):
         name = array_var.name + "(" + str(x + 1) + ")"
-        val = Get_Variable_Value(variable_lists, name, name)
+        val = Get_Variable_Value(main_variable_memory, variable_lists, name, name)
         if operator == DOUBLE_EQUALS:
             found = val == operand2
         elif operator == NOT_EQUALS:
             found = val != operand2
         if found:
-            Set_Variable(variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+            Set_Variable(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
             break
 
     if found == False and not_found_func != None:
@@ -313,16 +321,15 @@ def Search_Variable_Array(variable_lists, operand1: str, operator: str, operand2
 
     return found
 
-def Set_Variable(variable_lists, name: str, value: str, parent: str, index_pos = 0):  
+def Set_Variable(main_variable_memory, variable_lists, name: str, value: str, parent: str, index_pos = 0):  
     found = False
     for var_list in variable_lists:
-        found = _set_variable(var_list, name, value, [parent], index_pos, variable_lists)
+        found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists)
         if found:
             break
     return found
 
-def _set_variable(var_list, name: str, value: str, parent, index_pos: int, orig_var_list):
-    global main_variable_memory
+def _set_variable(main_variable_memory, var_list, name: str, value: str, parent, index_pos: int, orig_var_list):
     count = 0
     occurrence = 1
     value = str(value)
@@ -347,14 +354,14 @@ def _set_variable(var_list, name: str, value: str, parent, index_pos: int, orig_
             count = count + 1
             if var.level == LEVEL_88:
                 if value == 'True':
-                    Set_Variable(orig_var_list, var.parent, var.level88value, var.parent)
+                    Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)
                 else:
                     var.level88value = value
                 return True
             elif var.length == 0:
                 if var.name not in parent:
                     parent.append(var.name)
-                _set_variable(var_list[count:], EMPTY_STRING, value, parent, index_pos, orig_var_list)
+                _set_variable(main_variable_memory, var_list[count:], EMPTY_STRING, value, parent, index_pos, orig_var_list)
             else:
                 if value == SPACES_INITIALIZER:
                     new_value = pad(var.length)
@@ -398,15 +405,15 @@ def _set_variable(var_list, name: str, value: str, parent, index_pos: int, orig_
                     start = (pl * (occurrence - 1)) + start
                 main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
                 if remaining_value != EMPTY_STRING:
-                    _set_variable(var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)
+                    _set_variable(main_variable_memory, var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)
             return True
         else:
             count = count + 1
 
     return False
 
-def Update_Variable(variable_lists, value: str, name: str, giving: str, modifier = '', remainder_var = ''):
-    curr_val = Get_Variable_Value(variable_lists, name, name)
+def Update_Variable(main_variable_memory, variable_lists, value: str, name: str, giving: str, modifier = '', remainder_var = ''):
+    curr_val = Get_Variable_Value(main_variable_memory, variable_lists, name, name)
     var = None
     for var_list in variable_lists:
         var = _find_variable(var_list, name)
@@ -425,15 +432,15 @@ def Update_Variable(variable_lists, value: str, name: str, giving: str, modifier
     elif modifier == DIVISION_OPERATOR:
         remainder = int(value) % int(curr_val)
         if remainder_var != EMPTY_STRING:
-            Set_Variable(variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
+            Set_Variable(main_variable_memory, variable_lists, str(remainder_var), str(remainder), remainder_var, 0) 
         curr_val = str(int(int(value) / int(curr_val)))
     else:
         curr_val = (int(value) * int(modifier)) + curr_val
 
-    return Set_Variable(variable_lists, giving, str(curr_val), giving)
+    return Set_Variable(main_variable_memory, variable_lists, giving, str(curr_val), giving)
 
-def Replace_Variable_Value(variable_lists, name: str, orig: str, rep: str):
-    result = Get_Variable_Value(variable_lists, name, name, False)
+def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig: str, rep: str):
+    result = Get_Variable_Value(main_variable_memory, variable_lists, name, name, False)
     if result != EMPTY_STRING:
         orig_array = list(orig)
         rep_array = list(rep)
@@ -442,35 +449,34 @@ def Replace_Variable_Value(variable_lists, name: str, orig: str, rep: str):
             result = result.replace(o, rep_array[count])
             count = count + 1
 
-        Set_Variable(variable_lists, name, result, name)
+        Set_Variable(main_variable_memory, variable_lists, name, result, name)
 
         return True
 
     return False
 
-def Get_Variable_Length(variable_lists, name: str):
+def Get_Variable_Length(main_variable_memory, variable_lists, name: str):
     for var_list in variable_lists:
-        var = _find_variable(var_list, name)
+        var = _find_variable(main_variable_memory, var_list, name)
         if var != None:
             return var.length
     return 0
 
-def Get_Variable_Position(variable_lists, name: str):
+def Get_Variable_Position(main_variable_memory, variable_lists, name: str):
 
     return [0, 0]
 
-def Get_Variable_Value(variable_lists, name: str, parent: str, force_str = False):
+def Get_Variable_Value(main_variable_memery, variable_lists, name: str, parent: str, force_str = False):
     t = EMPTY_STRING
 
     for var_list in variable_lists:
-        t = _get_variable_value(var_list, name, [parent], force_str, variable_lists)
+        t = _get_variable_value(main_variable_memery, var_list, name, [parent], force_str, variable_lists)
         if t[1] > 0:
             break
 
     return t[0]
 
-def _get_variable_value(var_list, name: str, parent, force_str, orig_var_list):
-    global main_variable_memory
+def _get_variable_value(main_variable_memory, var_list, name: str, parent, force_str, orig_var_list):
     count = 0
     found_count = 0
     occurrence = 1
@@ -485,9 +491,9 @@ def _get_variable_value(var_list, name: str, parent, force_str, orig_var_list):
         if offset_val.isnumeric():
             occurrence = int(offset_val)
         else:
-            occurrence = int(Get_Variable_Value(orig_var_list, offset_val, offset_val))
+            occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
-    var = _find_variable(var_list, var_name)
+    var = _find_variable(main_variable_memory, var_list, var_name)
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:
@@ -498,14 +504,14 @@ def _get_variable_value(var_list, name: str, parent, force_str, orig_var_list):
                 continue
             if var_list[count].length == ZERO:
                 if var_list[count].level == LEVEL_88 and var_list[count].name == name:
-                    r = _get_variable_value(var_list, var.parent, [], force_str, orig_var_list)
+                    r = _get_variable_value(main_variable_memory, var_list, var.parent, [], force_str, orig_var_list)
                     result = var_list[count].level88value == r[0]
                     found_count = found_count + r[1] + 1
                     count = len(var_list)
                 else:
                     if var_list[count].name not in parent:
                         parent.append(var_list[count].name)
-                    r = _get_variable_value(var_list[count + 1:], EMPTY_STRING, parent, force_str, orig_var_list)
+                    r = _get_variable_value(main_variable_memory, var_list[count + 1:], EMPTY_STRING, parent, force_str, orig_var_list)
                     result = result + r[0]
                     found_count = found_count + r[1] + 1
                     count = count + found_count
@@ -557,11 +563,11 @@ def _get_variable_value(var_list, name: str, parent, force_str, orig_var_list):
 
     return [type_result, found_count, result, count]
 
-def Display_Variable(variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
+def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
     if is_literal == False:
         for var_list in variable_lists:
-            r = _get_variable_value(var_list, name, [parent], False, variable_lists)
+            r = _get_variable_value(main_variable_memory, var_list, name, [parent], False, variable_lists)
             dv = r[2]
             if r[1] > 0:
                 break
