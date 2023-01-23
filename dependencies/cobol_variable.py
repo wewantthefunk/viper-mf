@@ -40,6 +40,8 @@ UPD_COMMAND = "update"
 ZERO = 0
 ZERO_STRING = "0"
 
+is_initialized = False
+
 BINARY_COMP_LIST = [
     COMP_5_INDICATOR
     , COMP_INDICATOR
@@ -220,11 +222,10 @@ def _find_variable(list, name: str):
     return result
 
 def Open_File(main_variable_memory, variables_list, var_list, name: str, method: str):
-    success = False
+    success = main_variable_memory
     for var in var_list:
         if var.name == name:
-            var.open_file(main_variable_memory, variables_list, convert_open_method(method))
-            success = True
+            success = var.open_file(main_variable_memory, variables_list, convert_open_method(method))            
             break
 
     return success
@@ -240,17 +241,19 @@ def Close_File(var_list, name: str):
     return success
 
 def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_end_clause: str):
-    read_result = [EMPTY_STRING, False]
+    read_result = [False, main_variable_memory]
     for var in var_list:
         if var.name == name:
             read_result = var.read()
             if read_result[1]:
+                read_result = [True, main_variable_memory]
                 break
             # set the variable from the read
-            _set_variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0, file_rec_var_list)
+            read_result = _set_variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0, file_rec_var_list)
+            read_result[0] = not read_result[0]
             break
 
-    return read_result[1]
+    return read_result
 
 def Write_File(var_list, file_rec_var_list, name: str):
     for var in var_list:
@@ -283,7 +286,8 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
 
     return list
 
-def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func):
+def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func, self_obj):
+    result = [False, main_variable_memory]
     found = False
     if OPEN_PARENS not in operand1:
         t = operand1
@@ -301,9 +305,9 @@ def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, o
 
     parent_var = None
     for var_list in variable_lists:
-        array_var = _find_variable(main_variable_memory, var_list, operand1_split[0])
+        array_var = _find_variable(var_list, operand1_split[0])
         if array_var != None:
-            parent_var = _find_variable(main_variable_memory, var_list, array_var.parent)
+            parent_var = _find_variable(var_list, array_var.parent)
             break
 
     for x in range(start_at,parent_var.occurs_length):
@@ -314,13 +318,10 @@ def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, o
         elif operator == NOT_EQUALS:
             found = val != operand2
         if found:
-            Set_Variable(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+            result = Set_Variable(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
             break
 
-    if found == False and not_found_func != None:
-        not_found_func()
-
-    return found
+    return result
 
 def Set_Variable(main_variable_memory, variable_lists, name: str, value: str, parent: str, index_pos = 0):  
     found = False
@@ -337,6 +338,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
     var_name = name
     new_value = EMPTY_STRING
     is_hex = False
+    raw_value = str(value)
 
     if OPEN_PARENS in name:
         s = name.split(OPEN_PARENS)
@@ -375,7 +377,6 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                         new_value = new_value + eh.EBCDIC_value
                     new_value = new_value[0:var.length]
                 else:
-                    raw_value = value
                     if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if value.startswith(NEGATIVE_SIGN) or value.startswith(POSITIVE_SIGN):
                             var.sign = value[0:1]
@@ -394,6 +395,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     t = value[var.length * 2:]
                     if t != EMPTY_STRING:
                         remaining_value = HEX_PREFIX + t
+                elif raw_value == SPACES_INITIALIZER:
+                    remaining_value = SPACES_INITIALIZER
                 else:
                     remaining_value = value[var.length:]
                 if var.data_type in NUMERIC_DATA_TYPES:
@@ -456,9 +459,9 @@ def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig
 
     return False
 
-def Get_Variable_Length(main_variable_memory, variable_lists, name: str):
+def Get_Variable_Length(variable_lists, name: str):
     for var_list in variable_lists:
-        var = _find_variable(main_variable_memory, var_list, name)
+        var = _find_variable(var_list, name)
         if var != None:
             return var.length
     return 0
@@ -699,6 +702,10 @@ def comp_conversion(var: COBOLVariable, value: str):
     return result
 
 def initialize():
+    if is_initialized:
+        print('already initialized')
+        return
+
     EBCDIC_ASCII_CHART.append(EBCDICASCII('00', '\x00', '\x00'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('01', '\x01', '\x01'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('02', '\x02', '\x02'))

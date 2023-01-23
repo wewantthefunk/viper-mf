@@ -44,7 +44,7 @@ def process_environment_division_line(line: str, current_section: str, name: str
         current_line.current_section = current_section
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = []" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + "_" + format(current_section) + "Vars)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars)" + NEWLINE)
     elif tokens[0] == CLASS_KEYWORD:
         create_class_variable(tokens, name, next_few_lines, current_section)
 
@@ -65,10 +65,10 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
             break
 
     val = tokens[2].replace(SINGLE_QUOTE, EMPTY_STRING)
-    append_file(name + PYTHON_EXT, "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[1] + "', " \
+    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + tokens[1] + "', " \
          + str(len(val)) + ", '" + "X" + "','" + EMPTY_STRING + "','" + EMPTY_STRING + "')" + NEWLINE)
-    append_file(name + PYTHON_EXT, SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
-    append_file(name + PYTHON_EXT, name + MEMORY + " = result[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
     var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
 

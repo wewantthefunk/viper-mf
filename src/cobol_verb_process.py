@@ -97,19 +97,20 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif tokens[0] == COBOL_VERB_CONTINUE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0" + NEWLINE)
     elif tokens[0] == COBOL_VERB_OPEN:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_CLOSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
         
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(self._FILE_CONTROLVars, self._FILE_SECTIONVars, '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars,self._FILE_SECTIONVars, '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
         if len(tokens) > 3:
             if tokens[2] == AT_KEYWORD and tokens[3] == END_KEYWORD:
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result == True:" + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
                 process_move_verb(tokens[4:], name, True, level + 1)
     elif tokens[0] == COBOL_VERB_WRITE:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars, self._FILE_SECTIONVars, '" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_SECTIONVars, '" + tokens[1] + "')" + NEWLINE)
     elif tokens[0] == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
     elif tokens[0] == COBOL_VERB_SEARCH:
@@ -125,7 +126,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             if len(tokens) > 4:
                 accept_value = accept_value + SPACE + tokens[4]
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
 
     return level
 
@@ -175,7 +176,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         count = count + 1
 
     for x in range(1,equals_pos):
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')[1]" + NEWLINE) 
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')[1]" + NEWLINE) 
     
 
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
@@ -200,11 +201,18 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
 
     if operand2.isnumeric() == False:
         if operand2.startswith(SINGLE_QUOTE) == False:
-            temp = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
+            temp = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
             operand2 = temp
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
-        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + ","  + at_end_func + CLOSE_PARENS + COLON + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
+        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + ","  + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "is_found = search_result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if is_found == False:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "x = 0" + NEWLINE)
+    if at_end_func != "None":
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + at_end_func + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
 
 def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     using_args = EMPTY_STRING
@@ -223,18 +231,20 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = None" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
+    
     if tokens[1].startswith(SINGLE_QUOTE):        
         current_line.import_statement.append(tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING))
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = " + called_program + "_obj.main_" + called_program + OPEN_PARENS)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS)
         append_file(name + PYTHON_EXT, using_args)
         append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
     else:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function_name = 'main_' + Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')[1]" + NEWLINE)
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function_name = 'main_' + Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')[1]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module = importlib.import_module(module_name)" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function = getattr(module, function_name)" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = function(" + using_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_class = getattr(module, module_name + 'Class')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_instance = module_class()" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = module_instance.main(" + using_args + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
@@ -539,8 +549,8 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
             line = line + tokens[or_index + offset + 2]
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + line)
     append_file(name + PYTHON_EXT, COLON + NEWLINE)
-    current_line.loop_modifier = "Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
-        + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE
+    current_line.loop_modifier = SELF_REFERENCE + name + "Memory = Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
+        + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE
 
 def process_move_verb(tokens, name: str, indent: bool, level: int):
     do_indent = pad(len(INDENT) * level)
@@ -565,7 +575,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
             old_value = value
             s = value.split(OPEN_PARENS)
             
-            get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "variables_list,'" + s[0] + "','" + s[0] + "')"
+            get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + s[0] + "','" + s[0] + "')"
             end = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             end_offset = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if COLON in s[1]:
@@ -573,18 +583,18 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 end = s1[1].replace(CLOSE_PARENS, EMPTY_STRING)
                 end_offset = s1[0]
                 if s1[0].isnumeric() == False:
-                    end_offset = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
+                    end_offset = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
 
                 value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
             else:
-                value = get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + ",variables_list,'" + old_value + "','" + old_value + "')"
+                value = get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + old_value + "','" + old_value + "')"
         elif value == FUNCTION_KEYWORD:
             value = "Exec_Function('" + tokens[2] + "')"
             target_offset = 4
         elif value == TRUE_KEYWORD:
             value = 'True'
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
-            value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + ",variables_list,'" + value + "','" + value + "')"
+            value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
     elif value.startswith(SINGLE_QUOTE):
         x = 0
 
@@ -649,13 +659,13 @@ def process_math_verb(tokens, name: str, level: int):
     mod = "'" + tokens[1] + "'"
     target = tokens[3]
     if tokens[1].lstrip('+-').isdigit() == False:
-        mod = "Get_Variable_Value(" + name + MEMORY + "," + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+        mod = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
 
     if tokens[0] == COBOL_VERB_MULTIPLY:
         mod = "'" + tokens[3] + "'"
         target = tokens[1]
         if tokens[3].lstrip('+-').isdigit() == False:
-            mod = "Get_Variable_Value(" + name + MEMORY + "," + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
+            mod = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
 
     modifier = EMPTY_STRING
     remainder_var = EMPTY_STRING
@@ -669,7 +679,7 @@ def process_math_verb(tokens, name: str, level: int):
             i = tokens.index(REMAINDER_KEYWORD)
             remainder_var = tokens[i + 1]
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "(" + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Update_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')[1]" + NEWLINE)
     
 
 def check_valid_verb(v: str, compare_verb: str):

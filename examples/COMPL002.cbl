@@ -19,7 +19,7 @@
            MOVE 'J4A   ' TO PASSED-VARIABLE
            CALL 'COMPL001' USING PASSED-VARIABLE.
 
-           DISPLAY 'expecting returned value of J4A  A'
+           DISPLAY 'expecting returned value of J4AA A'
            DISPLAY 'actual returned value is    ' PASSED-VARIABLE.
 
            STOP RUN.

@@ -111,7 +111,7 @@ echo
 echo HELLOW20 - basic program that is called from HELLOW19 with parameters
 python3 HELLOW20.py &
 wait
-: <<'END'
+
 echo
 echo HELLOW21 - fall through evaluate statement
 python3 HELLOW21.py &
@@ -262,32 +262,32 @@ echo
 echo HELLOW48 - compute statement
 python3 HELLOW48.py &
 wait
-END
-#echo
-#echo HELLOW49 - complex if statement
-#python3 HELLOW49.py &
-#wait
 
-#echo
-#echo HELLOW50 - another complex if statement
-#python3 HELLOW50.py &
-#wait
+echo
+echo HELLOW49 - complex if statement
+python3 HELLOW49.py &
+wait
 
-#echo
-#echo HELLOW51 - another complex if statement
-#python3 HELLOW51.py &
-#wait
+echo
+echo HELLOW50 - another complex if statement
+python3 HELLOW50.py &
+wait
 
-#echo
-#echo HELLOW52 - accept statement
-#export SYSIN=sysin_val
-#python3 HELLOW52.py &
-#wait
+echo
+echo HELLOW51 - another complex if statement
+python3 HELLOW51.py &
+wait
 
-#echo
-#echo HELLOW53 - comp-3 fields
-#python3 HELLOW53.py &
-#wait
+echo
+echo HELLOW52 - accept statement
+export SYSIN=sysin_val
+python3 HELLOW52.py &
+wait
+
+echo
+echo HELLOW53 - comp-3 fields
+python3 HELLOW53.py &
+wait
 
 #echo
 #echo HELLOW54 - comp-3 fields redefines

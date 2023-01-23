@@ -12,6 +12,8 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected return is OR if condition successful'.
+
            IF  (JULIAN-YY-X              >  ZERO
            AND JULIAN-YY                = (JULIAN-YY / +4) * +4)
            OR (JULIAN-YY-X              =  ZERO

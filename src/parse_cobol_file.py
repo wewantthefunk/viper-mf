@@ -79,7 +79,7 @@ def parse_cobol_file(file: str, target_dir: str):
     for lambda_func in current_line.lambda_functions:
         lc = lc + 1
         append_file(name + PYTHON_EXT, NEWLINE)
-        append_file(name + PYTHON_EXT, "def _ae" + str(lc) + "():" + NEWLINE)
+        append_file(name + PYTHON_EXT, "def _ae" + str(lc) + "(self):" + NEWLINE)
         process_verb(lambda_func, name, True, 1, args, current_line)      
         process_verb([VERB_RESET], name, True, 1, [], current_line)  
         append_file(name + PYTHON_EXT, pad(len(INDENT)) + RETURN_KEYWORD + NEWLINE)
@@ -91,7 +91,7 @@ def parse_cobol_file(file: str, target_dir: str):
     if len(args) > 0:
         append_file(name + PYTHON_EXT, "print" + OPEN_PARENS)
 
-    append_file(name + PYTHON_EXT, "main_obj.main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS)
+    append_file(name + PYTHON_EXT, "main_obj.main" + OPEN_PARENS)
 
     arg_count = 0
     if len(args) > 0:
@@ -164,7 +164,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
             append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main_" + name.replace(DASH, UNDERSCORE) + OPEN_PARENS + "self")
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main" + OPEN_PARENS + "self")
 
                 if USING_KEYWORD in line:
                     args = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
@@ -217,4 +217,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
+    parse_cobol_file("examples/hellow25_perform_varying_loop.cbl", "converted/")
