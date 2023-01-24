@@ -387,7 +387,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     if var.comp_indicator == COMP_3_INDICATOR:
                         new_value = comp_conversion(var, raw_value.rjust(var.unpacked_length, ZERO_STRING))
                     else:
-                        new_value = value[0:var.length].ljust(var.length, SPACE)
+                        if var.data_type in NUMERIC_DATA_TYPES:
+                            new_value = value[0:var.length].rjust(var.length, ZERO_STRING)
+                        else:
+                            new_value = value[0:var.length].ljust(var.length, SPACE)
                 
                 remaining_value = EMPTY_STRING
 
@@ -401,7 +404,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     remaining_value = value[var.length:]
                 if var.data_type in NUMERIC_DATA_TYPES:
                     if is_hex == False:
-                        new_value = str(new_value).strip().rjust(var.length, ZERO_STRING)
+                        new_value = str(new_value).rjust(var.length, ZERO_STRING)
                 var_parent = _find_variable(var_list, var.parent)
                 start = var.main_memory_position
                 if var_parent != None:
@@ -537,16 +540,21 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         hv = find_hex_value_by_ebcdic(temp_result[x:x+1])
                         t = t + hv.hex_value
                     if t == EMPTY_STRING:
-                        t = ZERO_STRING
+                        temp_result = ZERO_STRING
                     elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                        t = t[0:len(t) - 1]
+                        temp_result = t[0:len(t) - 1]
                     elif t.endswith(NEGATIVE_SIGNED_HEX_FLAG):
-                        t = NEGATIVE_SIGN + t[0:len(t) - 1]
+                        if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
+                            var_list[count].sign = NEGATIVE_SIGN
+                        else:
+                            var_list[count] = EMPTY_STRING
+                        temp_result = t[0:len(t) - 1]
                     else:
                         if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
                             var_list[count].sign = POSITIVE_SIGN
-                        t = t[0:len(t) - 1]
-                    temp_result = t
+                        else:
+                            var_list[count].sign = EMPTY_STRING
+                        temp_result = t[0:len(t) - 1]
                 result = result +  var_list[count].sign + temp_result
                 count = count + 1
         else:
