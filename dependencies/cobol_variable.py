@@ -390,13 +390,6 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                             var.sign = POSITIVE_SIGN
                     
                     if var.comp_indicator == COMP_3_INDICATOR:
-                        if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
-                            if var.sign == NEGATIVE_SIGN:
-                                raw_value = raw_value + NEGATIVE_SIGNED_HEX_FLAG
-                            else:
-                                raw_value = raw_value + POSITIVE_SIGNED_HEX_FLAG
-                        else:
-                            raw_value = raw_value + UNSIGNED_HEX_FLAG
                         new_value = comp_conversion(var, raw_value.rjust(var.unpacked_length, ZERO_STRING))
                     else:
                         if var.data_type in NUMERIC_DATA_TYPES:
