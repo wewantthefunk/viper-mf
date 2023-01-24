@@ -289,20 +289,20 @@ echo HELLOW53 - comp-3 fields
 python3 HELLOW53.py &
 wait
 
-#echo
-#echo HELLOW54 - comp-3 fields redefines
-#python3 HELLOW54.py &
-#wait
+echo
+echo HELLOW54 - comp-3 fields redefines
+python3 HELLOW54.py &
+wait
 
-#echo
-#echo HELLOW55 - comp-3 fields cascading
-#python3 HELLOW55.py &
-#wait
+echo
+echo HELLOW55 - comp-3 fields cascading
+python3 HELLOW55.py &
+wait
 
-#echo
-#echo HELLOW56 - comp-3 fields math
-#python3 HELLOW56.py &
-#wait
+echo
+echo HELLOW56 - comp-3 fields math
+python3 HELLOW56.py &
+wait
 
 #echo
 #echo HELLOW57 - comp fields

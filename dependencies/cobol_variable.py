@@ -153,8 +153,13 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     unpacked_length = length
 
-    if comp_indicator == COMP_3_INDICATOR:
+    if comp_indicator == COMP_3_INDICATOR and data_type in NUMERIC_DATA_TYPES:
         length = math.ceil((length + 1) / 2)
+        # fix the math to account for the sign nibble
+        if length == 2:
+            unpacked_length = 4
+        elif length == 1:
+            unpacked_length = 2
 
     if redefines != EMPTY_STRING:
         next_redefines = redefines
@@ -385,6 +390,13 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                             var.sign = POSITIVE_SIGN
                     
                     if var.comp_indicator == COMP_3_INDICATOR:
+                        if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                            if var.sign == NEGATIVE_SIGN:
+                                raw_value = raw_value + NEGATIVE_SIGNED_HEX_FLAG
+                            else:
+                                raw_value = raw_value + POSITIVE_SIGNED_HEX_FLAG
+                        else:
+                            raw_value = raw_value + UNSIGNED_HEX_FLAG
                         new_value = comp_conversion(var, raw_value.rjust(var.unpacked_length, ZERO_STRING))
                     else:
                         if var.data_type in NUMERIC_DATA_TYPES:
