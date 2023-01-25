@@ -18,22 +18,22 @@
 
            MOVE 99 TO COMP-FIELD-2-BYTE.
 
-           DISPLAY 'expected value 0063'
+           DISPLAY 'expected value 99'
            DISPLAY 'actual value   ' COMP-FIELD-2-BYTE.
 
            MOVE 99999 TO COMP-FIELD-4-BYTE.
 
-           DISPLAY 'expected value 0001869F'
+           DISPLAY 'expected value 99999'
            DISPLAY 'actual value   ' COMP-FIELD-4-BYTE.
 
            MOVE -12 TO COMP-FIELD-2-BYTE-SIGNED.
 
-           DISPLAY 'expected value FFF4'
+           DISPLAY 'expected value -12'
            DISPLAY 'actual value   ' COMP-FIELD-2-BYTE-SIGNED.
 
            MOVE -99999 TO COMP-FIELD-4-BYTE-SIGNED.
 
-           DISPLAY 'expected value FFFE7961'
+           DISPLAY 'expected value -99999'
            DISPLAY 'actual value   ' COMP-FIELD-4-BYTE-SIGNED.
 
            STOP RUN.

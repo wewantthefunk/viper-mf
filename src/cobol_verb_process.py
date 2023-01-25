@@ -495,7 +495,7 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         if tokens[1] == UNTIL_KEYWORD:
             operand2 = tokens[4]
             if tokens[4].startswith(SINGLE_QUOTE) == False and tokens[4] != ZERO_KEYWORD:
-                operand2 = "Get_Variable_Value(" + SELF_REFERENCE + + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
+                operand2 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
             elif tokens[4] == ZERO_KEYWORD:
                 operand2 = ZERO
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \

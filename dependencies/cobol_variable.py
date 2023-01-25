@@ -160,8 +160,16 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
             unpacked_length = 4
         elif length == 1:
             unpacked_length = 2
+    elif comp_indicator == COMP_5_INDICATOR and data_type in NUMERIC_DATA_TYPES:
+        if length < 5:
+            length = 2
+        elif length < 10:
+            length = 4
+        else:
+            length = 8
 
     if redefines != EMPTY_STRING:
+        orig_redefines = redefines
         next_redefines = redefines
         while next_redefines != EMPTY_STRING:
             rv = _find_variable(list, redefines)
@@ -169,11 +177,14 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
                 if rv.level == level:
                     rv.redefine_length = ZERO
                 next_redefines = rv.redefines
+                redefines = next_redefines
                 next_pos = rv.main_memory_position + rv.redefine_length
                 rv.redefine_length = rv.redefine_length + length
             else:
                 next_redefines = EMPTY_STRING
                 next_pos = -1
+
+        redefines = orig_redefines
     else:
         next_pos = len(main_variable_memory)
 
@@ -391,6 +402,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     
                     if var.comp_indicator == COMP_3_INDICATOR:
                         new_value = comp_conversion(var, raw_value.rjust(var.unpacked_length, ZERO_STRING))
+                    elif var.comp_indicator == COMP_5_INDICATOR:
+                        new_value = tohex(int(raw_value), var.length)
                     else:
                         if var.data_type in NUMERIC_DATA_TYPES:
                             new_value = value[0:var.length].rjust(var.length, ZERO_STRING)
@@ -560,7 +573,15 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         else:
                             var_list[count].sign = EMPTY_STRING
                         temp_result = t[0:len(t) - 1]
-                result = result +  var_list[count].sign + temp_result
+                    result = result +  var_list[count].sign + temp_result
+                elif var_list[count].comp_indicator == COMP_5_INDICATOR:
+                    signed = var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE
+                    t = EMPTY_STRING
+                    for x in range(0, len(temp_result), 1):
+                        t = t + find_hex_value_by_ebcdic(temp_result[x:x+1]).hex_value
+                    result = result + str(fromhex(t, signed))                    
+                else:
+                    result = result +  var_list[count].sign + temp_result
                 count = count + 1
         else:
             count = count + 1
@@ -688,9 +709,21 @@ def get_hex_value(c: str):
     return hex(ord(c))
 
 def tohex(val: int, bytes: int):
+    step = 2
     nbits = bytes * 8
     h = hex((val + (1 << nbits)) % (1 << nbits))[2:]
-    return '0x' + h.rjust(bytes * 2, ZERO_STRING).upper()
+    temp = h.rjust(bytes * 2, ZERO_STRING).upper()
+    result = EMPTY_STRING
+    for x in range(0, len(temp), step):
+        result = result + find_hex_value(temp[x:x+step]).EBCDIC_value
+
+    return result
+
+def fromhex(val: str, sign: bool):
+    v = val
+    if v.startswith('0x'):
+        v = val[2:]
+    return int.from_bytes(bytes.fromhex(v), byteorder='big', signed=sign)
 
 def comp_conversion(var: COBOLVariable, value: str):
     result = EMPTY_STRING
@@ -800,15 +833,15 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('4E', '+', 'N'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('4F', '|', 'O'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('50', '&', 'P'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('51', '\x51', 'Q'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('52', '\x52', 'R'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('53', '\x53', 'S'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('54', '\x54', 'T'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('55', '\x55', 'U'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('56', '\x56', 'V'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('57', '\x57', 'W'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('58', '\x58', 'X'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\x59', 'Y'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('51', '\xD8', 'Q'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('52', '\xD9', 'R'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('53', '\xE2', 'S'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('54', '\xE3', 'T'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('55', '\xE4', 'U'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('56', '\xE5', 'V'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('57', '\xE6', 'W'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('58', '\xE7', 'X'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\xE8', 'Y'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5A', '!', 'Z'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5B', '$', '['))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5C', '*', '\x5C'))
@@ -817,14 +850,14 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5F', '\x5F', '_'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('60', '-', '\x60'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('61', '/', 'a'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('62', '\x62', 'b'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x63', 'c'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x64', 'd'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x65', 'e'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x66', 'f'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x67', 'g'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x68', 'h'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x69', 'i'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('62', '\x82', 'b'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x83', 'c'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x84', 'd'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x85', 'e'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x86', 'f'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x87', 'g'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x88', 'h'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x89', 'i'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6A', '!', 'j'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6B', '.', 'k'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6C', '%', 'l'))

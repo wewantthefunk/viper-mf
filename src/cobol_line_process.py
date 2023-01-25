@@ -216,6 +216,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         cascade_data_type = COMP_3_KEYWORD
     elif COMP_KEYWORD in tokens:
         cascade_data_type = COMP_KEYWORD
+    elif COMP_5_KEYWORD in tokens:
+        cascade_data_type = COMP_5_KEYWORD
 
     skip_lines_count = 0
 

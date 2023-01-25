@@ -16,20 +16,20 @@
 
            MOVE X'00100000FF3200001C00' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 001D12345C54321D'
+           DISPLAY 'expected value is 16653307168'
            DISPLAY 'actual value is   ' TEST-FIELD.           
 
-           DISPLAY 'expected value is 0010'
+           DISPLAY 'expected value is 16'
            DISPLAY 'actual value is   ' NUMBER-FIELD.
 
            ADD 1 TO NUMBER-FIELD.
 
-           DISPLAY 'expected value is 0011'
+           DISPLAY 'expected value is 17'
            DISPLAY 'actual value is   ' NUMBER-FIELD.
 
            MULTIPLY NUMBER-FIELD-2 BY 2 GIVING NUMBER-FIELD-2.
 
-           DISPLAY 'expected value is 0001FE64'
+           DISPLAY 'expected value is 130660'
            DISPLAY 'actual value is   ' NUMBER-FIELD-2.
 
            STOP RUN.
