@@ -1,5 +1,6 @@
 from datetime import datetime
 import os, math
+from pathlib import Path
 from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
@@ -16,6 +17,7 @@ DFHCOMMAREA_NAME = "DFHCOMMAREA"
 DISP_COMMAND = "display"
 DIVISION_OPERATOR = "/"
 DOUBLE_EQUALS = "=="
+EIB_EXT = "eib.txt"
 EMPTY_STRING = ""
 GET_COMMAND = "get"
 HEX_PREFIX = "_hex_"
@@ -623,12 +625,18 @@ def Translate_Arguments(sig_args, args):
 
     return args
 
-def Build_Comm_Area(module_name: str, data):
+def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str):
     comm_area = EMPTY_STRING
     for d in data:
         comm_area = comm_area + d
 
     _write_file(module_name + COMM_AREA_EXT, comm_area)
+
+    eib_memory = Set_Variable(eib_memory, variable_lists, "EIBCALEN", len(comm_area), "EIBCALEN")[1]
+
+    _write_file(module_name + EIB_EXT, eib_memory)
+
+    return eib_memory
     
 
 def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_name: str):
@@ -790,11 +798,15 @@ def comp_conversion(var: COBOLVariable, value: str):
     return result
 
 def Cleanup():
-    dir_name = "/"
+    dir_name = Path.cwd()
     test = os.listdir(dir_name)
 
     for item in test:
-        if item.endswith(DFHCOMMAREA_NAME):
+        if item.endswith(COMM_AREA_EXT):
+            os.remove(os.path.join(dir_name, item))
+
+    for item in test:
+        if item.endswith(EIB_EXT):
             os.remove(os.path.join(dir_name, item))
 
 def initialize():

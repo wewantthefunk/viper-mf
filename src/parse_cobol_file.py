@@ -95,6 +95,9 @@ def parse_cobol_file(file: str, target_dir: str):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('error encountered:')"+ NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(e)" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "exc_type, exc_obj, exc_tb = sys.exc_info()" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(exc_type, fname, exc_tb.tb_lineno)" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
@@ -118,7 +121,7 @@ def parse_cobol_file(file: str, target_dir: str):
     if len(args) > 0:
         append_file(name + PYTHON_EXT, CLOSE_PARENS)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT)) + NEWLINE + "Cleanup()" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE + pad(len(INDENT)) + "Cleanup()" + NEWLINE)
 
     append_file(name + PYTHON_EXT, NEWLINE)
 
@@ -212,13 +215,14 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
-        append_file(name + PYTHON_EXT, "import importlib, inspect" + NEWLINE)
+        append_file(name + PYTHON_EXT, "import importlib, inspect, os, sys" + NEWLINE)
         
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + EIB_MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + " = []" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = []" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(self._INTERNALVars)" + NEWLINE)

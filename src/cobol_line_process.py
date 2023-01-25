@@ -205,7 +205,7 @@ def check_ignore_verbs(ignore_verbs, v: str):
 
     return v in ignore_verbs
 
-def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args):
+def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args, is_eib = False):
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
@@ -387,11 +387,14 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + v_name + "', " \
+    memory_name = SELF_REFERENCE + name + MEMORY 
+    if is_eib:
+        memory_name = SELF_REFERENCE + EIB_MEMORY 
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
             + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
@@ -462,6 +465,9 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
+    is_eib = False
+    if copybook == EIB_COPYBOOK:
+        is_eib = True
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
     if REPLACING_KEYWORD in copybook:
         replace_info = copybook.split(REPLACING_DELIMITER)
@@ -500,6 +506,6 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
             continue
         line = line.replace(replace_info[1], replace_info[3]).replace(NEWLINE, EMPTY_STRING).strip()
         if line != EMPTY_STRING and line.startswith(COBOL_COMMENT) == False:
-            create_variable(line, current_line, name, current_section, next_few_lines, args)
+            create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
