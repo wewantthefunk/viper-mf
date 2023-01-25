@@ -8,9 +8,11 @@ ALPHANUMERIC_DATA_TYPE = "X"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
+COMM_AREA_EXT = "comm.txt"
 COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
 COMP_5_INDICATOR = "COMP-5"
+DFHCOMMAREA_NAME = "DFHCOMMAREA"
 DISP_COMMAND = "display"
 DIVISION_OPERATOR = "/"
 DOUBLE_EQUALS = "=="
@@ -39,8 +41,6 @@ UNSIGNED_HEX_FLAG = "F"
 UPD_COMMAND = "update"
 ZERO = 0
 ZERO_STRING = "0"
-
-is_initialized = False
 
 BINARY_COMP_LIST = [
     COMP_5_INDICATOR
@@ -429,6 +429,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     pl = var_parent.child_length
                     start = (pl * (occurrence - 1)) + start
                 main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
+                if var.name == DFHCOMMAREA_NAME:
+                    _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, new_value)
                 if remaining_value != EMPTY_STRING:
                     main_variable_memory = _set_variable(main_variable_memory, var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)[1]
             return [True, main_variable_memory]
@@ -544,44 +546,47 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         count = len(var_list)
             else:
                 found_count = found_count + 1
-                var_parent = _find_variable(var_list, var_list[count].parent)
-                start = var_list[count].main_memory_position
-                if var_parent != None:
-                    pl = var_parent.child_length
-                    start = (pl * (occurrence - 1)) + start
-                temp_result = main_variable_memory[start:start + var_list[count].length]
-                if var_list[count].comp_indicator == COMP_3_INDICATOR:
-                    t = EMPTY_STRING
-                    if temp_result[0:1] in NUMERIC_SIGNS:
-                        temp_result = temp_result[1:]
-                    for x in range(0, var_list[count].length):
-                        hv = find_hex_value_by_ebcdic(temp_result[x:x+1])
-                        t = t + hv.hex_value
-                    if t == EMPTY_STRING:
-                        temp_result = ZERO_STRING
-                    elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                        temp_result = t[0:len(t) - 1]
-                    elif t.endswith(NEGATIVE_SIGNED_HEX_FLAG):
-                        if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
-                            var_list[count].sign = NEGATIVE_SIGN
-                        else:
-                            var_list[count] = EMPTY_STRING
-                        temp_result = t[0:len(t) - 1]
-                    else:
-                        if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
-                            var_list[count].sign = POSITIVE_SIGN
-                        else:
-                            var_list[count].sign = EMPTY_STRING
-                        temp_result = t[0:len(t) - 1]
-                    result = result +  var_list[count].sign + temp_result
-                elif var_list[count].comp_indicator == COMP_5_INDICATOR:
-                    signed = var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE
-                    t = EMPTY_STRING
-                    for x in range(0, len(temp_result), 1):
-                        t = t + find_hex_value_by_ebcdic(temp_result[x:x+1]).hex_value
-                    result = result + str(fromhex(t, signed))                    
+                if var_list[count].name == DFHCOMMAREA_NAME:
+                    result = result + _read_file(orig_var_list[0][0].value + COMM_AREA_EXT)
                 else:
-                    result = result +  var_list[count].sign + temp_result
+                    var_parent = _find_variable(var_list, var_list[count].parent)
+                    start = var_list[count].main_memory_position
+                    if var_parent != None:
+                        pl = var_parent.child_length
+                        start = (pl * (occurrence - 1)) + start
+                    temp_result = main_variable_memory[start:start + var_list[count].length]
+                    if var_list[count].comp_indicator == COMP_3_INDICATOR:
+                        t = EMPTY_STRING
+                        if temp_result[0:1] in NUMERIC_SIGNS:
+                            temp_result = temp_result[1:]
+                        for x in range(0, var_list[count].length):
+                            hv = find_hex_value_by_ebcdic(temp_result[x:x+1])
+                            t = t + hv.hex_value
+                        if t == EMPTY_STRING:
+                            temp_result = ZERO_STRING
+                        elif var_list[count].data_type == NUMERIC_DATA_TYPE:
+                            temp_result = t[0:len(t) - 1]
+                        elif t.endswith(NEGATIVE_SIGNED_HEX_FLAG):
+                            if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
+                                var_list[count].sign = NEGATIVE_SIGN
+                            else:
+                                var_list[count] = EMPTY_STRING
+                            temp_result = t[0:len(t) - 1]
+                        else:
+                            if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
+                                var_list[count].sign = POSITIVE_SIGN
+                            else:
+                                var_list[count].sign = EMPTY_STRING
+                            temp_result = t[0:len(t) - 1]
+                        result = result +  var_list[count].sign + temp_result
+                    elif var_list[count].comp_indicator == COMP_5_INDICATOR:
+                        signed = var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE
+                        t = EMPTY_STRING
+                        for x in range(0, len(temp_result), 1):
+                            t = t + find_hex_value_by_ebcdic(temp_result[x:x+1]).hex_value
+                        result = result + str(fromhex(t, signed))                    
+                    else:
+                        result = result +  var_list[count].sign + temp_result
                 count = count + 1
         else:
             count = count + 1
@@ -611,6 +616,43 @@ def Display_Variable(main_variable_memory, variable_lists, name: str, parent: st
                 break
 
     print_value(dv)
+
+def Translate_Arguments(sig_args, args):
+    if len(args) == ZERO or sig_args == "()":
+        return EMPTY_STRING
+
+    return args
+
+def Build_Comm_Area(module_name: str, data):
+    comm_area = EMPTY_STRING
+    for d in data:
+        comm_area = comm_area + d
+
+    _write_file(module_name + COMM_AREA_EXT, comm_area)
+    
+
+def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_name: str):
+    data = _read_file(module_name + COMM_AREA_EXT)
+    for variable in variables:
+        main_variable_memory = Set_Variable(main_variable_memory, variable_lists, variable, data, variable)[1]
+    return main_variable_memory
+
+def _write_file(file: str, data: str):
+    _write_file_data(file,data,"w")
+
+def _write_file_data(file: str, data: str, method: str):
+    f = open(file,method)
+    f.write(data)
+    f.close()
+
+def _read_file(file: str):
+    if exists(file) == False:
+        return EMPTY_STRING
+    result = EMPTY_STRING
+    with open(file) as file:
+        for line in file:
+            result = result + line.replace(NEWLINE, EMPTY_STRING)
+    return result
 
 def print_value(l: str):
     end_l = EMPTY_STRING
@@ -747,11 +789,15 @@ def comp_conversion(var: COBOLVariable, value: str):
 
     return result
 
-def initialize():
-    if is_initialized:
-        print('already initialized')
-        return
+def Cleanup():
+    dir_name = "/"
+    test = os.listdir(dir_name)
 
+    for item in test:
+        if item.endswith(DFHCOMMAREA_NAME):
+            os.remove(os.path.join(dir_name, item))
+
+def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('00', '\x00', '\x00'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('01', '\x01', '\x01'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('02', '\x02', '\x02'))

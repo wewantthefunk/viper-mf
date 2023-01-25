@@ -328,3 +328,13 @@ wait
 #echo HELLOW61 - decimal fields
 #python3 HELLOW61.py &
 #wait
+
+echo
+echo HELLOW63 - called program that sends DFHCOMMAREA
+python3 HELLOW63.py &
+wait
+
+echo
+echo HELLOW64 - called program that receives DFHCOMMAREA
+python3 HELLOW64.py &
+wait

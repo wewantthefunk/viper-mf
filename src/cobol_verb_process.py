@@ -17,17 +17,22 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
 
-    if tokens[0] == STOP_KEYWORD:
+    verb = tokens[0]
+
+    if tokens[0] == EXEC_KEYWORD and tokens[1] == CICS_KEYWORD:
+        verb = EXEC_KEYWORD + SPACE + CICS_KEYWORD + SPACE + tokens[2]
+
+    if verb == STOP_KEYWORD:
         if len(tokens) > 1:
             if tokens[1] == RUN_KEYWORD:
                 tokens[0] = tokens[0] + SPACE + RUN_KEYWORD
 
-    if tokens[0] == VERB_RESET:
+    if verb == VERB_RESET:
         last_cmd_display = False
         
-    elif tokens[0] in COBOL_END_BLOCK_VERBS:
-        if tokens[0] != COBOL_VERB_READ_END:
-            if tokens[0] == COBOL_VERB_PERFORM_END:
+    elif verb in COBOL_END_BLOCK_VERBS:
+        if verb != COBOL_VERB_READ_END:
+            if verb == COBOL_VERB_PERFORM_END:
                 level = close_out_perform_loop(tokens[0], name, level, current_line)
             else:
                 level = level - 1
@@ -38,24 +43,24 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 evaluate_compare = ec[0]
                 nested_above_evaluate_compare = ec[1]
         last_cmd_display = False
-    elif tokens[0] == COBOL_VERB_MOVE:
+    elif verb == COBOL_VERB_MOVE:
         process_move_verb(tokens, name, indent, level)
         last_cmd_display = False
-    elif tokens[0] == COBOL_VERB_SET:
+    elif verb == COBOL_VERB_SET:
         process_move_verb([COBOL_VERB_MOVE, tokens[3], tokens[2], tokens[1]], name, indent, level)
         last_cmd_display = False
-    elif tokens[0] == COBOL_VERB_DISPLAY:
+    elif verb == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
         last_cmd_display = True
-    elif tokens[0] == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
+    elif verb == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
         process_math_verb(tokens, name, level)
         last_cmd_display = False
-    elif tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT:
+    elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT:
 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
 
         if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN:
-            level = 1
+            level = BASE_LEVEL
             append_file(name + PYTHON_EXT, SPACE + OPEN_BRACKET)
             c = 0
             for a in args:
@@ -68,39 +73,41 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             append_file(name + PYTHON_EXT, CLOSE_BRACKET)
 
         append_file(name + PYTHON_EXT, NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
         
-    elif tokens[0] == COBOL_VERB_PERFORM:
+    elif verb == COBOL_VERB_PERFORM:
         level = process_perform_verb(tokens, name, level, current_line)
-    elif tokens[0] == COBOL_VERB_IF:
+    elif verb == COBOL_VERB_IF:
         level = process_if_verb(tokens, name, level, False)
-    elif tokens[0] == COBOL_VERB_ELSE:
+    elif verb == COBOL_VERB_ELSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
         level = BASE_LEVEL
         func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self" + CLOSE_PARENS + COLON + NEWLINE)
         last_cmd_display = False
-    elif tokens[0] == COBOL_VERB_EVALUATE:
+    elif verb == COBOL_VERB_EVALUATE:
         is_first_when = True
         evaluate_compare = tokens[1]
         evaluate_compare_stack.append([evaluate_compare, evaluate_compare])
         level = level + 1
-    elif tokens[0] == COBOL_VERB_WHEN:
+    elif verb == COBOL_VERB_WHEN:
         if tokens[1] == WHEN_OTHER_KEYWORD:
             append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
         else:
             level = level - 1
             process_evaluate_verb(tokens, name, level)  
             level = level + 1
-    elif tokens[0] == COBOL_VERB_INSPECT:
+    elif verb == COBOL_VERB_INSPECT:
         process_inspect_verb(tokens, name, level) 
-    elif tokens[0] == COBOL_VERB_CONTINUE:
+    elif verb == COBOL_VERB_CONTINUE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0" + NEWLINE)
-    elif tokens[0] == COBOL_VERB_OPEN:
+    elif verb == COBOL_VERB_OPEN:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
-    elif tokens[0] == COBOL_VERB_CLOSE:
+    elif verb == COBOL_VERB_CLOSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[1] + "')" + NEWLINE)
-    elif tokens[0] == COBOL_VERB_READ:
+    elif verb == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
         
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars,self._FILE_SECTIONVars, '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
@@ -109,17 +116,17 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             if tokens[2] == AT_KEYWORD and tokens[3] == END_KEYWORD:
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
                 process_move_verb(tokens[4:], name, True, level + 1)
-    elif tokens[0] == COBOL_VERB_WRITE:
+    elif verb == COBOL_VERB_WRITE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_SECTIONVars, '" + tokens[1] + "')" + NEWLINE)
-    elif tokens[0] == COBOL_VERB_CALL:
+    elif verb == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
-    elif tokens[0] == COBOL_VERB_SEARCH:
+    elif verb == COBOL_VERB_SEARCH:
         last_cmd_display = False
         process_search_verb(tokens, name, indent, level, args, current_line)
         level = level + 1
-    elif tokens[0] == COBOL_VERB_COMPUTE:
+    elif verb == COBOL_VERB_COMPUTE:
         process_compute_verb(tokens, name, indent, level, args, current_line)
-    elif tokens[0] == COBOL_VERB_ACCEPT:
+    elif verb == COBOL_VERB_ACCEPT:
         accept_value = UNDERSCORE + UNDERSCORE + COBOL_VERB_ACCEPT + SPACE
         if len(tokens) > 3:
             accept_value = accept_value + tokens[3]
@@ -127,7 +134,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 accept_value = accept_value + SPACE + tokens[4]
 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
-
+    else:
+        append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
+    
     return level
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
@@ -195,7 +204,7 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
     if end_index > 0:
         at_end_slice = tokens[end_index + 1: condition_index]
         current_line.lambda_functions.append(at_end_slice)
-        at_end_func = "_ae" + str(len(current_line.lambda_functions))
+        at_end_func = SELF_REFERENCE + "_ae" + str(len(current_line.lambda_functions))
 
     operand2 = tokens[condition_index + 3]
 
@@ -205,17 +214,18 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
             operand2 = temp
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
-        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + ","  + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
+        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + "," + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "is_found = search_result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if is_found == False:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "x = 0" + NEWLINE)
     if at_end_func != "None":
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + at_end_func + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + at_end_func + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
 
 def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     using_args = EMPTY_STRING
+    comm_area_args = SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + OPEN_BRACKET
     params = []
     quoted = EMPTY_STRING
 
@@ -225,27 +235,45 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         for param in params:
             if param_count > 0:
                 using_args = using_args + COMMA
+                comm_area_args = comm_area_args + COMMA
             param_count = param_count + 1
-            using_args = using_args + quoted + "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
+            using_args = using_args + quoted + "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
+            comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
 
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = None" + NEWLINE)
     
-    if tokens[1].startswith(SINGLE_QUOTE):        
-        current_line.import_statement.append(tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING))
+    if tokens[1].startswith(SINGLE_QUOTE):   
+        mod_name = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
+        if mod_name not in current_line.import_statement:     
+            current_line.import_statement.append(mod_name)
+        comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS)
-        append_file(name + PYTHON_EXT, using_args)
-        append_file(name + PYTHON_EXT, CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + using_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
+        comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + "module_name"
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "function_name = 'main_' + Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')[1]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Build_Comm_Area" + OPEN_PARENS + "module_name," + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module = importlib.import_module(module_name)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_class = getattr(module, module_name + 'Class')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_instance = module_class()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = module_instance.main(" + using_args + CLOSE_PARENS + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(module_instance.main)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + using_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = module_instance.main(module_instance, Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + using_args + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None and str(sig_args) != '()':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
     for param in params:

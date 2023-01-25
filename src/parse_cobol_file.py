@@ -79,12 +79,23 @@ def parse_cobol_file(file: str, target_dir: str):
     for lambda_func in current_line.lambda_functions:
         lc = lc + 1
         append_file(name + PYTHON_EXT, NEWLINE)
-        append_file(name + PYTHON_EXT, "def _ae" + str(lc) + "(self):" + NEWLINE)
-        process_verb(lambda_func, name, True, 1, args, current_line)      
-        process_verb([VERB_RESET], name, True, 1, [], current_line)  
-        append_file(name + PYTHON_EXT, pad(len(INDENT)) + RETURN_KEYWORD + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _ae" + str(lc) + "(self):" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_TRY_STATEMENT + NEWLINE)
+        process_verb(lambda_func, name, True, BASE_LEVEL, args, current_line)      
+        process_verb([VERB_RESET], name, True, BASE_LEVEL, [], current_line)  
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + RETURN_KEYWORD + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, NEWLINE)
 
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if " + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER  + " != None:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "else:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('')" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('error encountered:')"+ NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(e)" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
     
@@ -106,6 +117,8 @@ def parse_cobol_file(file: str, target_dir: str):
 
     if len(args) > 0:
         append_file(name + PYTHON_EXT, CLOSE_PARENS)
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT)) + NEWLINE + "Cleanup()" + NEWLINE)
 
     append_file(name + PYTHON_EXT, NEWLINE)
 
@@ -160,10 +173,12 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
         name = result[1]
         current_line = result[2]
     else:
-        if name != "abend":
-            append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
+        if name != "abend":            
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
+                append_file(name + PYTHON_EXT, "# EIB Fields" + NEWLINE)
+                insert_copybook(name + PYTHON_EXT, EIB_COPYBOOK, current_line, name, current_line.current_section, next_few_lines, args)
+                append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main" + OPEN_PARENS + "self")
 
                 if USING_KEYWORD in line:
@@ -177,6 +192,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         count = count + 1
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "try:" + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -185,6 +201,8 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         arg_count = arg_count + 1
                         process_procedure_division_line("MOVE " + MAIN_ARG_VARIABLE_PREFIX + str(arg_count) + " TO " + arg.replace(COMMA, EMPTY_STRING) + PERIOD, name, current_line, [], args)
                     count = count + 1
+            else:
+                append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
 
     return [current_division, name, first_time, current_line]
 
@@ -194,7 +212,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
-        append_file(name + PYTHON_EXT, "import importlib" + NEWLINE)
+        append_file(name + PYTHON_EXT, "import importlib, inspect" + NEWLINE)
         
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
@@ -202,6 +220,11 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + " = []" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = []" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(self._INTERNALVars)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = Add_Variable('', self._INTERNALVars, 'MODULE-NAME', 0, 'X', 'MODULE-NAME', '', 0, 0, '', '01')[0]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars[0].value = " + SINGLE_QUOTE + name + SINGLE_QUOTE + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + SPACE + EQUALS + SPACE + NONE_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
         result = process_environment_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
@@ -216,6 +239,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
-    parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
-    #parse_cobol_file("examples/hellow25_perform_varying_loop.cbl", "converted/")
+    #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
+    #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
+    parse_cobol_file("examples/hellow63_call_no_proc_using.cbl", "converted/")
+    parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")

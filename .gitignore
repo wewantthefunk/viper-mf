@@ -10,3 +10,4 @@ examples/*.cobol
 examples/hw.cbl
 temp/
 .vscode/
+converted/*.txt
