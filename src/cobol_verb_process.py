@@ -21,6 +21,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
 
     if tokens[0] == EXEC_KEYWORD and tokens[1] == CICS_KEYWORD:
         verb = EXEC_KEYWORD + SPACE + CICS_KEYWORD + SPACE + tokens[2]
+        if tokens[2] == HANDLE_KEYWORD:
+            verb = verb + SPACE + tokens[3]
 
     if verb == STOP_KEYWORD:
         if len(tokens) > 1:
@@ -34,6 +36,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         if verb != COBOL_VERB_READ_END:
             if verb == COBOL_VERB_PERFORM_END:
                 level = close_out_perform_loop(tokens[0], name, level, current_line)
+            elif verb == COBOL_VERB_EXEC_END:
+                x = 0
             else:
                 level = level - 1
         if len(evaluate_compare_stack) > 0:
@@ -83,7 +87,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_ELSE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
-        level = BASE_LEVEL
+        level = BASE_LEVEL - 1
         func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self" + CLOSE_PARENS + COLON + NEWLINE)
         last_cmd_display = False
@@ -133,7 +137,22 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             if len(tokens) > 4:
                 accept_value = accept_value + SPACE + tokens[4]
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
+    elif verb == CICS_VERB_ASKTIME:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBTIME',get_current_time(),'EIBTIME')[1]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBDATE',format_date_cyyddd(),'EIBDATE')[1]" + NEWLINE)
+        if len(tokens) > 3:
+            if tokens[3].startswith("ABSTIME"):
+                s = tokens[3].split(OPEN_PARENS)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "',milliseconds_since_1900(),'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "')[1]" + NEWLINE)
+    elif verb == CICS_VERB_LINK:
+        process_cics_link(tokens, name, indent, level, args, current_line)
+    elif verb == CICS_VERB_HANDLE_ABEND:
+        for token in tokens:
+            if token.startswith(LABEL_KEYWORD):
+                s = token.split(OPEN_PARENS)
+
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
@@ -279,6 +298,18 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     for param in params:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+
+def process_cics_link(tokens, name, indent, level, args, current_line):
+    new_tokens = [COBOL_VERB_CALL, '', USING_KEYWORD, '', PERIOD]
+    for token in tokens:
+        if token.startswith(PROGRAM_KEYWORD):
+            s = token.split(OPEN_PARENS)
+            new_tokens[1] = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+        elif token.startswith(COMMAREA_KEYWORD):
+            s = token.split(OPEN_PARENS)
+            new_tokens[3] = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+    
+    process_call_verb(new_tokens, name, indent, level, args, current_line)
 
 def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:

@@ -1,5 +1,4 @@
 from datetime import datetime
-import datetime
 import os, math
 from pathlib import Path
 from os.path import exists
@@ -649,7 +648,7 @@ def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_n
     return main_variable_memory
 
 def _write_file(file: str, data: str):
-    _write_file_data(file,data,"w")
+    _write_binary_file(file,bytes(data, 'utf-8'))
 
 def _write_binary_file(file: str, data):
     _write_file_data(file,data,"wb")
@@ -669,15 +668,22 @@ def _read_file(file: str):
     return result
 
 def format_date_cyyddd():
-    now = datetime.datetime.now()
+    now = datetime.now()
     century = str(now.year)[0:1]
     cyyddd = f"{century}{now.year % 100:02}{now.timetuple().tm_yday:03}".rjust(7, ZERO_STRING)
     return cyyddd
 
 def get_current_time():
-    now = datetime.datetime.now()
+    now = datetime.now()
     time = now.strftime("%H%M%S").rjust(7, ZERO_STRING)
     return time
+
+def milliseconds_since_1900():
+    start = datetime(1900, 1, 1)
+    now = datetime.now()
+    diff = now - start
+    milliseconds = diff.total_seconds() * 1000
+    return int(milliseconds)
 
 def print_value(l: str):
     end_l = EMPTY_STRING
@@ -703,11 +709,11 @@ def pad_char(l: int, ch: str):
 
 def convert_open_method(method: str):
     if method == "INPUT":
-        return "r"
+        return "rb"
     elif method == "OUTPUT":
-        return "a"
+        return "ab"
     elif method == "INPUT-OUTPUT":
-        return "a+"
+        return "ab+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
     result = "0x" + input

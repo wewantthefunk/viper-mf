@@ -338,3 +338,13 @@ echo
 echo HELLOW64 - called program that receives DFHCOMMAREA
 python3 HELLOW64.py &
 wait
+
+echo
+echo CICS01 - cics asktime
+python3 CICS01.py &
+wait
+
+echo
+echo CICS02 - cics link
+python3 CICS02.py &
+wait
