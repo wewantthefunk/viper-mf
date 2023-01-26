@@ -1,4 +1,5 @@
 from datetime import datetime
+import datetime
 import os, math
 from pathlib import Path
 from os.path import exists
@@ -633,8 +634,10 @@ def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str):
     _write_file(module_name + COMM_AREA_EXT, comm_area)
 
     eib_memory = Set_Variable(eib_memory, variable_lists, "EIBCALEN", len(comm_area), "EIBCALEN")[1]
+    eib_memory = Set_Variable(eib_memory, variable_lists, "EIBDATE", format_date_cyyddd(), "EIBDATE")[1]
+    eib_memory = Set_Variable(eib_memory, variable_lists, "EIBTIME", get_current_time(), "EIBTIME")[1]
 
-    _write_file(module_name + EIB_EXT, eib_memory)
+    _write_binary_file(module_name + EIB_EXT, bytes(eib_memory, 'utf-8'))
 
     return eib_memory
     
@@ -648,7 +651,10 @@ def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_n
 def _write_file(file: str, data: str):
     _write_file_data(file,data,"w")
 
-def _write_file_data(file: str, data: str, method: str):
+def _write_binary_file(file: str, data):
+    _write_file_data(file,data,"wb")
+
+def _write_file_data(file: str, data, method: str):
     f = open(file,method)
     f.write(data)
     f.close()
@@ -661,6 +667,17 @@ def _read_file(file: str):
         for line in file:
             result = result + line.replace(NEWLINE, EMPTY_STRING)
     return result
+
+def format_date_cyyddd():
+    now = datetime.datetime.now()
+    century = str(now.year)[0:1]
+    cyyddd = f"{century}{now.year % 100:02}{now.timetuple().tm_yday:03}".rjust(7, ZERO_STRING)
+    return cyyddd
+
+def get_current_time():
+    now = datetime.datetime.now()
+    time = now.strftime("%H%M%S").rjust(7, ZERO_STRING)
+    return time
 
 def print_value(l: str):
     end_l = EMPTY_STRING

@@ -11,3 +11,4 @@ examples/hw.cbl
 temp/
 .vscode/
 converted/*.txt
+src/scratch.py
