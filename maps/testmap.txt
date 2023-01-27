@@ -1,0 +1,275 @@
+TESTMAP    DFHMSD TYPE=MAP,                                            X
+                  MODE=INOUT
+*
+TESTMAP    DFHMDI SIZE=(24,80),                                        X
+                  LINE=1
+*
+LBL1       DFHMDF                                                      X
+            POS=(01,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field1'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY1     DFHMDF                                                      X
+            POS=(01,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL2       DFHMDF                                                      X
+            POS=(02,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field2'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY2     DFHMDF                                                      X
+            POS=(02,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL3       DFHMDF                                                      X
+            POS=(03,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field3'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY3     DFHMDF                                                      X
+            POS=(03,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL4       DFHMDF                                                      X
+            POS=(04,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field4'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY4     DFHMDF                                                      X
+            POS=(04,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL5       DFHMDF                                                      X
+            POS=(05,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field5'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY5     DFHMDF                                                      X
+            POS=(05,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL6       DFHMDF                                                      X
+            POS=(06,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field6'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY6     DFHMDF                                                      X
+            POS=(06,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL7       DFHMDF                                                      X
+            POS=(07,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field7'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY7     DFHMDF                                                      X
+            POS=(07,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL8       DFHMDF                                                      X
+            POS=(08,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field8'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY8     DFHMDF                                                      X
+            POS=(08,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL9       DFHMDF                                                      X
+            POS=(09,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='field9'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY9     DFHMDF                                                      X
+            POS=(09,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL10      DFHMDF                                                      X
+            POS=(10,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel10'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY10    DFHMDF                                                      X
+            POS=(10,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL11      DFHMDF                                                      X
+            POS=(11,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel11'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY11    DFHMDF                                                      X
+            POS=(11,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL12      DFHMDF                                                      X
+            POS=(12,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel12'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY12    DFHMDF                                                      X
+            POS=(12,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL13      DFHMDF                                                      X
+            POS=(13,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel13'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY13    DFHMDF                                                      X
+            POS=(13,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL14      DFHMDF                                                      X
+            POS=(14,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel14'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY14    DFHMDF                                                      X
+            POS=(14),08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL15      DFHMDF                                                      X
+            POS=(15,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel15'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY15    DFHMDF                                                      X
+            POS=(15,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL16      DFHMDF                                                      X
+            POS=(16,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel16'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY16    DFHMDF                                                      X
+            POS=(16,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL17      DFHMDF                                                      X
+            POS=(17,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel17'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY17    DFHMDF                                                      X
+            POS=(17,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL18      DFHMDF                                                      X
+            POS=(18,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel18'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY18    DFHMDF                                                      X
+            POS=(18,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL19      DFHMDF                                                      X
+            POS=(19,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel19'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY19    DFHMDF                                                      X
+            POS=(19,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL20      DFHMDF                                                      X
+            POS=(20,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel20'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY20    DFHMDF                                                      X
+            POS=(20,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL21      DFHMDF                                                      X
+            POS=(21,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel21'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY21    DFHMDF                                                      X
+            POS=(21,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL22      DFHMDF                                                      X
+            POS=(22,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel22'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY22    DFHMDF                                                      X
+            POS=(22),08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+            *
+LBL23      DFHMDF                                                      X
+            POS=(23,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel23'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY23    DFHMDF                                                      X
+            POS=(23,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBL24      DFHMDF                                                      X
+            POS=(24,02),                                               X
+            LENGTH=06,                                                 X
+            INITIAL='fiel24'                                           X
+            ATTRB=(NORM,ASKIP)
+*
+ENTRY24    DFHMDF                                                      X
+            POS=(24,08),                                               X
+            LENGTH=10,                                                 X
+            ATTRB=(NORM,UNPROT,IC)
+*
+LBLEND     DFHMDF                                                      X
+            POS=(01,80),                                               X
+            LENGTH=01,                                                 X
+            INITIAL='X'                                                X
+            ATTRB=(NORM,ASKIP)

@@ -134,7 +134,7 @@ class COBOLFileVariable:
             self.file_pointer.close()
 
     def read(self):
-        line = self.file_pointer.readline().replace(NEWLINE, EMPTY_STRING)
+        line = self.file_pointer.readline().decode().replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
 
         at_end = False
 
@@ -658,13 +658,15 @@ def _write_file_data(file: str, data, method: str):
     f.write(data)
     f.close()
 
-def _read_file(file: str):
+def _read_file(file: str, remove_line_breaks = True):
     if exists(file) == False:
         return EMPTY_STRING
     result = EMPTY_STRING
     with open(file) as file:
         for line in file:
-            result = result + line.replace(NEWLINE, EMPTY_STRING)
+            if remove_line_breaks:
+                line = line.replace(NEWLINE, EMPTY_STRING)
+            result = result + line
     return result
 
 def format_date_cyyddd():
