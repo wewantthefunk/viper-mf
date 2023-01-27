@@ -198,6 +198,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                 
                 append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "try:" + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + EIB_MEMORY + EQUALS + "Retrieve_EIB_Area(" + SELF_REFERENCE + "_INTERNALVars[0].value" + CLOSE_PARENS + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -248,7 +249,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
-    parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")
-    parse_cobol_file("examples/hellow60_comp_5_math.cbl", "converted/")
-    parse_cobol_file("examples/cics02_link.cbl", "converted/")
-    parse_cobol_file("examples/cics03_handle_abend.cbl", "converted/")
+    parse_cobol_file("examples/cics04_send_map.cbl", "converted/")

@@ -154,11 +154,37 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
 
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
     elif verb == CICS_VERB_SEND:
-        print(tokens)
+        process_send_map(tokens, level, name)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
     return level
+
+def process_send_map(tokens, level: int, name: str):
+    map_name = EMPTY_STRING
+    map_only = 'False'
+    data_only = 'False'
+    data = "''"
+    length = 0
+    for token in tokens:
+        if token.startswith("MAP"):
+            s = token.split(OPEN_PARENS)
+            map_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if map_name.startswith(SINGLE_QUOTE) == False:
+                map_name = "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
+            break
+        elif token == "MAPONLY":
+            map_only = 'True'
+        elif token == "DATAONLY":
+            data_only = 'True'
+        elif token.startswith("FROM"):
+            s = token.split(OPEN_PARENS)
+            data = "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if self.calling_module != None:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.calling_module.build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
+    
+    return
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     count = 0
@@ -208,6 +234,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
     for x in range(1,equals_pos):
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')[1]" + NEWLINE) 
     
+    return
 
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     all_offset = 0
@@ -243,6 +270,8 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
     if at_end_func != "None":
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + at_end_func + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
+
+    return
 
 def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     using_args = EMPTY_STRING
@@ -301,6 +330,8 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
+    return
+
 def process_cics_link(tokens, name, indent, level, args, current_line):
     new_tokens = [COBOL_VERB_CALL, '', USING_KEYWORD, '', PERIOD]
     for token in tokens:
@@ -313,10 +344,14 @@ def process_cics_link(tokens, name, indent, level, args, current_line):
     
     process_call_verb(new_tokens, name, indent, level, args, current_line)
 
+    return
+
 def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:
         func = "Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
+
+    return
 
 def close_out_evaluate(verb: str, name: str, level: int):
     global is_evaluating
@@ -386,8 +421,6 @@ def process_evaluate_verb(tokens, name: str, level: int):
         operand2 = 'True'
     elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'False'
-
-
 
     prefix = "if "
     if is_first_when == False:
@@ -613,6 +646,8 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
     current_line.loop_modifier = SELF_REFERENCE + name + "Memory = Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
         + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE
 
+    return
+
 def process_move_verb(tokens, name: str, indent: bool, level: int):
     do_indent = pad(len(INDENT) * level)
 
@@ -670,6 +705,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
         tokens.pop()
         process_move_verb(tokens, name, indent, level)
 
+    return
 
 def process_display_verb(tokens, name: str, level: int):
     count = 0
@@ -710,6 +746,8 @@ def process_display_verb(tokens, name: str, level: int):
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
+    return
+
 def process_math_verb(tokens, name: str, level: int):
     giving = tokens[3]
     if GIVING_KEYWORD in tokens:
@@ -742,6 +780,7 @@ def process_math_verb(tokens, name: str, level: int):
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Update_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')[1]" + NEWLINE)
     
+    return
 
 def check_valid_verb(v: str, compare_verb: str):
     for multi_verb in COBOL_VERB_MULTI_LIST:

@@ -649,6 +649,10 @@ def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_n
         main_variable_memory = Set_Variable(main_variable_memory, variable_lists, variable, data, variable)[1]
     return main_variable_memory
 
+def Retrieve_EIB_Area(module_name: str):
+    eib_data = _read_file(module_name + EIB_EXT, False)
+    return eib_data
+    
 def _write_file(file: str, data: str):
     _write_binary_file(file,bytes(data, 'utf-8'))
 
