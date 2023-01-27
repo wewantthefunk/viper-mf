@@ -153,6 +153,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 s = token.split(OPEN_PARENS)
 
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
+    elif verb == CICS_VERB_SEND:
+        print(tokens)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     

@@ -1,8 +1,10 @@
 from tkinter import *
 from tkinter import font
+from tkinter import ttk
 from io import StringIO
-import importlib, sys, os
-import cobol_variable
+from os.path import exists
+import importlib, sys, os, random
+import cobol_variable, string
 
 ATTRB_KEYWORD = "ATTRB"
 BOTH_OPTION = "both"
@@ -17,12 +19,14 @@ CYCLE_UP = -1
 DD_CONFIG_FILE = "dd.config"
 DOWN_ARROW = 40
 EMPTY_STRING = ""
+ENTRY_CURSOR_COLOR = "green"
 ENTER_KEY = "\r"
 ENTRY_BOX_BACKGROUND = "white"
 ENTRY_BOX_TEXT_COLOR = "black"
 EQUALS = "="
 ERROR_TEXT_COLOR = "red"
 ESCAPE = 27
+GENERIC_TRANS_ID = "XXXX"
 HIDE_SYSOUT = "hide sysout"
 INVALID_COMMAND_MSG = "INVALID COMMAND:"
 LINE_SPACING = 6
@@ -49,11 +53,12 @@ STANDARD_FONT_SIZE = 14
 STANDARD_TEXT_COLOR = "white"
 START_COMMAND = "start"
 SYSOUT_TITLE = "KIX SYSOUT Display"
-SYSOUT_WINDOW_SIZE = '300x300'
+SYSOUT_WINDOW_SIZE = '300x300+30+30'
+TERMINAL_CONFIG = "terminal.config"
 TRANSACTION_CONFIG_FILE = "trans.config"
 UP_ARROW = 38
 WINDOW_TITLE = "KIX CICS Emulator"
-WINDOW_SIZE = '1520x768'
+WINDOW_SIZE = '1520x768+2+2'
 WINDOWS_OS = "nt"
 ZERO = 0
 
@@ -63,6 +68,8 @@ class KIXEntry:
         self.length = length
         self.field = StringVar()
         self.entry_field = None
+
+        return
 
 class KIX:     
     def __init__(self):
@@ -79,6 +86,7 @@ class KIX:
         self.character_height = STANDARD_FONT_SIZE
         self.character_width = 10
         self.map_entry_fields = []
+        self.last_known_trans_id = GENERIC_TRANS_ID
 
         self.command_list = []
         self.current_command_entry = len(self.command_list)
@@ -89,7 +97,45 @@ class KIX:
 
         cobol_variable.initialize()
 
+        if exists(TERMINAL_CONFIG) == False:
+            cobol_variable._write_file(TERMINAL_CONFIG, self.create_terminal_id())
+
+        self.terminal_id = cobol_variable._read_file(TERMINAL_CONFIG, True)
+
         self.set_dd_values()
+
+        self.variables_list = []
+        self.eib_variables = []
+        self.variables_list.append(self.eib_variables)
+        self.EIBMemory = EMPTY_STRING
+
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIB-FIELDS', 0, 'X','EIB-FIELDS','',0,0,'','01')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBAID', 1, 'X','EIB-FIELDS','',0,0,'','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBCALEN', 4, 'S9','EIB-FIELDS','',0,0,'COMP','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBDATE', 7, 'S9','EIB-FIELDS','',0,0,'COMP-3','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'IEBRCODE', 6, 'X','EIB-FIELDS','',0,0,'','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBTASKN', 7, 'S9','EIB-FIELDS','',0,0,'COMP-3','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBTIME', 7, 'S9','EIB-FIELDS','',0,0,'COMP-3','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBTRMID', 4, 'X','EIB-FIELDS','',0,0,'','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+        result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBTRNID', 4, 'X','EIB-FIELDS','',0,0,'','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
 
         return
 
@@ -100,8 +146,8 @@ class KIX:
         txt = Entry(self.window,width=127,font=(STANDARD_FONT, STANDARD_FONT_SIZE),background=ENTRY_BOX_BACKGROUND,foreground=ENTRY_BOX_TEXT_COLOR)
         txt.place(x=25,y=4,in_=self.window)
         txt.bind("<Key>", self.on_keypress)
-        txt.config(insertbackground=STANDARD_TEXT_COLOR)
         txt.config(insertwidth=STANDARD_CURSOR_SIZE)
+        txt.config(insertbackground=ENTRY_CURSOR_COLOR)
         txt.focus_set()
         self.command_input = txt
 
@@ -115,6 +161,12 @@ class KIX:
         temp_lbl = Label(self.window, text=EMPTY_STRING, font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="message_label",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
         temp_lbl.place(x=5,y=740)
         self.message_label = temp_lbl
+
+        term_lbl1 = Label(self.window, text="TERM ID:", font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="terminal_id_lbl",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
+        term_lbl1.place(x=1,y=30)
+
+        term_lbl = Label(self.window, text=self.terminal_id, font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="terminal_id",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
+        term_lbl.place(x=95,y=30)
 
         self.sysout_label = self.create_label(self.sysout, EMPTY_STRING, "sysout_label", 5, 5)
         self.sysout.geometry(SYSOUT_WINDOW_SIZE)
@@ -145,6 +197,8 @@ class KIX:
             found = True
         entry_field = Entry(widget, text=text, name=name, background=ENTRY_BOX_BACKGROUND, foreground=ENTRY_BOX_TEXT_COLOR, justify=LEFT, font=(STANDARD_FONT, STANDARD_FONT_SIZE), width=length, textvariable=t)
         entry_field.place(x=place_x * self.character_width, y=place_y * (self.character_height + LINE_SPACING))
+        entry_field.config(insertbackground=ENTRY_CURSOR_COLOR)
+        entry_field.config(insertwidth=STANDARD_CURSOR_SIZE)
         if has_cursor:
             entry_field.focus()
 
@@ -306,6 +360,7 @@ class KIX:
             if len(s) < 2 or s[0] == EMPTY_STRING:
                 return EMPTY_STRING
             if s[0].lower().strip() == trans:
+                self.last_known_trans_id = trans
                 return s[1]
 
         return EMPTY_STRING
@@ -319,6 +374,8 @@ class KIX:
             module_class = getattr(module, module_name + 'Class')
             module_instance = module_class()
             module_instance.calling_module = self
+
+            self.EIBMemory = cobol_variable.Build_Comm_Area(module_name, EMPTY_STRING, self.variables_list, self.EIBMemory, self.terminal_id, self.last_known_trans_id)
 
             # create a StringIO object
             string_io = StringIO()
@@ -398,6 +455,8 @@ class KIX:
 
         self.build_field(field_info)
 
+        return
+
     def build_field(self, field_info: str):
         if MAP_FIELD_IDENTIFIER not in field_info:
             return ZERO
@@ -459,6 +518,9 @@ class KIX:
                 result.append(token)
 
         return result
+
+    def create_terminal_id(self):
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
 
 if __name__ == '__main__':
     Kix_obj = KIX()

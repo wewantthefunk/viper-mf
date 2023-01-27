@@ -57,6 +57,7 @@ Make sure the following Python dependencies are installed:
 * glob
 * importlib
 * inspect
+* io
 * math
 * os
 * pathlib
@@ -65,6 +66,7 @@ Make sure the following Python dependencies are installed:
 * shutil
 * string
 * sys
+* tkinter
 
 In the src folder, modify the input_dir variable in the main.py module to point to your COBOL source code folder relative to the src folder.
 

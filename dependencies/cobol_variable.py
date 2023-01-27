@@ -625,7 +625,7 @@ def Translate_Arguments(sig_args, args):
 
     return args
 
-def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str):
+def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str, term_id = "TERM", trans_id = "XXXX"):
     comm_area = EMPTY_STRING
     for d in data:
         comm_area = comm_area + d
@@ -635,6 +635,8 @@ def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str):
     eib_memory = Set_Variable(eib_memory, variable_lists, "EIBCALEN", len(comm_area), "EIBCALEN")[1]
     eib_memory = Set_Variable(eib_memory, variable_lists, "EIBDATE", format_date_cyyddd(), "EIBDATE")[1]
     eib_memory = Set_Variable(eib_memory, variable_lists, "EIBTIME", get_current_time(), "EIBTIME")[1]
+    eib_memory = Set_Variable(eib_memory, variable_lists, "EIBTRMID", term_id, "EIBTRMID")[1]
+    eib_memory = Set_Variable(eib_memory, variable_lists, "EIBTRNID", trans_id, "EIBTRNID")[1]
 
     _write_binary_file(module_name + EIB_EXT, bytes(eib_memory, 'utf-8'))
 
