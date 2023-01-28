@@ -171,7 +171,7 @@ def process_send_map(tokens, level: int, name: str):
             s = token.split(OPEN_PARENS)
             map_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if map_name.startswith(SINGLE_QUOTE) == False:
-                map_name = "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
+                map_name = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
             break
         elif token == "MAPONLY":
             map_only = 'True'
@@ -179,7 +179,7 @@ def process_send_map(tokens, level: int, name: str):
             data_only = 'True'
         elif token.startswith("FROM"):
             s = token.split(OPEN_PARENS)
-            data = "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
+            data = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if self.calling_module != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.calling_module.build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
