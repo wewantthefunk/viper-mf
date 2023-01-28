@@ -1,0 +1,1131 @@
+AMNMDS1  DFHMSD TYPE=MAP,                                              X  
+               MODE=INOUT,                                             X
+               LANG=COBOL,                                             X
+               CTRL=(FREEKB,FRSET),                                    X
+               EXTATT=YES,                                             X
+               STORAGE=AUTO,                                           X
+               TIOAPFX=YES
+AMNMDS1  DFHMDI SIZE=(24,80),                                          X  
+               LINE=1,                                                 X
+               JUSTIFY=LEFT,                                           X
+               TIOAPFX=YES
+*********************************************************************
+*                    LINE 1                                         *
+*********************************************************************
+PROID    DFHMDF                                                        X
+               POS=(01,02),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET)
+         DFHMDF                                                        X
+               POS=(01,11),                                            X
+               LENGTH=01,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='-'
+TRNID    DFHMDF                                                        X
+               POS=(01,13),                                            X
+               LENGTH=4,                                               X
+               ATTRB=(ASKIP,FSET,BRT)
+         DFHMDF                                                        X
+               POS=(01,23),                                            X
+               LENGTH=22,                                              X  
+               ATTRB=(ASKIP,BRT),                                      X
+               INITIAL='CWF  SATELLITE  STATUS'                           
+*        DFHMDF                                                        X    
+*              POS=(01,46),                                            X    
+*              LENGTH=6,                                               X    
+*              ATTRB=(ASKIP,BRT),                                      X    
+*              INITIAL='REGN: '                                           
+RGNID    DFHMDF                                                        X  
+               POS=(01,53),                                            X  
+               LENGTH=8,                                               X  
+               ATTRB=(ASKIP,FSET,BRT),                                 X  
+               COLOR=YELLOW,                                           X  
+               INITIAL='REGIONID'                                         
+         DFHMDF                                                        X
+               POS=(01,62),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='DATE:'
+DATE     DFHMDF                                                        X
+               POS=(01,68),                                            X
+               LENGTH=10,                                              X
+               ATTRB=(ASKIP,FSET,BRT)
+*********************************************************************
+*                    LINE 2                                         *
+*********************************************************************
+         DFHMDF                                                        X
+               POS=(02,02),                                            X
+               LENGTH=20,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='CURRENT CYCLE BEGAN:'
+CYCDT    DFHMDF                                                        X
+               POS=(02,24),                                            X
+               LENGTH=10,                                              X
+               ATTRB=(ASKIP,FSET,BRT)
+CYCTM    DFHMDF                                                        X
+               POS=(02,35),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET,BRT)
+         DFHMDF                                                        X
+               POS=(02,48),                                            X
+               LENGTH=06,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='CYCLE:'
+CYCLE    DFHMDF                                                        X
+               POS=(02,55),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(UNPROT,FSET,BRT)
+         DFHMDF                                                        X
+               POS=(02,62),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='TIME:'
+TIME     DFHMDF                                                        X
+               POS=(02,68),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET,BRT)
+*********************************************************************
+*                    LINE 3                                         *
+*********************************************************************
+         DFHMDF                                                        X
+               POS=(03,02),                                            X
+               LENGTH=03,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='SAT'
+         DFHMDF                                                        X
+               POS=(03,07),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='STAT'
+         DFHMDF                                                        X
+               POS=(03,13),                                            X
+               LENGTH=03,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='PTY'
+         DFHMDF                                                        X
+               POS=(03,17),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='SHUT'
+         DFHMDF                                                        X
+               POS=(03,23),                                            X
+               LENGTH=03,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='REC'
+         DFHMDF                                                        X
+               POS=(03,31),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='LOAD'
+         DFHMDF                                                        X
+               POS=(03,39),                                            X
+               LENGTH=07,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='PROCESS'
+         DFHMDF                                                        X
+               POS=(03,49),                                            X
+               LENGTH=07,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='REPORT'
+         DFHMDF                                                        X
+               POS=(03,58),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='SENT'
+         DFHMDF                                                        X
+               POS=(03,67),                                            X
+               LENGTH=13,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='COMPLETE--DAY'
+*********************************************************************
+*                    LINE 4                                         *
+*********************************************************************
+DW01     DFHMDF                                                        X
+               POS=(04,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID1   DFHMDF                                                        X
+               POS=(04,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT1    DFHMDF                                                        X
+               POS=(04,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY1     DFHMDF                                                        X
+               POS=(04,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT1    DFHMDF                                                        X
+               POS=(04,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV1    DFHMDF                                                        X
+               POS=(04,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD1    DFHMDF                                                        X
+               POS=(04,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS1   DFHMDF                                                        X
+               POS=(04,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT1    DFHMDF                                                        X
+               POS=(04,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT1    DFHMDF                                                        X
+               POS=(04,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP1    DFHMDF                                                        X
+               POS=(04,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY1     DFHMDF                                                        X
+               POS=(04,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 5                                         *
+*********************************************************************
+DW02     DFHMDF                                                        X
+               POS=(05,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID2   DFHMDF                                                        X
+               POS=(05,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT2    DFHMDF                                                        X
+               POS=(05,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY2     DFHMDF                                                        X
+               POS=(05,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT2    DFHMDF                                                        X
+               POS=(05,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV2    DFHMDF                                                        X
+               POS=(05,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD2    DFHMDF                                                        X
+               POS=(05,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS2   DFHMDF                                                        X
+               POS=(05,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT2    DFHMDF                                                        X
+               POS=(05,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT2    DFHMDF                                                        X
+               POS=(05,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP2    DFHMDF                                                        X
+               POS=(05,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY2     DFHMDF                                                        X
+               POS=(05,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 6                                         *
+*********************************************************************
+DW03     DFHMDF                                                        X
+               POS=(06,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID3   DFHMDF                                                        X
+               POS=(06,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT3    DFHMDF                                                        X
+               POS=(06,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY3     DFHMDF                                                        X
+               POS=(06,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT3    DFHMDF                                                        X
+               POS=(06,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV3    DFHMDF                                                        X
+               POS=(06,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD3    DFHMDF                                                        X
+               POS=(06,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS3   DFHMDF                                                        X
+               POS=(06,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT3    DFHMDF                                                        X
+               POS=(06,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT3    DFHMDF                                                        X
+               POS=(06,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP3    DFHMDF                                                        X
+               POS=(06,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY3     DFHMDF                                                        X
+               POS=(06,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 7                                         *
+*********************************************************************
+DW04     DFHMDF                                                        X
+               POS=(07,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID4   DFHMDF                                                        X
+               POS=(07,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT4    DFHMDF                                                        X
+               POS=(07,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY4     DFHMDF                                                        X
+               POS=(07,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT4    DFHMDF                                                        X
+               POS=(07,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV4    DFHMDF                                                        X
+               POS=(07,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD4    DFHMDF                                                        X
+               POS=(07,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS4   DFHMDF                                                        X
+               POS=(07,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT4    DFHMDF                                                        X
+               POS=(07,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT4    DFHMDF                                                        X
+               POS=(07,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP4    DFHMDF                                                        X
+               POS=(07,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY4     DFHMDF                                                        X
+               POS=(07,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 8                                         *
+*********************************************************************
+DW05     DFHMDF                                                        X
+               POS=(08,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID5   DFHMDF                                                        X
+               POS=(08,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT5    DFHMDF                                                        X
+               POS=(08,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY5     DFHMDF                                                        X
+               POS=(08,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT5    DFHMDF                                                        X
+               POS=(08,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV5    DFHMDF                                                        X
+               POS=(08,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD5    DFHMDF                                                        X
+               POS=(08,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS5   DFHMDF                                                        X
+               POS=(08,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT5    DFHMDF                                                        X
+               POS=(08,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT5    DFHMDF                                                        X
+               POS=(08,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP5    DFHMDF                                                        X
+               POS=(08,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY5     DFHMDF                                                        X
+               POS=(08,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 9                                         *
+*********************************************************************
+DW06     DFHMDF                                                        X
+               POS=(09,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID6   DFHMDF                                                        X
+               POS=(09,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT6    DFHMDF                                                        X
+               POS=(09,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY6     DFHMDF                                                        X
+               POS=(09,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT6    DFHMDF                                                        X
+               POS=(09,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV6    DFHMDF                                                        X
+               POS=(09,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD6    DFHMDF                                                        X
+               POS=(09,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS6   DFHMDF                                                        X
+               POS=(09,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT6    DFHMDF                                                        X
+               POS=(09,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT6    DFHMDF                                                        X
+               POS=(09,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP6    DFHMDF                                                        X
+               POS=(09,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY6     DFHMDF                                                        X
+               POS=(09,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 10                                        *
+*********************************************************************
+DW07     DFHMDF                                                        X
+               POS=(10,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID7    DFHMDF                                                       X
+               POS=(10,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT7    DFHMDF                                                        X
+               POS=(10,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY7     DFHMDF                                                        X
+               POS=(10,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT7    DFHMDF                                                        X
+               POS=(10,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV7    DFHMDF                                                        X
+               POS=(10,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD7    DFHMDF                                                        X
+               POS=(10,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS7    DFHMDF                                                       X
+               POS=(10,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT7    DFHMDF                                                        X
+               POS=(10,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT7    DFHMDF                                                        X
+               POS=(10,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP7    DFHMDF                                                        X
+               POS=(10,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY7     DFHMDF                                                        X
+               POS=(10,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 11                                        *
+*********************************************************************
+DW08     DFHMDF                                                        X
+               POS=(11,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID8   DFHMDF                                                        X
+               POS=(11,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT8    DFHMDF                                                        X
+               POS=(11,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY8     DFHMDF                                                        X
+               POS=(11,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT8    DFHMDF                                                        X
+               POS=(11,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV8    DFHMDF                                                        X
+               POS=(11,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD8    DFHMDF                                                        X
+               POS=(11,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS8   DFHMDF                                                        X
+               POS=(11,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT8    DFHMDF                                                        X
+               POS=(11,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT8    DFHMDF                                                        X
+               POS=(11,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP8    DFHMDF                                                        X
+               POS=(11,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY8     DFHMDF                                                        X
+               POS=(11,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 12                                        *
+*********************************************************************
+DW09     DFHMDF                                                        X
+               POS=(12,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID9   DFHMDF                                                        X
+               POS=(12,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT9    DFHMDF                                                        X
+               POS=(12,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY9     DFHMDF                                                        X
+               POS=(12,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT9    DFHMDF                                                        X
+               POS=(12,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV9    DFHMDF                                                        X
+               POS=(12,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD9    DFHMDF                                                        X
+               POS=(12,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS9   DFHMDF                                                        X
+               POS=(12,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT9    DFHMDF                                                        X
+               POS=(12,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT9    DFHMDF                                                        X
+               POS=(12,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP9    DFHMDF                                                        X
+               POS=(12,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY9     DFHMDF                                                        X
+               POS=(12,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 13                                        *
+*********************************************************************
+DW10     DFHMDF                                                        X
+               POS=(13,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID10  DFHMDF                                                        X
+               POS=(13,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT10   DFHMDF                                                        X
+               POS=(13,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY10    DFHMDF                                                        X
+               POS=(13,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT10   DFHMDF                                                        X
+               POS=(13,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV10   DFHMDF                                                        X
+               POS=(13,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD10   DFHMDF                                                        X
+               POS=(13,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS10  DFHMDF                                                        X
+               POS=(13,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT10   DFHMDF                                                        X
+               POS=(13,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT10   DFHMDF                                                        X
+               POS=(13,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP10   DFHMDF                                                        X
+               POS=(13,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY10    DFHMDF                                                        X
+               POS=(13,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 14                                        *
+*********************************************************************
+DW11     DFHMDF                                                        X
+               POS=(14,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID11  DFHMDF                                                        X
+               POS=(14,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT11   DFHMDF                                                        X
+               POS=(14,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY11    DFHMDF                                                        X
+               POS=(14,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT11   DFHMDF                                                        X
+               POS=(14,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV11   DFHMDF                                                        X
+               POS=(14,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD11   DFHMDF                                                        X
+               POS=(14,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS11  DFHMDF                                                        X
+               POS=(14,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT11   DFHMDF                                                        X
+               POS=(14,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT11   DFHMDF                                                        X
+               POS=(14,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP11   DFHMDF                                                        X
+               POS=(14,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY11    DFHMDF                                                        X
+               POS=(14,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 15                                        *
+*********************************************************************
+DW12     DFHMDF                                                        X
+               POS=(15,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID12  DFHMDF                                                        X
+               POS=(15,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT12   DFHMDF                                                        X
+               POS=(15,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY12    DFHMDF                                                        X
+               POS=(15,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT12   DFHMDF                                                        X
+               POS=(15,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV12   DFHMDF                                                        X
+               POS=(15,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD12   DFHMDF                                                        X
+               POS=(15,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS12  DFHMDF                                                        X
+               POS=(15,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT12   DFHMDF                                                        X
+               POS=(15,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT12   DFHMDF                                                        X
+               POS=(15,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP12   DFHMDF                                                        X
+               POS=(15,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY12    DFHMDF                                                        X
+               POS=(15,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 16                                        *
+*********************************************************************
+DW13     DFHMDF                                                        X
+               POS=(16,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID13  DFHMDF                                                        X
+               POS=(16,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT13   DFHMDF                                                        X
+               POS=(16,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY13    DFHMDF                                                        X
+               POS=(16,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT13   DFHMDF                                                        X
+               POS=(16,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV13   DFHMDF                                                        X
+               POS=(16,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD13   DFHMDF                                                        X
+               POS=(16,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS13  DFHMDF                                                        X
+               POS=(16,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT13   DFHMDF                                                        X
+               POS=(16,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT13   DFHMDF                                                        X
+               POS=(16,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP13   DFHMDF                                                        X
+               POS=(16,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY13    DFHMDF                                                        X
+               POS=(16,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 17                                        *
+*********************************************************************
+DW14     DFHMDF                                                        X
+               POS=(17,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID14  DFHMDF                                                        X
+               POS=(17,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT14   DFHMDF                                                        X
+               POS=(17,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY14    DFHMDF                                                        X
+               POS=(17,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT14   DFHMDF                                                        X
+               POS=(17,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV14   DFHMDF                                                        X
+               POS=(17,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD14   DFHMDF                                                        X
+               POS=(17,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS14  DFHMDF                                                        X
+               POS=(17,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT14   DFHMDF                                                        X
+               POS=(17,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT14   DFHMDF                                                        X
+               POS=(17,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP14   DFHMDF                                                        X
+               POS=(17,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY14    DFHMDF                                                        X
+               POS=(17,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 18                                        *
+*********************************************************************
+DW15     DFHMDF                                                        X
+               POS=(18,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID15  DFHMDF                                                        X
+               POS=(18,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT15   DFHMDF                                                        X
+               POS=(18,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY15    DFHMDF                                                        X
+               POS=(18,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT15   DFHMDF                                                        X
+               POS=(18,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV15   DFHMDF                                                        X
+               POS=(18,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD15   DFHMDF                                                        X
+               POS=(18,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS15  DFHMDF                                                        X
+               POS=(18,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT15   DFHMDF                                                        X
+               POS=(18,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT15   DFHMDF                                                        X
+               POS=(18,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP15   DFHMDF                                                        X
+               POS=(18,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY15    DFHMDF                                                        X
+               POS=(18,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 19                                        *
+*********************************************************************
+DW16     DFHMDF                                                        X
+               POS=(19,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID16  DFHMDF                                                        X
+               POS=(19,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT16   DFHMDF                                                        X
+               POS=(19,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY16    DFHMDF                                                        X
+               POS=(19,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT16   DFHMDF                                                        X
+               POS=(19,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV16   DFHMDF                                                        X
+               POS=(19,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD16   DFHMDF                                                        X
+               POS=(19,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS16  DFHMDF                                                        X
+               POS=(19,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT16   DFHMDF                                                        X
+               POS=(19,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT16   DFHMDF                                                        X
+               POS=(19,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP16   DFHMDF                                                        X
+               POS=(19,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY16    DFHMDF                                                        X
+               POS=(19,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 20                                        *
+*********************************************************************
+DW17     DFHMDF                                                        X
+               POS=(20,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID17  DFHMDF                                                        X
+               POS=(20,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT17   DFHMDF                                                        X
+               POS=(20,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY17    DFHMDF                                                        X
+               POS=(20,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT17   DFHMDF                                                        X
+               POS=(20,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV17   DFHMDF                                                        X
+               POS=(20,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD17   DFHMDF                                                        X
+               POS=(20,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS17  DFHMDF                                                        X
+               POS=(20,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT17   DFHMDF                                                        X
+               POS=(20,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT17   DFHMDF                                                        X
+               POS=(20,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP17   DFHMDF                                                        X
+               POS=(20,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY17    DFHMDF                                                        X
+               POS=(20,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 21                                        *
+*********************************************************************
+DW18     DFHMDF                                                        X
+               POS=(21,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID18  DFHMDF                                                        X
+               POS=(21,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT18   DFHMDF                                                        X
+               POS=(21,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY18    DFHMDF                                                        X
+               POS=(21,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT18   DFHMDF                                                        X
+               POS=(21,18),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV18   DFHMDF                                                        X
+               POS=(21,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD18   DFHMDF                                                        X
+               POS=(21,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS18  DFHMDF                                                        X
+               POS=(21,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT18   DFHMDF                                                        X
+               POS=(21,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT18   DFHMDF                                                        X
+               POS=(21,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP18   DFHMDF                                                        X
+               POS=(21,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY18    DFHMDF                                                        X
+               POS=(21,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 22                                        *
+*********************************************************************
+DW19     DFHMDF                                                        X
+               POS=(22,01),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(UNPROT,IC)
+SITID19  DFHMDF                                                        X
+               POS=(22,03),                                            X
+               LENGTH=2,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+STAT19   DFHMDF                                                        X
+               POS=(22,08),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+PTY19    DFHMDF                                                        X
+               POS=(22,14),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+SHUT19   DFHMDF                                                        X
+               POS=(22,19),                                            X
+               LENGTH=1,                                               X
+               ATTRB=(NORM,PROT,ASKIP)
+RECV19   DFHMDF                                                        X
+               POS=(22,22),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+LOAD19   DFHMDF                                                        X
+               POS=(22,31),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+PROCS19  DFHMDF                                                        X
+               POS=(22,40),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+REPT19   DFHMDF                                                        X
+               POS=(22,49),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+SENT19   DFHMDF                                                        X
+               POS=(22,58),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+COMP19   DFHMDF                                                        X
+               POS=(22,67),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+DAY19    DFHMDF                                                        X
+               POS=(22,75),                                            X
+               LENGTH=05,                                              X
+               ATTRB=(NORM,PROT,ASKIP)
+*********************************************************************
+*                    LINE 23                                        *
+*********************************************************************
+         DFHMDF                                                        X
+               POS=(23,02),                                            X
+               LENGTH=36,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='CLR/PF3=EXIT,   PF2=HOST STATUS,    '
+         DFHMDF                                                        X
+               POS=(23,40),                                            X
+               LENGTH=37,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='PF7=BWD,  PF8=FWD, PF9=REC, PF10=LOAD'
+*********************************************************************
+*                    LINE 24                                        *
+*********************************************************************
+MSG      DFHMDF                                                        X
+               POS=(23,80),                                            X
+               LENGTH=80,                                              X
+               ATTRB=(ASKIP,BRT)
+*********************************************************************
+         DFHMSD TYPE=FINAL
+         END
