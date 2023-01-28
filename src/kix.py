@@ -457,7 +457,7 @@ class KIX:
 
         return
 
-    def build_field(self, field_info: str):
+    def build_field(self, field_info: str, data: str, map_only: bool, data_only: bool):
         if MAP_FIELD_IDENTIFIER not in field_info:
             return ZERO
 
