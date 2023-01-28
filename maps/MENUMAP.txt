@@ -1,0 +1,126 @@
+AMNMMNU  DFHMSD                                                        X  
+               TYPE=MAP,                                               X
+               MODE=INOUT,                                             X
+               LANG=COBOL,                                             X
+               CTRL=FREEKB,                                            X
+               TIOAPFX=YES                                                
+AMNMMNU  DFHMDI                                                        X
+               SIZE=(24,80),                                           X
+               TIOAPFX=YES
+         DFHMDF                                                        X
+               POS=(01,01),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='AMNCMENU'                                         
+TERM     DFHMDF                                                        X
+               POS=(01,10),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+         DFHMDF                                                        X
+               POS=(01,18),                                            X
+               LENGTH=38,                                              X
+               ATTRB=(ASKIP,BRT),                                      X
+               INITIAL='C W F  A U T O  C O N T R O L  M E N U'
+         DFHMDF                                                        X
+               POS=(01,65),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='DATE'
+DATE     DFHMDF                                                        X
+               POS=(01,70),                                            X
+               LENGTH=10,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+         DFHMDF                                                        X
+               POS=(02,65),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='TIME'
+TIME     DFHMDF                                                        X
+               POS=(02,70),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+SYSTEM   DFHMDF                                                        X
+               POS=(03,36),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+USER     DFHMDF                                                        X
+               POS=(04,36),                                            X
+               LENGTH=08,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+         DFHMDF                                                        X
+               POS=(07,24),                                            X
+               LENGTH=25,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='1) CWF AUTO STATUS SCREEN'
+         DFHMDF                                                        X
+               POS=(08,24),                                            X
+               LENGTH=17,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='2) CWF AUTO START'
+         DFHMDF                                                        X
+               POS=(09,24),                                            X
+               LENGTH=16,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='3) CWF AUTO STOP'
+         DFHMDF                                                        X
+               POS=(10,24),                                            X
+               LENGTH=36,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='4) CWF AUTO UPDATE CICS CONTROL FILE'
+         DFHMDF                                                        X
+               POS=(11,24),                                            X
+               LENGTH=21,                                              X  
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='5) CWF FPS STATISTICS'                            
+         DFHMDF                                                        X
+               POS=(12,24),                                            X
+               LENGTH=26,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='6) RESERVED FOR FUTURE USE'
+         DFHMDF                                                        X
+               POS=(13,24),                                            X
+               LENGTH=26,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='7) RESERVED FOR FUTURE USE'
+         DFHMDF                                                        X
+               POS=(17,17),                                            X
+               LENGTH=06,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='PLEASE'
+         DFHMDF                                                        X
+               POS=(17,24),                                            X
+               LENGTH=04,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='MAKE'
+         DFHMDF                                                        X
+               POS=(17,29),                                            X
+               LENGTH=01,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='A'
+         DFHMDF                                                        X
+               POS=(17,31),                                            X
+               LENGTH=12,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='SELECTION==>'
+SELECT   DFHMDF                                                        X
+               POS=(17,45),                                            X
+               LENGTH=01,                                              X
+               PICIN='X',                                              X
+               PICOUT='X',                                             X
+               ATTRB=(UNPROT,NORM,IC)
+         DFHMDF                                                        X
+               POS=(17,47),                                            X
+               LENGTH=01,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL=' '
+MESSAGE  DFHMDF                                                        X
+               POS=(19,01),                                            X
+               LENGTH=79,                                              X
+               ATTRB=(ASKIP,FSET,PROT,BRT)
+         DFHMDF                                                        X
+               POS=(20,80),                                            X
+               LENGTH=14,                                              X
+               ATTRB=(ASKIP,NORM),                                     X
+               INITIAL='CLR/PF3 = EXIT'
+         DFHMSD TYPE=FINAL
+               END
