@@ -17,3 +17,5 @@ src/HELLOW12.py
 src/cobol_variable.py
 src/test-records.txt
 *.config
+*comm.txt
+*eib.txt
