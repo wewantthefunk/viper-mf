@@ -90,6 +90,10 @@ def parse_cobol_file(file: str, target_dir: str):
         append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, NEWLINE)
 
+    if current_line.needs_except_block:
+        append_file(name + PYTHON_EXT, NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if " + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER  + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
@@ -207,6 +211,8 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                         arg_count = arg_count + 1
                         process_procedure_division_line("MOVE " + MAIN_ARG_VARIABLE_PREFIX + str(arg_count) + " TO " + arg.replace(COMMA, EMPTY_STRING) + PERIOD, name, current_line, [], args)
                     count = count + 1
+
+                current_line.needs_except_block = True
             else:
                 append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
 

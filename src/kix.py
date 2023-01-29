@@ -398,6 +398,9 @@ class KIX:
         except:
             self.show_error_message("unable to start, module not found: " + module_name)
 
+    def receive_control(self):
+        print("returned control")
+
     def write_to_sysout(self, output: str):
         t = self.sysout_label.cget("text")
         self.sysout_label.config(text=t + output)

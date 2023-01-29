@@ -157,6 +157,8 @@
       *    BEGINNING OF THE PROCEDURE DIVISION -- MAIN LINE PROCESS  *
       ****************************************************************
 
+           PERFORM 0000-MAIN-LINE.
+
        0000-MAIN-LINE.
 
            PERFORM 1000-INITIAL-PROCESS-CHECK
@@ -269,26 +271,28 @@
                  IF SELECTI = 1
                     GO TO 3100-START-TRANS1
                  ELSE
-                 IF SELECTI = 2
-                    GO TO 3200-START-TRANS2
-                 ELSE
-                 IF SELECTI = 3
-                    GO TO 3300-START-TRANS3
-                 ELSE
-                 IF SELECTI = 4
-                    GO TO 3400-START-TRANS4
-                 ELSE
-                 IF SELECTI = 5
-                    GO TO 3500-START-TRANS5
-                 ELSE
-                    MOVE 'ENTER A VALID SELECTION ' TO MESSAGEO
-                    PERFORM 4100-DISPLAY-REFRSH-MAP
-                       THRU 4100-EXIT
-                    GO TO 6000-TERMINATION-ROUTINE
-                 END-IF
-                 END-IF
-                 END-IF
-                 END-IF
+                       IF SELECTI = 2
+                          GO TO 3200-START-TRANS2
+                       ELSE
+                        IF SELECTI = 3
+                           GO TO 3300-START-TRANS3
+                        ELSE
+                            IF SELECTI = 4
+                               GO TO 3400-START-TRANS4
+                            ELSE
+                               IF SELECTI = 5
+                                  GO TO 3500-START-TRANS5
+                               ELSE
+                                  MOVE 'ENTER A VALID SELECTION ' 
+                                      TO MESSAGEO
+                                  PERFORM 4100-DISPLAY-REFRSH-MAP
+                                     THRU 4100-EXIT
+                                  GO TO 6000-TERMINATION-ROUTINE
+                                END-IF
+                             END-IF
+                          END-IF
+                       END-IF
+                  END-IF
               ELSE
                 IF SELECTI EQUAL 'X'
                   GO TO 9900-EXIT-SYSTEM
@@ -354,26 +358,29 @@
                IF WS-RETURN-CODE = DFHRESP(NORMAL)
                   GO TO 3200-START-TRANS2
                ELSE
-               IF WS-RETURN-CODE = DFHRESP(NOTFND)
-                  NEXT SENTENCE
-               ELSE
-                  MOVE '03200'
-                    TO  MNU020W-ERROR-PARA
-                  MOVE 'CAN TRAN'
-                    TO  MNU020W-ERROR-LITERAL
-                  MOVE WS-TRAN-RUN
-                    TO  MNU020W-ERROR-VALUE
-                  PERFORM 9000-ERROR
-                     THRU 9000-EXIT
-                 PERFORM 4100-DISPLAY-REFRSH-MAP
-                    THRU 4100-EXIT
-                  GO TO 6000-TERMINATION-ROUTINE
+                 IF WS-RETURN-CODE = DFHRESP(NOTFND)
+                    NEXT SENTENCE
+                 ELSE
+                    MOVE '03200'
+                      TO  MNU020W-ERROR-PARA
+                    MOVE 'CAN TRAN'
+                      TO  MNU020W-ERROR-LITERAL
+                    MOVE WS-TRAN-RUN
+                      TO  MNU020W-ERROR-VALUE
+                    PERFORM 9000-ERROR
+                       THRU 9000-EXIT
+                   PERFORM 4100-DISPLAY-REFRSH-MAP
+                      THRU 4100-EXIT
+                    GO TO 6000-TERMINATION-ROUTINE
+                 END-IF
+               END-IF
            ELSE
                MOVE ' MNUCCNTL RUNNING TRY AGAIN IN A FEW SECONDS '
                  TO  MESSAGEO
                PERFORM 4100-DISPLAY-REFRSH-MAP
                   THRU 4100-EXIT
-              GO TO 6000-TERMINATION-ROUTINE.
+              GO TO 6000-TERMINATION-ROUTINE
+           END-IF.
 
            EXEC CICS
                START INTERVAL(WS-INTERVAL)

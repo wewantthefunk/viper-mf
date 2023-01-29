@@ -38,6 +38,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 level = close_out_perform_loop(tokens[0], name, level, current_line)
             elif verb == COBOL_VERB_EXEC_END:
                 x = 0
+            elif verb == COBOL_VERB_IF_END:
+                current_line.in_else_block = False
+                current_line.nested_level = current_line.nested_level - 1
+                level = level - 1
             else:
                 level = level - 1
         if len(evaluate_compare_stack) > 0:
@@ -79,17 +83,34 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+        current_line.needs_except_block = False
         
     elif verb == COBOL_VERB_PERFORM:
         level = process_perform_verb(tokens, name, level, current_line)
+    elif verb == COBOL_VERB_GO:
+        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line)
     elif verb == COBOL_VERB_IF:
-        level = process_if_verb(tokens, name, level, False)
+        if current_line.in_else_block:
+            current_line.nested_level = current_line.nested_level - 1
+        current_line.in_else_block = False
+        level = process_if_verb(tokens, name, level, False, current_line)
     elif verb == COBOL_VERB_ELSE:
+        if current_line.in_else_block:
+            current_line.nested_level = current_line.nested_level - 1
+            level = level - 1
+        current_line.in_else_block = True
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
-        level = BASE_LEVEL - 1
+        current_line.nested_level = 0
+        if current_line.needs_except_block:
+            append_file(name + PYTHON_EXT, NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+        current_line.needs_except_block = True
+        level = BASE_LEVEL
         func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self" + CLOSE_PARENS + COLON + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 2)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self" + CLOSE_PARENS + COLON + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + "try:" + NEWLINE)
         last_cmd_display = False
     elif verb == COBOL_VERB_EVALUATE:
         is_first_when = True
@@ -155,6 +176,11 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
     elif verb == CICS_VERB_SEND:
         process_send_map(tokens, level, name)
+    elif verb == COBOL_VERB_NEXT:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
+    elif verb == CICS_VERB_RETURN:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit()" + NEWLINE)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
@@ -167,7 +193,9 @@ def process_send_map(tokens, level: int, name: str):
     data = "''"
     length = 0
     for token in tokens:
-        if token.startswith("MAP"):
+        if token.startswith("TEXT"):
+            map_name = "'text'"
+        elif token.startswith("MAP"):
             s = token.split(OPEN_PARENS)
             map_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if map_name.startswith(SINGLE_QUOTE) == False:
@@ -456,10 +484,15 @@ def process_evaluate_verb(tokens, name: str, level: int):
 
     return level
 
-def process_if_verb(tokens, name: str, level: int, is_elif: bool):
+def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: LexicalInfo):
+    if len(tokens) > 2:
+        if tokens[2] == "GREATER":
+            x = 0
     line = "if "
     if is_elif:
         line = "elif "
+    else:
+        current_line.nested_level = current_line.nested_level + 1
 
     count = 0
     checking_function = False
@@ -528,6 +561,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
                 line = line + SPACE + convert_operator_opposite(token) + SPACE
             else:
                 line = line + SPACE + convert_operator(token) + SPACE
+                if tokens[count] == THAN_KEYWORD:
+                    skip_next = True
             opposite_operator = False
         elif is_boolean_keyword(token):            
             line = line + SPACE + token.lower() + SPACE
@@ -555,10 +590,12 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool):
 
         if count < len(tokens):
             if tokens[count].startswith(tuple(COBOL_COMPARISON_OPERATORS)) and len(tokens[count]) > 2:
-                operator = tokens[count][0:1]
-                tokens[count] = tokens[count][1:]
-                tokens.insert(count, operator)
-                i = 0
+                if tokens[count] == GREATER_KEYWORD or tokens[count] == EQUAL_KEYWORD:
+                    operator = tokens[count]
+                else:
+                    operator = tokens[count][0:1]
+                    tokens[count] = tokens[count][1:]
+                    tokens.insert(count, operator)
 
         line = line + slice_compare
         if checking_function:
@@ -809,6 +846,10 @@ def convert_operator_opposite(operator: str):
 def convert_operator(operator: str):
     if operator == EQUALS:
         return DOUBLE_EQUALS
+    elif operator == EQUAL_KEYWORD:
+        return DOUBLE_EQUALS
+    elif operator == GREATER_KEYWORD:
+        return GREATER_THAN
     
     return operator
 
