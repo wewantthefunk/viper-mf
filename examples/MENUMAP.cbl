@@ -177,7 +177,8 @@
            IF EIBCALEN > 0
                MOVE DFHCOMMAREA TO WS-COM-AREA
            ELSE
-               MOVE SPACES TO WS-COM-AREA.
+               MOVE SPACES TO WS-COM-AREA
+           END-IF.
 
            MOVE LOW-VALUES  TO  MNUMMNUO.
            MOVE EIBTRMID    TO TERMO.

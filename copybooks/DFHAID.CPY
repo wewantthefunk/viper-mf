@@ -1,6 +1,6 @@
        01    DFHAID.                             
           02  DFHNULL   PIC  X  VALUE IS ' '.     
-          02  DFHENTER  PIC  X  VALUE IS ''''.    
+          02  DFHENTER  PIC  X  VALUE IS "'".    
           02  DFHCLEAR  PIC  X  VALUE IS '_'.     
           02  DFHCLRP   PIC  X  VALUE IS '¦'.     
           02  DFHPEN    PIC  X  VALUE IS '='.     

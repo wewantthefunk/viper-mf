@@ -398,6 +398,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if VALUE_CLAUSE in tokens:
         init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
+        if init_val == IS_KEYWORD:
+            init_val = tokens[tokens.index(VALUE_CLAUSE) + 2]
         if init_val.startswith("X'"):
             init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
         var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])

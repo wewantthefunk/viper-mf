@@ -151,7 +151,7 @@ class COBOLFileVariable:
 def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01"):
     for l in list:
         if l.name == name:
-            return list
+            return [list, main_variable_memory]
 
     unpacked_length = length
 
@@ -342,7 +342,7 @@ def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, o
     return result
 
 def Set_Variable(main_variable_memory, variable_lists, name: str, value: str, parent: str, index_pos = 0):  
-    found = False
+    found = [False, EMPTY_STRING]
     for var_list in variable_lists:
         found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists)
         if found[0]:
@@ -411,6 +411,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                             new_value = value[0:var.length].rjust(var.length, ZERO_STRING)
                         else:
                             new_value = value[0:var.length].ljust(var.length, SPACE)
+
+                    value = new_value
                 
                 remaining_value = EMPTY_STRING
 
@@ -421,7 +423,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 elif raw_value == SPACES_INITIALIZER:
                     remaining_value = SPACES_INITIALIZER
                 else:
-                    remaining_value = value[var.length:]
+                    remaining_value = new_value[var.length:]
                 if var.data_type in NUMERIC_DATA_TYPES:
                     if is_hex == False:
                         new_value = str(new_value).rjust(var.length, ZERO_STRING)
@@ -488,12 +490,11 @@ def Get_Variable_Length(variable_lists, name: str):
     for var_list in variable_lists:
         var = _find_variable(var_list, name)
         if var != None:
+            if var.length == ZERO:
+                return var.child_length
+
             return var.length
     return 0
-
-def Get_Variable_Position(main_variable_memory, variable_lists, name: str):
-
-    return [0, 0]
 
 def Get_Variable_Value(main_variable_memery, variable_lists, name: str, parent: str, force_str = False):
     t = EMPTY_STRING
@@ -652,7 +653,7 @@ def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_n
 def Retrieve_EIB_Area(module_name: str):
     eib_data = _read_file(module_name + EIB_EXT, False)
     return eib_data
-    
+
 def _write_file(file: str, data: str):
     _write_binary_file(file,bytes(data, 'utf-8'))
 
@@ -668,8 +669,9 @@ def _read_file(file: str, remove_line_breaks = True):
     if exists(file) == False:
         return EMPTY_STRING
     result = EMPTY_STRING
-    with open(file) as file:
+    with open(file, mode="rb") as file:
         for line in file:
+            line = str(line, encoding="utf-8")
             if remove_line_breaks:
                 line = line.replace(NEWLINE, EMPTY_STRING)
             result = result + line
@@ -678,6 +680,10 @@ def _read_file(file: str, remove_line_breaks = True):
 def format_date_cyyddd():
     now = datetime.now()
     century = str(now.year)[0:1]
+    if century == '1':
+        century = '0'
+    else:
+        century = '1'
     cyyddd = f"{century}{now.year % 100:02}{now.timetuple().tm_yday:03}".rjust(7, ZERO_STRING)
     return cyyddd
 

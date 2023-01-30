@@ -47,6 +47,20 @@ The first six characters are ignored. The seventh character is reserved for the 
 
 The whitespace in the COBOL is not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. 
 
+## COBOL Syntax Requirements
+
+### IF Blocks
+
+IF blocks need to end with and END-IF statement. Sure, I could look for the period, but nested IF blocks make it that much harder. Just use a decent coding practice and use and END-IF statement. Spare me the "COBOL doesn't require it" nonsense. It's bad code and you know it when there isn't an END-IF statement.
+
+### EVALUATE Blocks
+
+See above, IF Blocks
+
+### Fall throuh paragraphs
+
+Don't use fall through paragraphs. Even though COBOL has no concept of encapsulation, that doesn't mean you shouldn't try to write clean code. Since paragraphs are converted to actual functions with encapsulation, fall through paragraphs won't convert correctly. Sorry, not sorry.
+
 ## How to use
 
 ### Python dependencies

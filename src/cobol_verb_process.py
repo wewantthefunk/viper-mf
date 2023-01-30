@@ -55,7 +55,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_move_verb(tokens, name, indent, level)
         last_cmd_display = False
     elif verb == COBOL_VERB_SET:
-        process_move_verb([COBOL_VERB_MOVE, tokens[3], tokens[2], tokens[1]], name, indent, level)
+        ind = tokens.index(TO_KEYWORD)
+
+        for x in range(1, ind):
+            process_move_verb([COBOL_VERB_MOVE, tokens[ind + 1], TO_KEYWORD, tokens[x]], name, indent, level)
         last_cmd_display = False
     elif verb == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
@@ -75,7 +78,10 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 if c > 3:
                     append_file(name + PYTHON_EXT, COMMA + SPACE)               
                 if c > 2:
-                    append_file(name + PYTHON_EXT, "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if a in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    append_file(name + PYTHON_EXT, "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
                 c = c + 1
 
             append_file(name + PYTHON_EXT, CLOSE_BRACKET)
@@ -199,7 +205,10 @@ def process_send_map(tokens, level: int, name: str):
             s = token.split(OPEN_PARENS)
             map_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if map_name.startswith(SINGLE_QUOTE) == False:
-                map_name = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if map_name in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                map_name = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
             break
         elif token == "MAPONLY":
             map_only = 'True'
@@ -207,7 +216,10 @@ def process_send_map(tokens, level: int, name: str):
             data_only = 'True'
         elif token.startswith("FROM"):
             s = token.split(OPEN_PARENS)
-            data = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if s[1].replace(CLOSE_PARENS, EMPTY_STRING) in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            data = "Get_Variable_Value(" + memory_area+ COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if self.calling_module != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.calling_module.build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
@@ -248,7 +260,10 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
             token = token.replace(OPEN_PARENS, EMPTY_STRING).replace(CLOSE_PARENS, EMPTY_STRING)
 
             if token.isnumeric() == False:
-                token = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + token + "\",\"" + token + "\")"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if token in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + token + "\",\"" + token + "\")"
 
             if set_open_parens:
                 token = OPEN_PARENS + token
@@ -286,7 +301,10 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
 
     if operand2.isnumeric() == False:
         if operand2.startswith(SINGLE_QUOTE) == False:
-            temp = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if operand2 in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            temp = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
             operand2 = temp
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
@@ -315,7 +333,10 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
                 using_args = using_args + COMMA
                 comm_area_args = comm_area_args + COMMA
             param_count = param_count + 1
-            using_args = using_args + quoted + "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if param in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            using_args = using_args + quoted + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
             comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
 
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
@@ -328,7 +349,11 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
             current_line.import_statement.append(mod_name)
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + EIB_MEMORY + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + \
+            called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
+                SELF_REFERENCE + EIB_MEMORY + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + \
+                COMMA + "'EIBTERM'" + COMMA + "'EIBTERM'" + CLOSE_PARENS + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + \
+                VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
@@ -338,8 +363,15 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + "module_name"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + "module_name," + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + EIB_MEMORY + CLOSE_PARENS + NEWLINE)
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if tokens[1] in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + \
+            called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
+                SELF_REFERENCE + EIB_MEMORY + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + \
+                COMMA + "'EIBTERM'" + COMMA + "'EIBTERM'" + CLOSE_PARENS + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + \
+                VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module = importlib.import_module(module_name)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_class = getattr(module, module_name + 'Class')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_instance = module_class()" + NEWLINE)
@@ -434,17 +466,26 @@ def process_evaluate_verb(tokens, name: str, level: int):
             if len(tokens) > operator_offset + 3:
                 operand2 = tokens[operator_offset + 3]
                 if operator == IN_KEYWORD:
-                    operand2 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[operator_offset + 3] + "','" + tokens[operator_offset + 3] + "')"
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if tokens[operator_offset + 1] in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[operator_offset + 3] + "','" + tokens[operator_offset + 3] + "')"
             elif len(tokens) == 3:
                 if tokens[2].startswith(SINGLE_QUOTE) or tokens[2].isnumeric():
                     operand2 = tokens[2]
                 else:
-                    operand2 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if tokens[2] in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
                 operator = SPACE + IN_KEYWORD + SPACE
         else:
             evaluate_compare = tokens[1]
             if operand2.startswith(SINGLE_QUOTE) == False and operand2.isnumeric() == False:
-                operand2 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if operand2 in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
     elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'True'
     elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD:
@@ -468,7 +509,10 @@ def process_evaluate_verb(tokens, name: str, level: int):
     if operand2 == 'True' or operand2 == 'False' or operand2 == NUMERIC_KEYWORD:
         operand1_name = tokens[1]
 
-    operand1 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
+    memory_area = SELF_REFERENCE + name + MEMORY
+    if operand1_name in EIB_VARIABLES:
+        memory_area = SELF_REFERENCE + EIB_MEMORY
+    operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
     if operand2 == NUMERIC_KEYWORD:
         operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
         if evaluate_compare == TRUE_KEYWORD:
@@ -571,7 +615,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 not_offset = 1
             if is_comparison_operator(tokens[count + not_offset]): # and tokens[count + not_offset] == NOT_KEYWORD):
                 line = line + last_known_operand1
-        elif token == SPACE_KEYWORD:
+        elif token == SPACE_KEYWORD or token == SPACES_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
         elif token == NEGATIVE_KEYWORD:
             line = line + " < 0"
@@ -585,7 +629,11 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 if tokens[count].startswith(OPEN_PARENS) and tokens[count].endswith(CLOSE_PARENS):
                     var = var + tokens[count]
                     skip_next = True
-            last_known_operand1 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + var + "','" + var + SINGLE_QUOTE + CLOSE_PARENS + SPACE
+            memory_area = SELF_REFERENCE + name + MEMORY 
+            if var in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+
+            last_known_operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + var + "','" + var + SINGLE_QUOTE + CLOSE_PARENS + SPACE
             line = line + last_known_operand1
 
         if count < len(tokens):
@@ -626,10 +674,16 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         if tokens[1] == UNTIL_KEYWORD:
             operand2 = tokens[4]
             if tokens[4].startswith(SINGLE_QUOTE) == False and tokens[4] != ZERO_KEYWORD:
-                operand2 = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if tokens[4] in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
             elif tokens[4] == ZERO_KEYWORD:
                 operand2 = ZERO
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if tokens[2] in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
                 + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
             level = level + 1
 
@@ -643,7 +697,10 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
     or_indices = get_all_indices(tokens, OR_KEYWORD)
 
     process_move_verb([COBOL_VERB_MOVE, tokens[from_index + 1], TO_KEYWORD, tokens[varying_index + 1]], name, True, level)
-    line = "while Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + SPACE \
+    memory_area = SELF_REFERENCE + name + MEMORY
+    if tokens[varying_index + 1] in EIB_VARIABLES:
+        memory_area = SELF_REFERENCE + EIB_MEMORY
+    line = "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + SPACE \
         + convert_operator_opposite(tokens[until_index + 2]) + SPACE + tokens[until_index + 3]
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + line)
@@ -657,12 +714,21 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
             operand_slice = temp_operands[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
             start_slice = operand_slice[0]
             if start_slice.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() == False:
-                start_slice = "Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + start_slice + "','" + start_slice + "')-1"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if start_slice in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                start_slice = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + start_slice + "','" + start_slice + "')-1"
             end_slice = operand_slice[1]
             if end_slice.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() == False:
-                end_slice = "Get_Variable_Value(" + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + end_slice + "','" + end_slice + "')"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if end_slice in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                end_slice = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + end_slice + "','" + end_slice + "')"
             sub_string = OPEN_BRACKET + start_slice + COLON + start_slice + PLUS_SIGN + end_slice + CLOSE_BRACKET
-        line = "\\" + NEWLINE + " and Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + operand1 + "','" + operand1 + SINGLE_QUOTE + CLOSE_PARENS + sub_string
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if operand1 in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        line = "\\" + NEWLINE + " and Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + operand1 + "','" + operand1 + SINGLE_QUOTE + CLOSE_PARENS + sub_string
         offset = 2
         if tokens[or_index + 2] == NOT_KEYWORD:
             line = line + SPACE + convert_operator(tokens[or_index + 3])
@@ -671,7 +737,10 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
             offset = 3
             temp = tokens[or_index + 2].replace(OPEN_PARENS, EMPTY_STRING).replace(CLOSE_PARENS, EMPTY_STRING)
             split = temp.split(COLON)
-            t = "[Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "')-1" + COLON + "Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "') + " + split[1] + "-1]"
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if split[0] in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            t = "[Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "')-1" + COLON + "Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "') + " + split[1] + "-1]"
             line = line + t + SPACE
         else:
             line = line + SPACE + tokens[or_index + 2] + SPACE
@@ -692,23 +761,28 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
         do_indent = EMPTY_STRING
 
     value = tokens[1]
-    if value == SPACE_KEYWORD:
+    if value == SPACE_KEYWORD or value == SPACES_KEYWORD:
         value = SINGLE_QUOTE + SPACES_INITIALIZER + SINGLE_QUOTE
     elif value == ZERO_KEYWORD:
         value = ZERO
 
-    value = value.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
+    if value.startswith("X'"):
+        value = value.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
 
     target_offset = 3
 
     if value.startswith(SINGLE_QUOTE) == False \
             and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False \
-            and value.startswith(HEX_PREFIX) == False:
+            and value.startswith(HEX_PREFIX) == False \
+            and value.startswith(DOUBLE_QUOTE) == False:
         if OPEN_PARENS in value:
             old_value = value
             s = value.split(OPEN_PARENS)
             
-            get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + s[0] + "','" + s[0] + "')"
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if s[0] in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            get_var_value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + s[0] + "','" + s[0] + "')"
             end = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             end_offset = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
             if COLON in s[1]:
@@ -716,18 +790,29 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 end = s1[1].replace(CLOSE_PARENS, EMPTY_STRING)
                 end_offset = s1[0]
                 if s1[0].isnumeric() == False:
-                    end_offset = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if s1[0] in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    end_offset = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
 
                 value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
             else:
-                value = get_var_value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + old_value + "','" + old_value + "')"
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if old_value in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                value = get_var_value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + old_value + "','" + old_value + "')"
         elif value == FUNCTION_KEYWORD:
             value = "Exec_Function('" + tokens[2] + "')"
             target_offset = 4
         elif value == TRUE_KEYWORD:
             value = 'True'
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
-            value = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if value in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
+        elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric():
+            value = str(int(value))
     elif value.startswith(SINGLE_QUOTE):
         x = 0
 
@@ -795,13 +880,19 @@ def process_math_verb(tokens, name: str, level: int):
     mod = "'" + tokens[1] + "'"
     target = tokens[3]
     if tokens[1].lstrip('+-').isdigit() == False:
-        mod = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if tokens[1] in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        mod = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
 
     if tokens[0] == COBOL_VERB_MULTIPLY:
         mod = "'" + tokens[3] + "'"
         target = tokens[1]
         if tokens[3].lstrip('+-').isdigit() == False:
-            mod = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if tokens[3] in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            mod = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[3] + "','" + tokens[3] + "')"
 
     modifier = EMPTY_STRING
     remainder_var = EMPTY_STRING

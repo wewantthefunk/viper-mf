@@ -368,8 +368,11 @@ class KIX:
     def start_module(self, text: str):
         module_name = text
         try:
+            # create a StringIO object
+            string_io = StringIO()            
             tokens = text.split(SPACE)
             module_name = tokens[1]
+            cobol_variable.Build_Comm_Area(module_name, EMPTY_STRING, [], EMPTY_STRING)             
             module = importlib.import_module(module_name)
             module_class = getattr(module, module_name + 'Class')
             module_instance = module_class()
@@ -377,15 +380,20 @@ class KIX:
 
             self.EIBMemory = cobol_variable.Build_Comm_Area(module_name, EMPTY_STRING, self.variables_list, self.EIBMemory, self.terminal_id, self.last_known_trans_id)
 
-            # create a StringIO object
-            string_io = StringIO()
-
             # redirect stdout to the StringIO object
             sys.stdout = string_io
 
             # call the module
             module_instance.main()        
+        except Exception as e:
+            self.show_error_message("unable to start, module not found: " + module_name)
+        except SystemExit as e:
+            x = 0
+        finally:
+            self.handle_sysout_messages(string_io)
+            return
 
+    def handle_sysout_messages(self, string_io: StringIO):
             # get the contents of the StringIO object
             output = string_io.getvalue()
 
@@ -395,8 +403,6 @@ class KIX:
             self.write_to_sysout(output)
 
             return
-        except:
-            self.show_error_message("unable to start, module not found: " + module_name)
 
     def receive_control(self):
         print("returned control")
