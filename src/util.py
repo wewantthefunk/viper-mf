@@ -23,6 +23,7 @@ class LexicalInfo:
         self.needs_except_block = False
         self.in_else_block = False
         self.nested_level = 0
+        self.last_known_index = 0
 
 def read_file(file: str):
     result = ""

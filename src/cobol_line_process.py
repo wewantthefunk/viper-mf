@@ -210,6 +210,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
+    if tokens[1] == 'W-FORMAT-AND-DATE-2':
+        x = 0
 
     cascade_data_type = current_line.cascade_data_type
 
@@ -247,7 +249,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             tokens.insert(1, REDEFINES_KEYWORD + gen_rand(4))
         current_line.redefines = tokens[tokens.index(REDEFINES_KEYWORD) + 1]
         current_line.redefines_level = tokens[0]
-        data_division_redefines_stack.append(current_line.redefines)
+        if current_line.redefines not in data_division_redefines_stack:
+            data_division_redefines_stack.append(current_line.redefines)
     elif int(tokens[0]) <= int(current_line.redefines_level):
         if len(data_division_redefines_stack) > 0:
             data_division_redefines_stack.pop()

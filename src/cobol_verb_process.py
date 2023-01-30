@@ -280,6 +280,27 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
     return
 
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+    
+    temp_tokens = []
+
+    in_parens = False
+    temp = EMPTY_STRING
+    for token in tokens:
+        if in_parens:
+            temp = temp + token
+        elif OPEN_PARENS in token:
+            in_parens = True
+            temp = temp + token
+        else:
+            temp_tokens.append(token)
+            continue
+
+        if CLOSE_PARENS in token:
+            in_parens = False
+            temp_tokens.append(temp)
+            temp = EMPTY_STRING
+
+    tokens = temp_tokens
     all_offset = 0
     if tokens[1] == ALL_KEYWORD:
         all_offset = all_offset + 1
@@ -296,19 +317,41 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
         at_end_slice = tokens[end_index + 1: condition_index]
         current_line.lambda_functions.append(at_end_slice)
         at_end_func = SELF_REFERENCE + "_ae" + str(len(current_line.lambda_functions))
+ 
+    creating_check = True
+    operand1_list = EMPTY_STRING
+    operand2_list = EMPTY_STRING
+    first = True
+    while creating_check:
+        operand2 = tokens[condition_index + 3]
 
-    operand2 = tokens[condition_index + 3]
+        if operand2.startswith(PLUS_SIGN):
+            operand2 = operand2[1:]
 
-    if operand2.isnumeric() == False:
-        if operand2.startswith(SINGLE_QUOTE) == False:
-            memory_area = SELF_REFERENCE + name + MEMORY
-            if operand2 in EIB_VARIABLES:
-                memory_area = SELF_REFERENCE + EIB_MEMORY
-            temp = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
-            operand2 = temp
+        if operand2.isnumeric() == False:
+            if operand2.startswith(SINGLE_QUOTE) == False:
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if operand2 in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                temp = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
+                operand2 = temp
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[condition_index + 1] \
-        + "','" + convert_operator(tokens[condition_index + 2]) + "'," + operand2 + "," + str(all_offset) + "," + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
+        if first == False:
+            operand1_list = operand1_list + COMMA
+            operand2_list = operand2_list + COMMA
+        else:
+            first = False
+
+        operand1_list = operand1_list + SINGLE_QUOTE + tokens[condition_index + 1] + SINGLE_QUOTE
+        operand2_list = operand2_list + operand2
+
+        if tokens[condition_index + 4] not in COBOL_BOOLEAN_KEYWORDS:
+            creating_check = False
+
+        condition_index = condition_index + 5
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",[" + operand1_list \
+        + "],'" + convert_operator(tokens[condition_index + 2]) + "',[" + operand2 + "]," + str(all_offset) + "," + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "is_found = search_result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if is_found == False:" + NEWLINE)
@@ -537,6 +580,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         line = "elif "
     else:
         current_line.nested_level = current_line.nested_level + 1
+        current_line.last_known_index = 0
 
     count = 0
     checking_function = False
@@ -599,6 +643,11 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             line = line + "pad_char(" + str(slice_length) + COMMA + tokens[count + 1] + CLOSE_PARENS
             in_ALL_function = True
         elif token == ZERO_KEYWORD:
+            temp_line = line[:current_line.last_known_index]
+            work_line = line[current_line.last_known_index:]
+            current_line.last_known_index = len(line)
+            work_line = work_line.replace("Get_V", 'int(Get_V').replace("')", "'))")
+            line = temp_line + work_line
             line = line + ZERO
         elif is_comparison_operator(token):
             if opposite_operator:
@@ -613,7 +662,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             not_offset = 0
             if tokens[count] == NOT_KEYWORD and is_comparison_operator(tokens[count + 1]):
                 not_offset = 1
-            if is_comparison_operator(tokens[count + not_offset]): # and tokens[count + not_offset] == NOT_KEYWORD):
+            if is_comparison_operator(tokens[count + not_offset]):
                 line = line + last_known_operand1
         elif token == SPACE_KEYWORD or token == SPACES_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
@@ -622,6 +671,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         elif token == OPEN_PARENS or token == CLOSE_PARENS:
             line = line + token
         elif token in COBOL_ARITHMATIC_OPERATORS:
+            if token == DIVISION_OPERATOR:
+                token = DIVISION_OPERATOR + DIVISION_OPERATOR
             line = line + SPACE + token + SPACE
         else:
             var = token
@@ -941,6 +992,8 @@ def convert_operator(operator: str):
         return DOUBLE_EQUALS
     elif operator == GREATER_KEYWORD:
         return GREATER_THAN
+    elif operator == DIVISION_OPERATOR:
+        return DIVISION_OPERATOR + DIVISION_OPERATOR
     
     return operator
 

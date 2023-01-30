@@ -180,7 +180,10 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
                     rv.redefine_length = ZERO
                 next_redefines = rv.redefines
                 redefines = next_redefines
-                next_pos = rv.main_memory_position + rv.redefine_length
+                if level == LEVEL_88:
+                    next_pos = rv.main_memory_position
+                else:
+                    next_pos = rv.main_memory_position + rv.redefine_length
                 rv.redefine_length = rv.redefine_length + length
             else:
                 next_redefines = EMPTY_STRING
@@ -189,6 +192,9 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
         redefines = orig_redefines
     else:
         next_pos = len(main_variable_memory)
+
+    if level == LEVEL_88:
+        redefines = EMPTY_STRING
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length))
 
@@ -357,6 +363,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
     new_value = EMPTY_STRING
     is_hex = False
     raw_value = str(value)
+    sub_string = []
 
     if OPEN_PARENS in name:
         s = name.split(OPEN_PARENS)
@@ -364,6 +371,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
         offset_val = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
         if offset_val.isnumeric():
             occurrence = int(offset_val)
+        elif COLON in offset_val:
+            occurrence = 1
+            s1 = offset_val.split(COLON)
+            sub_string = [int(s1[0]) - 1, int(s1[1])]
         else:
             occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
@@ -379,6 +390,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 else:
                     var.level88value = value
                 return [True, main_variable_memory]
+            elif var.redefines != EMPTY_STRING:
+                continue
             elif var.length == 0:
                 if var.name not in parent:
                     parent.append(var.name)
@@ -411,8 +424,6 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                             new_value = value[0:var.length].rjust(var.length, ZERO_STRING)
                         else:
                             new_value = value[0:var.length].ljust(var.length, SPACE)
-
-                    value = new_value
                 
                 remaining_value = EMPTY_STRING
 
@@ -423,7 +434,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 elif raw_value == SPACES_INITIALIZER:
                     remaining_value = SPACES_INITIALIZER
                 else:
-                    remaining_value = new_value[var.length:]
+                    remaining_value = value[var.unpacked_length:]
                 if var.data_type in NUMERIC_DATA_TYPES:
                     if is_hex == False:
                         new_value = str(new_value).rjust(var.length, ZERO_STRING)
@@ -432,7 +443,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 if var_parent != None:
                     pl = var_parent.child_length
                     start = (pl * (occurrence - 1)) + start
-                main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
+                if sub_string != []:
+                    main_variable_memory = main_variable_memory[:start + sub_string[0]] + new_value[sub_string[0]:sub_string[1]] + main_variable_memory[start + sub_string[1]:]
+                else:
+                    main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
                 if var.name == DFHCOMMAREA_NAME:
                     _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, new_value)
                 if remaining_value != EMPTY_STRING:
@@ -527,16 +541,23 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:
-            if var_list[count].redefines in parent:
+            if var_list[count].name == 'W-DATE-1-5N':
+                x = 0
+            if var_list[count].redefines in parent or (var_list[count].redefines != EMPTY_STRING and var_list[count].parent in parent):
                 count = count + 1
                 if count >= len(var_list):
                     break
                 continue
+            elif var_list[count].redefines != EMPTY_STRING and var_list[count].level != LEVEL_88:
+                v = _find_variable(var_list, var_list[count].redefines)
+                offset = var_list[count].main_memory_position - v.main_memory_position
+                result = result + main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + v.length - offset]
             if var_list[count].length == ZERO:
                 if var_list[count].level == LEVEL_88 and var_list[count].name == name:
-                    r = _get_variable_value(main_variable_memory, var_list, var.parent, [], force_str, orig_var_list)
-                    result = var_list[count].level88value == r[0]
-                    found_count = found_count + r[1] + 1
+                    l = Get_Variable_Length(orig_var_list, var.parent)
+                    r = main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + l]
+                    result = var_list[count].level88value == str(r)
+                    found_count = found_count + 1
                     count = len(var_list)
                 else:
                     if var_list[count].name not in parent:

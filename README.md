@@ -27,9 +27,11 @@ This converter will brute force translate a COBOL module line-by-line into an eq
 
 * File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file status of 35 is assigned to the field designated. If the environment variable is set, but the file does not exist, a file status of 35 is assigned to the field designated.
 
-* CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module.
+* CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module. A psuedo memory management passing feature is used to simulate the DFHCOMMAREA.
 
 * Paragraphs are converted to functions
+
+* CICS statements are converted 
 
 ### Limitations and Understanding
 
@@ -47,19 +49,48 @@ The first six characters are ignored. The seventh character is reserved for the 
 
 The whitespace in the COBOL is not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. 
 
-## COBOL Syntax Requirements
+## COBOL Syntax Requirements for the Converter
 
 ### IF Blocks
 
-IF blocks need to end with and END-IF statement. Sure, I could look for the period, but nested IF blocks make it that much harder. Just use a decent coding practice and use and END-IF statement. Spare me the "COBOL doesn't require it" nonsense. It's bad code and you know it when there isn't an END-IF statement.
+IF blocks need to end with and END-IF statement. Sure, I could look for the period, but nested IF blocks make it that much harder. Just use a decent coding practice and use and END-IF statement. Spare me the "COBOL doesn't require it" nonsense. When there isn't an END-IF statement it's bad code, and you know it.
 
 ### EVALUATE Blocks
+
+See above, IF Blocks
+
+### PERFORM Blocks
 
 See above, IF Blocks
 
 ### Fall throuh paragraphs
 
 Don't use fall through paragraphs. Even though COBOL has no concept of encapsulation, that doesn't mean you shouldn't try to write clean code. Since paragraphs are converted to actual functions with encapsulation, fall through paragraphs won't convert correctly. Sorry, not sorry.
+
+### Commas in multi-dimensional array element reference
+
+When referencing a multi dimensional array element, a comma is required between the first and second indexes. While this is "legal" in COBOL,
+
+         TABLE-NAME(INDEX-1 INDEX-2)
+
+it is ugly and difficult to parse. Just put a comma in and make it easy for everyone.
+
+         TABLE-NAME(INDEX-1,INDEX-2)
+
+This is a literal line I was trying to parse from legacy source code
+
+         TABLE-NAME                 
+              (INDEX-1 + +1 INDEX-2)
+
+Not only am I contending with the line break and multiple spaces, but the math on INDEX-1 made it almost impossible (read: not worth the parsing logic effort) to determine index 1 and index 2. Putting a comma in made it manageable. 
+
+In addition, the lack of a comma between indexes increases the cognitive load for developers. Again, this is clean code we're striving for. While it may be seen as a limitation of the converter (which it is), it's actually enforcing coding standards that should be there, anyway.
+
+## KIX CICS Emulator
+
+CICS is not voodoo or magic. After spending a short amount of time reading the specifications and trying some things out, the nature of CICS became clear. Although the Model-View-Controller concept became solidified in the early 00's, CICS is an early predecessor to MVC (much like quite a few mainframe concepts and features). CICS itself is a memory and task manager. CICS statements are transformed into standard COBOL statements in a preprocessing step in the compilation process. Putting all of this together made it a not difficult feat to create a task and memory manager to emulate the behavior of CICS.
+
+As with all things in this project, as functionality is discovered through the conversion of real world legacy code, the product will evolve and become more robust.
 
 ## How to use
 
@@ -97,11 +128,13 @@ For unit tests of all examples in this repository, navigate to the unittest fold
 * Hierarchical variable structure of COBOL. Some variables aren't real variables, they are concatenations of other (sub) variables. This presented a challenge.
 * REDEFINES variables in COBOL. See above, then add on more complexity.
 * Arrays in COBOL. See above and add even more complexity.
-* Level 88 variables, the poor man's enum.
+* Level 88 variables, the dollar store enum.
 * COMP(-X) fields. 
 * Error handling. COBOL doesn't have error handling, such as try/catch. So there is no error handling added by the converter. There is an error handling command in CICS. (CICS commands will eventually be converted)
 * Quotes for literals MUST be single quotes (') in the COBOL program. Double quotes are not processed as literals.
-* PERIODs (.) are semi-optional. Not having a rigid statement delimiter, such as the semi-colon (;) in C based languages, makes for a challenge
+* PERIODs (.) are semi-optional. Not having a rigid statement delimiter, such as the semi-colon (;) in C based languages, makes for a challenge.
+* EVALUATE TRUE statements.
+* Nested IF and EVALUATE statements.
 
 ## Inspiration
 
