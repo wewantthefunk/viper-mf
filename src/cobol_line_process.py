@@ -5,6 +5,7 @@ from cobol_verb_process import *
 data_division_var_stack = []
 data_division_level_stack = []
 data_division_cascade_stack = []
+data_division_redefines_stack = []
 data_division_file_record = EMPTY_STRING
 var_init_list = []
 
@@ -206,7 +207,7 @@ def check_ignore_verbs(ignore_verbs, v: str):
     return v in ignore_verbs
 
 def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args, is_eib = False):
-    global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack
+    global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
 
@@ -246,8 +247,14 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             tokens.insert(1, REDEFINES_KEYWORD + gen_rand(4))
         current_line.redefines = tokens[tokens.index(REDEFINES_KEYWORD) + 1]
         current_line.redefines_level = tokens[0]
+        data_division_redefines_stack.append(current_line.redefines)
     elif int(tokens[0]) <= int(current_line.redefines_level):
-        current_line.redefines = EMPTY_STRING
+        if len(data_division_redefines_stack) > 0:
+            data_division_redefines_stack.pop()
+        if len(data_division_redefines_stack) > 0:
+            current_line.redefines = data_division_redefines_stack[len(data_division_redefines_stack) - 1]
+        else:
+            current_line.redefines = EMPTY_STRING
         current_line.redefines_level = tokens[0]
     tokens[1] = tokens[1].replace(PERIOD, EMPTY_STRING)
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
