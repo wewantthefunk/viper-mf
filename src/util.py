@@ -24,6 +24,7 @@ class LexicalInfo:
         self.in_else_block = False
         self.nested_level = 0
         self.last_known_index = 0
+        self.end_of_search_criteria = False
 
 def read_file(file: str):
     result = ""
@@ -146,6 +147,8 @@ def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: 
 
         count = count + 1
 
+    if in_literal:
+        line_elements.append(literal)
     if has_period:
         line_elements.append(".")
     return line_elements

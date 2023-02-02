@@ -22,7 +22,10 @@ def parse_cobol_file(file: str, target_dir: str):
         if rl == EMPTY_STRING:
             continue
         if (rl[6] != COBOL_COMMENT and rl[7:] != EMPTY_STRING):
-            line = rl[7:]
+            if rl[6:7] == "-":
+                line = rl[6:]
+            else:
+                line = rl[7:]
             t_line = line.split(SPACE, 1)
             l = pad(7) + t_line[0] + SPACE
             if len(t_line) > 1:
@@ -136,7 +139,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    #copy_file("../dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
@@ -253,12 +256,13 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
+    parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
     #parse_cobol_file("examples/MENUMAP.cbl", "converted/")
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("examples/hellow13_variable_value_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
+    #parse_cobol_file("examples/hellow38_search_table_redefined_literals.cbl", "converted/")
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow24_search_all_statement.cbl", "converted/")
-    parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")
+    #parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")

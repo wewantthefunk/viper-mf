@@ -159,15 +159,11 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
     skip = 0
     level = current_line.level
-    ignore_until_verbs = []
-
-    if temp_tokens[0] == COBOL_VERB_COMPUTE:
-        x = 0
-
-    if temp_tokens[0] == COBOL_VERB_SEARCH:
-        ignore_until_verbs.append(COBOL_VERB_WHEN)
 
     fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
+
+    if temp_tokens[0] == COBOL_VERB_SEARCH:
+        current_line.end_of_search_criteria = True
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         level = process_verb(temp_tokens, name, True, level, args, current_line)
@@ -176,11 +172,12 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
             nlt = parse_line_tokens(nl[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) == 0:
                 continue
-            if (check_valid_verb(nlt[0], temp_tokens[0]) or nlt[len(nlt) - 1] == PERIOD):
+
+            if (check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) or nlt[len(nlt) - 1] == PERIOD):
                 if nlt[len(nlt) - 1] == PERIOD:
                     for t in nlt:
                         temp_tokens.append(t)
-                    if check_valid_verb(nlt[0], temp_tokens[0]) == False:
+                    if check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) == False:
                         skip = skip + 1
                 level = process_verb(temp_tokens, name, True, level, args, current_line)
                 break
@@ -189,6 +186,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
                 for t in nlt:
                     temp_tokens.append(t)
                     fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
+            if nlt[0] == COBOL_VERB_WHEN:
+                current_line.end_of_search_criteria = False
 
     return [skip, level]
 
@@ -211,6 +210,7 @@ def check_ignore_verbs(ignore_verbs, v: str):
 
 def create_variable(line: str, current_line: LexicalInfo, name: str, current_section: str, next_few_lines, args, is_eib = False):
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
+
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
     cascade_data_type = current_line.cascade_data_type
@@ -228,8 +228,25 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         for nl in next_few_lines:
             skip_lines_count = skip_lines_count + 1
             nlt = parse_line_tokens(nl[6:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
+            
+            skip_next = False
+            count = 0
             for t in nlt:
-                tokens.append(t)
+                if skip_next:
+                    count = count + 1
+                    skip_next = False
+                    continue
+
+                if t.startswith(COBOL_CONTINUATION_CHAR):
+                    skip_next = True
+                    l = nlt[count + 1]
+                    if l.startswith(SINGLE_QUOTE):
+                        l = nlt[count + 1][1:]
+                    tokens[len(tokens) - 1] = tokens[len(tokens) - 1] + l
+                else:
+                    tokens.append(t)
+
+                count = count + 1
 
             if PERIOD in nlt:
                 break

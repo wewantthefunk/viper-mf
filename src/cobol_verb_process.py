@@ -188,6 +188,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == CICS_VERB_RETURN:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit()" + NEWLINE)
+    elif verb == COBOL_VERB_STRING:
+        x = 0
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
@@ -238,7 +240,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         elif t == EMPTY_STRING or t == PERIOD:
             continue
         else:
-            if len(temp_tokens) > 0 and check_valid_verb(t, t) == False:
+            if len(temp_tokens) > 0 and check_valid_verb(t, t, True) == False:
                 temp_tokens.append(t)
             elif len(temp_tokens) == 0:
                 temp_tokens.append(t)
@@ -257,7 +259,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         count = count + 1
 
     tokens[equals_pos] = tokens[equals_pos].replace(EQUALS, EMPTY_STRING)
-    
+
     count = 0
     for token in tokens:
         if count < equals_pos:
@@ -303,6 +305,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
 def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     
     temp_tokens = []
+    orig_tokens = tokens
 
     in_parens = False
     temp = EMPTY_STRING
@@ -996,10 +999,11 @@ def process_math_verb(tokens, name: str, level: int):
     
     return
 
-def check_valid_verb(v: str, compare_verb: str):
-    for multi_verb in COBOL_VERB_MULTI_LIST:
-        if multi_verb[0] == compare_verb and multi_verb[1] == v:
-            return False
+def check_valid_verb(v: str, compare_verb: str, include_search_multi_verb):
+    if include_search_multi_verb == True:
+        for multi_verb in COBOL_VERB_MULTI_LIST:
+            if multi_verb[0] == compare_verb and multi_verb[1] == v:
+                return False
 
     if v in COBOL_VERB_LIST:
         return True
