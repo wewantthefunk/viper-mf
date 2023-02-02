@@ -1,5 +1,6 @@
 from cobol_lexicon import *
 from util import *
+from decimal import Decimal
 
 last_cmd_display = False
 evaluate_compare = EMPTY_STRING
@@ -228,6 +229,22 @@ def process_send_map(tokens, level: int, name: str):
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
     count = 0
+
+    temp_tokens = []
+    for t in tokens:
+        if t.startswith(OPEN_PARENS) or t.endswith(CLOSE_PARENS):
+            if len(temp_tokens) > 0:
+                temp_tokens[len(temp_tokens) - 1] = temp_tokens[len(temp_tokens) - 1] + t.replace(OPEN_PARENS, "{").replace(CLOSE_PARENS, "}")
+        elif t == EMPTY_STRING or t == PERIOD:
+            continue
+        else:
+            if len(temp_tokens) > 0 and check_valid_verb(t, t) == False:
+                temp_tokens.append(t)
+            elif len(temp_tokens) == 0:
+                temp_tokens.append(t)
+
+    tokens = temp_tokens
+
     end_len = len(tokens)
     if tokens[len(tokens) - 1] == PERIOD:
         end_len = end_len - 1
@@ -240,21 +257,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         count = count + 1
 
     tokens[equals_pos] = tokens[equals_pos].replace(EQUALS, EMPTY_STRING)
-
-    temp_tokens = []
-    for t in tokens:
-        if t.startswith(OPEN_PARENS):
-            if len(temp_tokens) > 0:
-                temp_tokens[len(temp_tokens) - 1] = temp_tokens[len(temp_tokens) - 1] + t.replace(OPEN_PARENS, "{").replace(CLOSE_PARENS, "}")
-        elif t == EMPTY_STRING or t == PERIOD:
-            continue
-        else:
-            if len(temp_tokens) > 0 and check_valid_verb(t, t) == False:
-                temp_tokens.append(t)
-            elif len(temp_tokens) == 0:
-                temp_tokens.append(t)
-
-    tokens = temp_tokens
+    
     count = 0
     for token in tokens:
         if count < equals_pos:
@@ -278,7 +281,10 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
                 if token in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 v = token.replace("{", OPEN_PARENS).replace("}", CLOSE_PARENS)
-                token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + v + "\",\"" + v + "\")"
+                if v.startswith(PLUS_SIGN):
+                    token = v
+                else:
+                    token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + v + "\",\"" + v + "\")"
 
             if set_open_parens:
                 token = OPEN_PARENS + token
@@ -891,7 +897,8 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 memory_area = SELF_REFERENCE + EIB_MEMORY
             value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric():
-            value = str(int(value))
+            if PERIOD not in value:
+                value = str(int(value))
     elif value.startswith(SINGLE_QUOTE):
         x = 0
 

@@ -7,7 +7,10 @@ def main():
     cobol_file_extensions = [".cbl", ".cob"]
     for x in range(0, len(cobol_file_extensions)):
         for file in glob.glob(input_dir + "*" + cobol_file_extensions[x]):
+            print("converting " + file)
             parse_cobol_file(file, output_dir)
+
+    print('')
 
 
 if __name__ == "__main__":

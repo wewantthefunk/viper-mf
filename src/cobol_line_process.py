@@ -213,9 +213,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if tokens[1] == 'W-FORMAT-AND-DATE-2':
-        x = 0
-
     cascade_data_type = current_line.cascade_data_type
 
     if COMP_3_KEYWORD in tokens:

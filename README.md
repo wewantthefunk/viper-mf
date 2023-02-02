@@ -99,6 +99,7 @@ As with all things in this project, as functionality is discovered through the c
 Make sure the following Python dependencies are installed:
 
 * datetime
+* decimal
 * glob
 * importlib
 * inspect
