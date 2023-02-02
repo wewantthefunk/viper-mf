@@ -29,6 +29,15 @@
                  DISPLAY 'actual value is   value found'
            END-SEARCH.
 
+           MOVE 1 TO TS-INDEX.
+
+           DISPLAY 'expected value is value found'
+           SEARCH TEST-ARRAY 
+              AT END DISPLAY 'actual value is   not found'
+              WHEN 'gh' = VALUE-ONE(TS-INDEX)
+                 DISPLAY 'actual value is   value found'
+           END-SEARCH.
+
            MOVE 4 TO TS-INDEX.
 
            DISPLAY 'expected value is value not found'

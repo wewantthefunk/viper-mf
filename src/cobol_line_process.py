@@ -161,6 +161,9 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     level = current_line.level
     ignore_until_verbs = []
 
+    if temp_tokens[0] == COBOL_VERB_COMPUTE:
+        x = 0
+
     if temp_tokens[0] == COBOL_VERB_SEARCH:
         ignore_until_verbs.append(COBOL_VERB_WHEN)
 
@@ -263,6 +266,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
 
     occurs_length = 0
+    index_var = EMPTY_STRING
 
     if len(tokens) == 2 or PIC_CLAUSE not in tokens:  
         new_level = tokens[0]
@@ -325,10 +329,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             if BY_KEYWORD in tokens:
                 i = i + 1
             append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-                + "10, '9','" + tokens[i] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
+                + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
             append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
             append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
-            
+            index_var = tokens[i]
 
     elif current_line.highest_ws_level < int(tokens[0]):
         if len(data_division_var_stack) > 0:
@@ -402,7 +406,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         memory_name = SELF_REFERENCE + EIB_MEMORY 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
-            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "')" + NEWLINE)
+            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 

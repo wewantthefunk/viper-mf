@@ -36,6 +36,10 @@
 
        01 DAY-WORK            PIC S9(09)  VALUE ZERO. 
 
+       01 GREG-MM  PIC 9(2).
+
+       01 GREG-DD  PIC 9(2).
+
        PROCEDURE DIVISION.
 
            MOVE 1 TO LEAP-INDEX.
@@ -47,9 +51,15 @@
              OR    MT-DAYS-BEFORE (MONTH-INDEX + +1, LEAP-INDEX)
                                        >=  DAY-WORK
 
-               DISPLAY 'found'
+               SET   GREG-MM           TO  MONTH-INDEX
+      
+               COMPUTE GREG-DD          =  DAY-WORK
+                                        -  MT-DAYS-BEFORE
+                                                (MONTH-INDEX,LEAP-INDEX)
 
            END-SEARCH.
+
+           DISPLAY GREG-MM '/' GREG-DD '/' .
 
            GOBACK.
 

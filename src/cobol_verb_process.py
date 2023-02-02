@@ -241,6 +241,20 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
 
     tokens[equals_pos] = tokens[equals_pos].replace(EQUALS, EMPTY_STRING)
 
+    temp_tokens = []
+    for t in tokens:
+        if t.startswith(OPEN_PARENS):
+            if len(temp_tokens) > 0:
+                temp_tokens[len(temp_tokens) - 1] = temp_tokens[len(temp_tokens) - 1] + t.replace(OPEN_PARENS, "{").replace(CLOSE_PARENS, "}")
+        elif t == EMPTY_STRING or t == PERIOD:
+            continue
+        else:
+            if len(temp_tokens) > 0 and check_valid_verb(t, t) == False:
+                temp_tokens.append(t)
+            elif len(temp_tokens) == 0:
+                temp_tokens.append(t)
+
+    tokens = temp_tokens
     count = 0
     for token in tokens:
         if count < equals_pos:
@@ -263,7 +277,8 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
                 memory_area = SELF_REFERENCE + name + MEMORY
                 if token in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
-                token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + token + "\",\"" + token + "\")"
+                v = token.replace("{", OPEN_PARENS).replace("}", CLOSE_PARENS)
+                token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + v + "\",\"" + v + "\")"
 
             if set_open_parens:
                 token = OPEN_PARENS + token
@@ -321,37 +336,50 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
     creating_check = True
     operand1_list = EMPTY_STRING
     operand2_list = EMPTY_STRING
+    operator_list = EMPTY_STRING
+    boolean_list = EMPTY_STRING
     first = True
-    while creating_check:
+    while creating_check and condition_index < len(tokens):
         operand2 = tokens[condition_index + 3]
+        operator = convert_operator(tokens[condition_index + 2]) 
 
         if operand2.startswith(PLUS_SIGN):
             operand2 = operand2[1:]
 
         if operand2.isnumeric() == False:
             if operand2.startswith(SINGLE_QUOTE) == False:
-                memory_area = SELF_REFERENCE + name + MEMORY
-                if operand2 in EIB_VARIABLES:
-                    memory_area = SELF_REFERENCE + EIB_MEMORY
-                temp = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
-                operand2 = temp
+                operand2 = SINGLE_QUOTE + operand2 + SINGLE_QUOTE
 
         if first == False:
             operand1_list = operand1_list + COMMA
             operand2_list = operand2_list + COMMA
+            operator_list = operator_list + COMMA
         else:
             first = False
 
-        operand1_list = operand1_list + SINGLE_QUOTE + tokens[condition_index + 1] + SINGLE_QUOTE
+        o1 = tokens[condition_index + 1]
+        if o1.startswith(SINGLE_QUOTE) == False:
+            o1 = SINGLE_QUOTE + o1
+        if o1.endswith(SINGLE_QUOTE) == False:
+            o1 = o1 + SINGLE_QUOTE
+        operand1_list = operand1_list + o1
         operand2_list = operand2_list + operand2
+        operator_list = operator_list + SINGLE_QUOTE + operator + SINGLE_QUOTE
 
-        if tokens[condition_index + 4] not in COBOL_BOOLEAN_KEYWORDS:
-            creating_check = False
+        if condition_index + 4 < len(tokens):
+            if tokens[condition_index + 4] not in COBOL_BOOLEAN_KEYWORDS:
+                creating_check = False
+            else:
+                if boolean_list != EMPTY_STRING:
+                    boolean_list = boolean_list + COMMA
 
-        condition_index = condition_index + 5
+                boolean_list = boolean_list + SINGLE_QUOTE + tokens[condition_index + 4] + SINGLE_QUOTE
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",[" + operand1_list \
-        + "],'" + convert_operator(tokens[condition_index + 2]) + "',[" + operand2 + "]," + str(all_offset) + "," + at_end_func + COMMA + "self" + CLOSE_PARENS + NEWLINE)
+        condition_index = condition_index + 4
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME \
+        + COMMA + SINGLE_QUOTE + tokens[1 + all_offset] + "',[" + operand1_list \
+        + "],[" + operator_list + "],[" + operand2_list + "]," + str(all_offset) + COMMA + at_end_func + COMMA + "self" + COMMA + OPEN_BRACKET + boolean_list + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "is_found = search_result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if is_found == False:" + NEWLINE)

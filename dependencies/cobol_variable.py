@@ -9,6 +9,7 @@ ALPHANUMERIC_DATA_TYPE = "X"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
+COMMA = ","
 COMM_AREA_EXT = "comm.txt"
 COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
@@ -20,8 +21,12 @@ DOUBLE_EQUALS = "=="
 EIB_EXT = "eib.txt"
 EMPTY_STRING = ""
 GET_COMMAND = "get"
+GREATER_THAN = ">"
+GREATER_THAN_EQUAL = ">="
 HEX_PREFIX = "_hex_"
 LEVEL_88 = "88"
+LESS_THAN = "<"
+LESS_THAN_EQUAL = "<="
 LITERAL = "literal"
 MULTIPLICATION_OPERATOR = "*"
 NEGATIVE_SIGN = "-"
@@ -33,6 +38,7 @@ NUMERIC_SIGNED_DATA_TYPE = "S9"
 ONE = 1
 OPEN_PARENS = "("
 PERIOD = "."
+PLUS_SIGN = "+"
 POSITIVE_SIGN = "+"
 POSITIVE_SIGNED_HEX_FLAG = "C"
 SET_COMMAND = "set"
@@ -77,7 +83,7 @@ class EBCDICASCII:
         self.decimal_value = int(hex_val, 16)
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int, index: str):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -101,6 +107,7 @@ class COBOLVariable:
         self.child_length = 0
         self.sign = EMPTY_STRING
         self.unpacked_length = unpacked_length
+        self.index_variable = index
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -148,7 +155,7 @@ class COBOLFileVariable:
         if self.file_pointer != None:
             self.file_pointer.write(data)
 
-def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01"):
+def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING):
     for l in list:
         if l.name == name:
             return [list, main_variable_memory]
@@ -196,7 +203,7 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     if level == LEVEL_88:
         redefines = EMPTY_STRING
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index))
 
     result = _update_parent_child_length(main_variable_memory, list, parent, length)
     skip_add = result[0]
@@ -242,6 +249,15 @@ def _find_variable(list, name: str):
         if var.name == name:
             result = var
             break
+
+    return result
+
+def _find_all_children(list, name: str):
+    result = []
+
+    for var in list:
+        if var.parent == name:
+            result.append(var)
 
     return result
 
@@ -310,40 +326,95 @@ def Add_File_Variable(list, name: str, assign: str, organization: str, access: s
 
     return list
 
-def Search_Variable_Array(main_variable_memory, variable_lists, operand1: str, operator: str, operand2, is_all_array, not_found_func, self_obj):
+def Search_Variable_Array(main_variable_memory, variable_lists, target, operand1_list, operator_list, operand2_list, is_all_array, not_found_func, self_obj = None, boolean_list = None):
+    if boolean_list == None:
+        boolean_list = []
+    return _search_Variable_Array(main_variable_memory, variable_lists, operand1_list, operator_list, operand2_list, is_all_array, target, not_found_func, self_obj, boolean_list)
+
+def _search_Variable_Array(main_variable_memory, variable_lists, operand1_list: str, operator_list: str, operand2_list, is_all_array, target, not_found_func, self_obj, boolean_list):
     result = [False, main_variable_memory]
     found = False
-    if OPEN_PARENS not in operand1:
-        t = operand1
-        operand1 = operand2
-        operand2 = t
-
-    operand1_split = operand1.split(OPEN_PARENS)
-
-    start_at = 0
-
-    if is_all_array <= 0:
-        start_at = int(Get_Variable_Value(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))) - 1
-        if start_at < 0:
-            start_at = 0
 
     parent_var = None
     for var_list in variable_lists:
-        array_var = _find_variable(var_list, operand1_split[0])
+        array_var = _find_variable(var_list, target)
         if array_var != None:
             parent_var = _find_variable(var_list, array_var.parent)
             break
 
-    for x in range(start_at,parent_var.occurs_length):
-        name = array_var.name + "(" + str(x + 1) + ")"
-        val = Get_Variable_Value(main_variable_memory, variable_lists, name, name)
-        if operator == DOUBLE_EQUALS:
-            found = val == operand2
-        elif operator == NOT_EQUALS:
-            found = val != operand2
-        if found:
-            result = Set_Variable(main_variable_memory, variable_lists, operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING), str(x + 1), operand1_split[1].replace(CLOSE_PARENS, EMPTY_STRING))
+    if array_var == None or parent_var == None:
+        return result
+
+    start_at = 0
+
+    for var_list in variable_lists:
+        index_var = _find_variable(var_list, array_var.index_variable)
+        if index_var != None:
             break
+
+    if index_var == None:
+        return result
+
+    if is_all_array <= 0:
+        start_at = int(Get_Variable_Value(main_variable_memory, variable_lists, index_var.name, index_var.name)) - 1
+        if start_at < 0:
+            start_at = 0
+
+    compare_results = []
+    found = False
+    count = 0
+    
+    for operand1 in operand1_list:
+        operand2 = operand2_list[count]
+        operator = operator_list[count]
+        main_variable_memory = Set_Variable(main_variable_memory, variable_lists, index_var.name, start_at + 1, index_var.name)[1]
+        for x in range(start_at, array_var.occurs_length):
+            if str(operand1).isnumeric():
+                val = operand1
+            else:
+                val = Get_Variable_Value(main_variable_memory, variable_lists, operand1, operand1)
+                if val == EMPTY_STRING:
+                    val = operand1
+
+            if str(operand2).isnumeric():
+                val2 = operand2
+            else:
+                val2 = Get_Variable_Value(main_variable_memory, variable_lists, operand2, operand2)
+                if val2 == EMPTY_STRING:
+                    val2 = operand2
+                    
+            if operator == DOUBLE_EQUALS:
+                found = val == val2
+            elif operator == NOT_EQUALS:
+                found = val != val2
+            elif operator == GREATER_THAN:
+                found = val > val2
+            elif operator == GREATER_THAN_EQUAL:
+                found = val >= val2
+            elif operator == LESS_THAN:
+                found = val < val2
+            elif operator == LESS_THAN_EQUAL:
+                found = val <= val2
+
+            if found:
+                break
+
+            main_variable_memory = Set_Variable(main_variable_memory, variable_lists, index_var.name, x + 2, index_var.name)[1]
+
+        count = count + 1
+        compare_results.append(found)
+
+    eval_string = EMPTY_STRING
+    count = 0
+    for compare_result in compare_results:
+        eval_string = eval_string + str(compare_result) + " == True "
+        if count < len(boolean_list):
+            eval_string = eval_string + SPACE + boolean_list[count].lower() + SPACE
+            count = count + 1
+    
+    found = eval(eval_string)
+
+    result = [found, main_variable_memory]
 
     return result
 
@@ -391,7 +462,13 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     var.level88value = value
                 return [True, main_variable_memory]
             elif var.redefines != EMPTY_STRING:
-                continue
+                if var.name == var_name:
+                    first = main_variable_memory[:var.main_memory_position]
+                    last = main_variable_memory[var.main_memory_position + len(value):]
+                    main_variable_memory = first + value + last
+                    return [True, main_variable_memory]
+                else:
+                    continue
             elif var.length == 0:
                 if var.name not in parent:
                     parent.append(var.name)
@@ -531,18 +608,19 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     if OPEN_PARENS in name:
         s = name.split(OPEN_PARENS)
         var_name = s[0]
-        offset_val = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
-        if offset_val.isnumeric():
-            occurrence = int(offset_val)
+        if COMMA in s[1]:
+            occurrence = _get_multidimensional_array_values(var_name, s[1].replace(CLOSE_PARENS, EMPTY_STRING), main_variable_memory, orig_var_list)
         else:
-            occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
+            offset_val = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if offset_val.isnumeric():
+                occurrence = int(offset_val)
+            else:
+                occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
     var = _find_variable(var_list, var_name)
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:
-            if var_list[count].name == 'W-DATE-1-5N':
-                x = 0
             if var_list[count].redefines in parent or (var_list[count].redefines != EMPTY_STRING and var_list[count].parent in parent):
                 count = count + 1
                 if count >= len(var_list):
@@ -551,7 +629,9 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
             elif var_list[count].redefines != EMPTY_STRING and var_list[count].level != LEVEL_88:
                 v = _find_variable(var_list, var_list[count].redefines)
                 offset = var_list[count].main_memory_position - v.main_memory_position
-                result = result + main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + v.length - offset]
+                l = v.length
+                if l == ZERO:
+                    l = v.child_length
             if var_list[count].length == ZERO:
                 if var_list[count].level == LEVEL_88 and var_list[count].name == name:
                     l = Get_Variable_Length(orig_var_list, var.parent)
@@ -629,6 +709,58 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         type_result = result
 
     return [type_result, found_count, result, count]
+
+def _get_multidimensional_array_values(var_name: str, w_indexes: str, main_variable_memory: str, variable_lists):
+    indexes = w_indexes.split(COMMA)
+    parent_var = None
+    var = None
+    field_var = None
+    occurence = 0
+
+    for var_list in variable_lists:
+        field_var = _find_variable(var_list, var_name)
+        if field_var != None:
+            break
+
+    major_index = 0
+
+    index = indexes[0]
+
+    if index.isnumeric():
+        major_index = major_index + Get_Variable_Value(main_variable_memory, variable_lists, index, index)
+    else:
+        if index.isnumeric():
+            occurence = occurence + Get_Variable_Value(main_variable_memory, variable_lists, index, index)
+        else:
+            if PLUS_SIGN in index:                
+                i1 = index.split(PLUS_SIGN, maxsplit=1)
+                for i in i1:
+                    i = i.replace(PLUS_SIGN, EMPTY_STRING)
+                    if i.isnumeric():
+                        major_index = major_index + int(i)
+                    else:
+                        major_index = major_index + Get_Variable_Value(main_variable_memory, variable_lists, i, i)
+            else:
+                major_index = major_index + Get_Variable_Value(main_variable_memory, variable_lists, index, index)
+
+    sub_occurrences = 0
+
+    index = indexes[1]
+
+    for var_list in variable_lists:
+        var = _find_variable(var_list, index)
+        if var != None:
+            parent_var = _find_variable(var_list, var.parent)
+            if parent_var != None:
+                sub_occurrences = parent_var.occurs_length
+
+    occurence = ((major_index - 1) * (sub_occurrences - 1)) + major_index
+
+    if occurence <= 0:
+        occurence = 1
+
+    return occurence
+
 
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
@@ -855,6 +987,18 @@ def comp_conversion(var: COBOLVariable, value: str):
 
     return result
 
+def reverse_comparison_operator(operator: str):
+    if operator == GREATER_THAN:
+        return LESS_THAN
+    elif operator == GREATER_THAN_EQUAL:
+        return LESS_THAN_EQUAL
+    elif operator == LESS_THAN:
+        return GREATER_THAN
+    elif operator == LESS_THAN_EQUAL:
+        return GREATER_THAN_EQUAL
+    
+    return operator
+
 def Cleanup():
     dir_name = Path.cwd()
     test = os.listdir(dir_name)
@@ -888,7 +1032,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('11', '\x11', '\x11'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('12', '\x12', '\x12'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('13', '\x13', '\x13'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x14', '\x14'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x3C', '\x14'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('15', '\x15', '\x15'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('16', '\x08', '\x16'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('17', '\x17', '\x17'))
