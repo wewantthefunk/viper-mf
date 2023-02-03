@@ -189,11 +189,37 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit()" + NEWLINE)
     elif verb == COBOL_VERB_STRING:
-        x = 0
+        process_string_verb(tokens, level, name, current_line)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
     return level
+
+def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
+
+    into_index = tokens.index(INTO_KEYWORD)
+
+    target = tokens[into_index + 1]
+
+    string_list = EMPTY_STRING
+
+    indices = [i for i, x in enumerate(tokens) if x == DELIMITED_KEYWORD]
+
+    for x in range(0, len(indices)):
+        start_at = 1
+        end_at = indices[x]
+        if tokens[end_at + 1] == BY_KEYWORD:
+            end_at = end_at + 1
+        for y in range(start_at, end_at):
+            if y > start_at:
+                string_list = string_list + COMMA
+            string_list = string_list + OPEN_BRACKET + SINGLE_QUOTE + tokens[y] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[end_at + 1] + SINGLE_QUOTE + CLOSE_BRACKET
+
+    build_string_func = "Build_String(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA \
+        + SINGLE_QUOTE + target + SINGLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + build_string_func + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
+    return
 
 def process_send_map(tokens, level: int, name: str):
     map_name = EMPTY_STRING

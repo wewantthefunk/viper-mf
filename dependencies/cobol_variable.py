@@ -577,6 +577,22 @@ def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig
 
     return False
 
+def Build_String(main_variable_memory, variable_lists, target: str, strings):
+
+    concat_string = EMPTY_STRING
+    for string in strings:
+        # [['GREG-MMDD-X', 'SIZE'], ['GREG-YYYY-X', 'SIZE']]
+        val = Get_Variable_Value(main_variable_memory, variable_lists, string[0], string[0], True)
+        if string[1] == "SIZE":
+            concat_string = concat_string + val
+        if string[1] == "SPACE":
+            index = val.index(SPACE)
+            concat_string = concat_string + val[:index]
+
+    main_variable_memory = Set_Variable(main_variable_memory, variable_lists, target, concat_string, target)[1]
+
+    return main_variable_memory
+
 def Get_Variable_Length(variable_lists, name: str):
     for var_list in variable_lists:
         var = _find_variable(var_list, name)
@@ -604,8 +620,10 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     result = EMPTY_STRING
     var_name = name
     type_result = EMPTY_STRING
+    array_lookup = False
     
     if OPEN_PARENS in name:
+        array_lookup = True
         s = name.split(OPEN_PARENS)
         var_name = s[0]
         if COMMA in s[1]:
@@ -626,16 +644,35 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 if count >= len(var_list):
                     break
                 continue
-            elif var_list[count].redefines != EMPTY_STRING and var_list[count].level != LEVEL_88:
+            elif var_list[count].redefines != EMPTY_STRING and var_list[count].level != LEVEL_88 and array_lookup == False:
                 v = _find_variable(var_list, var_list[count].redefines)
-                offset = var_list[count].main_memory_position - v.main_memory_position
-                l = v.length
+                l = var_list[count].length
                 if l == ZERO:
-                    l = v.child_length
-            if var_list[count].length == ZERO:
+                    l = var_list[count].child_length
+                    if l == ZERO:
+                        l = v.length
+                        if l == ZERO:
+                            l = v.child_length
+                result = result + main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + l]
+                found_count = found_count + 1
+                count = count + found_count
+                
+            elif var_list[count].length == ZERO:
                 if var_list[count].level == LEVEL_88 and var_list[count].name == name:
                     l = Get_Variable_Length(orig_var_list, var.parent)
-                    r = main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + l]
+                    vp = None
+                    for vl in orig_var_list:
+                        vp = _find_variable(vl, var.parent)
+                        if vp != None:
+                            break
+                    if vp != None:
+                        r = main_variable_memory[vp.main_memory_position:vp.main_memory_position + l]
+                        if vp.comp_indicator == COMP_3_INDICATOR:
+                            r = convert_from_comp3(r, vp)
+                        elif vp.comp_indicator == COMP_5_INDICATOR or vp.comp_indicator == COMP_INDICATOR:
+                            r = convert_from_comp(vp, r)                  
+                        else:
+                            r = str(r)
                     result = var_list[count].level88value == str(r)
                     found_count = found_count + 1
                     count = len(var_list)
@@ -660,35 +697,9 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         start = (pl * (occurrence - 1)) + start
                     temp_result = main_variable_memory[start:start + var_list[count].length]
                     if var_list[count].comp_indicator == COMP_3_INDICATOR:
-                        t = EMPTY_STRING
-                        if temp_result[0:1] in NUMERIC_SIGNS:
-                            temp_result = temp_result[1:]
-                        for x in range(0, var_list[count].length):
-                            hv = find_hex_value_by_ebcdic(temp_result[x:x+1])
-                            t = t + hv.hex_value
-                        if t == EMPTY_STRING:
-                            temp_result = ZERO_STRING
-                        elif var_list[count].data_type == NUMERIC_DATA_TYPE:
-                            temp_result = t[0:len(t) - 1]
-                        elif t.endswith(NEGATIVE_SIGNED_HEX_FLAG):
-                            if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
-                                var_list[count].sign = NEGATIVE_SIGN
-                            else:
-                                var_list[count] = EMPTY_STRING
-                            temp_result = t[0:len(t) - 1]
-                        else:
-                            if var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE:
-                                var_list[count].sign = POSITIVE_SIGN
-                            else:
-                                var_list[count].sign = EMPTY_STRING
-                            temp_result = t[0:len(t) - 1]
-                        result = result +  var_list[count].sign + temp_result
-                    elif var_list[count].comp_indicator == COMP_5_INDICATOR:
-                        signed = var_list[count].data_type == NUMERIC_SIGNED_DATA_TYPE
-                        t = EMPTY_STRING
-                        for x in range(0, len(temp_result), 1):
-                            t = t + find_hex_value_by_ebcdic(temp_result[x:x+1]).hex_value
-                        result = result + str(fromhex(t, signed))                    
+                       result = result + convert_from_comp3(temp_result, var_list[count])
+                    elif var_list[count].comp_indicator == COMP_5_INDICATOR or var_list[count].comp_indicator == COMP_INDICATOR:
+                        result = result + convert_from_comp(var_list[count], temp_result)                  
                     else:
                         result = result +  var_list[count].sign + temp_result
                 count = count + 1
@@ -761,6 +772,43 @@ def _get_multidimensional_array_values(var_name: str, w_indexes: str, main_varia
 
     return occurence
 
+def convert_from_comp3(temp_result: str, var: COBOLVariable):
+    t = EMPTY_STRING
+    result = EMPTY_STRING
+    if temp_result[0:1] in NUMERIC_SIGNS:
+        temp_result = temp_result[1:]
+    for x in range(0, var.length):
+        hv = find_hex_value_by_ebcdic(temp_result[x:x+1])
+        t = t + hv.hex_value
+    if t == EMPTY_STRING:
+        temp_result = ZERO_STRING
+    elif var.data_type == NUMERIC_DATA_TYPE:
+        temp_result = t[0:len(t) - 1]
+    elif t.endswith(NEGATIVE_SIGNED_HEX_FLAG):
+        if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+            var.sign = NEGATIVE_SIGN
+        else:
+            var = EMPTY_STRING
+        temp_result = t[0:len(t) - 1]
+    else:
+        if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+            var.sign = POSITIVE_SIGN
+        else:
+            var.sign = EMPTY_STRING
+        temp_result = t[0:len(t) - 1]
+    result = result +  var.sign + temp_result
+
+    return result
+
+def convert_from_comp(var: COBOLVariable, temp_result: str):
+    result = EMPTY_STRING
+    signed = var.data_type == NUMERIC_SIGNED_DATA_TYPE
+    t = EMPTY_STRING
+    for x in range(0, len(temp_result), 1):
+        t = t + find_hex_value_by_ebcdic(temp_result[x:x+1]).hex_value
+    result = result + str(fromhex(t, signed))  
+
+    return result
 
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
@@ -1060,7 +1108,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2D', '\x05', '\x2D'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2E', '\x06', '\x2E'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2F', '\x07', '\x2F'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x30', '0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x00', '0'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('31', '\x31', '1'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('32', '\x16', '2'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('33', '\x33', '3'))
