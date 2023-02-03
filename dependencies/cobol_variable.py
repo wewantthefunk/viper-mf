@@ -205,7 +205,10 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index))
 
-    result = _update_parent_child_length(main_variable_memory, list, parent, length)
+    update_length = length
+    if redefines != EMPTY_STRING:
+        update_length = 0
+    result = _update_parent_child_length(main_variable_memory, list, parent, update_length)
     skip_add = result[0]
     main_variable_memory = result[1]
 
@@ -461,73 +464,48 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 else:
                     var.level88value = value
                 return [True, main_variable_memory]
-            elif var.redefines != EMPTY_STRING:
-                if var.name == var_name:
-                    first = main_variable_memory[:var.main_memory_position]
-                    last = main_variable_memory[var.main_memory_position + len(value):]
-                    main_variable_memory = first + value + last
-                    return [True, main_variable_memory]
-                else:
-                    continue
-            elif var.length == 0:
-                if var.name not in parent:
-                    parent.append(var.name)
-                main_variable_memory = _set_variable(main_variable_memory, var_list[count:], EMPTY_STRING, value, parent, index_pos, orig_var_list)[1]
             else:
-                if value == SPACES_INITIALIZER:
-                    new_value = pad(var.length)
-                elif value.startswith(HEX_PREFIX):
+                if var.data_type in NUMERIC_DATA_TYPES:
+                    if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                        if value.startswith(NEGATIVE_SIGN):
+                            var.sign = NEGATIVE_SIGN
+                            value = value[1:]
+                        else:
+                            var.sign = POSITIVE_SIGN
+                    pad_length = var.unpacked_length
+                    if var.comp_indicator == COMP_3_INDICATOR or (var.comp_indicator == COMP_5_INDICATOR and var.data_type == NUMERIC_SIGNED_DATA_TYPE):
+                        if not value.endswith(POSITIVE_SIGNED_HEX_FLAG) and not value.endswith(NEGATIVE_SIGNED_HEX_FLAG) and not value.endswith(UNSIGNED_HEX_FLAG):
+                            if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                                if var.sign == NEGATIVE_SIGN:
+                                    value = value + NEGATIVE_SIGNED_HEX_FLAG
+                                else:
+                                    value = value + POSITIVE_SIGNED_HEX_FLAG
+                            else:
+                                value = value + UNSIGNED_HEX_FLAG
+                    value = str(value)
+                    value = value.rjust(pad_length, ZERO_STRING)
+                if var.comp_indicator == COMP_3_INDICATOR:
+                    if value.startswith(HEX_PREFIX):
+                        value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                    value = convert_to_comp3(value, var)
+                length = var.length
+                if length == ZERO:
+                    length = var.child_length
+                var_parent = _find_variable(var_list, var.parent)
+                start = var.main_memory_position
+                if var_parent != None:
+                    pl = var_parent.child_length
+                    start = (pl * (occurrence - 1)) + start
+                if str(value).startswith(HEX_PREFIX):
                     is_hex = True
                     value = value.replace(HEX_PREFIX, EMPTY_STRING)
                     new_value = EMPTY_STRING
                     for x in range(0, len(value), 2):
                         eh = find_hex_value(value[x:x+2])
                         new_value = new_value + eh.EBCDIC_value
-                    new_value = new_value[0:var.length]
-                else:
-                    if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
-                        if value.startswith(NEGATIVE_SIGN) or value.startswith(POSITIVE_SIGN):
-                            var.sign = value[0:1]
-                            value = value[1:]
-                        else:
-                            var.sign = POSITIVE_SIGN
-                    
-                    if var.comp_indicator == COMP_3_INDICATOR:
-                        new_value = comp_conversion(var, raw_value.rjust(var.unpacked_length, ZERO_STRING))
-                    elif var.comp_indicator == COMP_5_INDICATOR:
-                        new_value = tohex(int(raw_value), var.length)
-                    else:
-                        if var.data_type in NUMERIC_DATA_TYPES:
-                            new_value = value[0:var.length].rjust(var.length, ZERO_STRING)
-                        else:
-                            new_value = value[0:var.length].ljust(var.length, SPACE)
-                
-                remaining_value = EMPTY_STRING
-
-                if is_hex:
-                    t = value[var.length * 2:]
-                    if t != EMPTY_STRING:
-                        remaining_value = HEX_PREFIX + t
-                elif raw_value == SPACES_INITIALIZER:
-                    remaining_value = SPACES_INITIALIZER
-                else:
-                    remaining_value = value[var.unpacked_length:]
-                if var.data_type in NUMERIC_DATA_TYPES:
-                    if is_hex == False:
-                        new_value = str(new_value).rjust(var.length, ZERO_STRING)
-                var_parent = _find_variable(var_list, var.parent)
-                start = var.main_memory_position
-                if var_parent != None:
-                    pl = var_parent.child_length
-                    start = (pl * (occurrence - 1)) + start
-                if sub_string != []:
-                    main_variable_memory = main_variable_memory[:start + sub_string[0]] + new_value[sub_string[0]:sub_string[1]] + main_variable_memory[start + sub_string[1]:]
-                else:
-                    main_variable_memory = main_variable_memory[:start] + new_value + main_variable_memory[start + var.length:]
-                if var.name == DFHCOMMAREA_NAME:
-                    _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, new_value)
-                if remaining_value != EMPTY_STRING:
-                    main_variable_memory = _set_variable(main_variable_memory, var_list[count:], var_name, remaining_value, parent, index_pos, orig_var_list)[1]
+                    value = new_value[:length]
+                var.is_hex = is_hex
+                main_variable_memory = main_variable_memory[:start] + value[:length] + main_variable_memory[start + length:]
             return [True, main_variable_memory]
         else:
             count = count + 1
@@ -639,70 +617,29 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:
-            if var_list[count].redefines in parent or (var_list[count].redefines != EMPTY_STRING and var_list[count].parent in parent):
-                count = count + 1
-                if count >= len(var_list):
-                    break
-                continue
-            elif var_list[count].redefines != EMPTY_STRING and var_list[count].level != LEVEL_88 and array_lookup == False:
-                v = _find_variable(var_list, var_list[count].redefines)
-                l = var_list[count].length
-                if l == ZERO:
-                    l = var_list[count].child_length
-                    if l == ZERO:
-                        l = v.length
-                        if l == ZERO:
-                            l = v.child_length
-                result = result + main_variable_memory[var_list[count].main_memory_position:var_list[count].main_memory_position + l]
-                found_count = found_count + 1
-                count = count + found_count
-                
-            elif var_list[count].length == ZERO:
-                if var_list[count].level == LEVEL_88 and var_list[count].name == name:
-                    l = Get_Variable_Length(orig_var_list, var.parent)
-                    vp = None
-                    for vl in orig_var_list:
-                        vp = _find_variable(vl, var.parent)
-                        if vp != None:
-                            break
-                    if vp != None:
-                        r = main_variable_memory[vp.main_memory_position:vp.main_memory_position + l]
-                        if vp.comp_indicator == COMP_3_INDICATOR:
-                            r = convert_from_comp3(r, vp)
-                        elif vp.comp_indicator == COMP_5_INDICATOR or vp.comp_indicator == COMP_INDICATOR:
-                            r = convert_from_comp(vp, r)                  
-                        else:
-                            r = str(r)
-                    result = var_list[count].level88value == str(r)
-                    found_count = found_count + 1
-                    count = len(var_list)
-                else:
-                    if var_list[count].name not in parent:
-                        parent.append(var_list[count].name)
-                    r = _get_variable_value(main_variable_memory, var_list[count + 1:], EMPTY_STRING, parent, force_str, orig_var_list)
-                    result = result + r[0]
-                    found_count = found_count + r[1] + 1
-                    count = count + found_count
-                    if found_count <= r[3]:
-                        count = len(var_list)
-            else:
-                found_count = found_count + 1
-                if var_list[count].name == DFHCOMMAREA_NAME:
-                    result = result + _read_file(orig_var_list[0][0].value + COMM_AREA_EXT)
-                else:
-                    var_parent = _find_variable(var_list, var_list[count].parent)
-                    start = var_list[count].main_memory_position
-                    if var_parent != None:
-                        pl = var_parent.child_length
-                        start = (pl * (occurrence - 1)) + start
-                    temp_result = main_variable_memory[start:start + var_list[count].length]
-                    if var_list[count].comp_indicator == COMP_3_INDICATOR:
-                       result = result + convert_from_comp3(temp_result, var_list[count])
-                    elif var_list[count].comp_indicator == COMP_5_INDICATOR or var_list[count].comp_indicator == COMP_INDICATOR:
-                        result = result + convert_from_comp(var_list[count], temp_result)                  
-                    else:
-                        result = result +  var_list[count].sign + temp_result
-                count = count + 1
+            var = var_list[count]
+            length = var.length
+            if length == ZERO:
+                length = var.child_length
+            var_parent = _find_variable(var_list, var_list[count].parent)
+            start = var_list[count].main_memory_position
+            if var_parent != None:
+                pl = var_parent.child_length
+                start = (pl * (occurrence - 1)) + start
+            result = main_variable_memory[start:start + length]
+
+            if var.data_type in NUMERIC_DATA_TYPES:
+                if var.comp_indicator == COMP_3_INDICATOR:
+                    result = convert_from_comp3(result, var)
+                elif var.comp_indicator == COMP_5_INDICATOR:
+                    result = convert_from_comp(var, result)
+                elif var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                    if var.sign == NEGATIVE_SIGN:
+                        result = var.sign + result
+            elif var.level == LEVEL_88:
+                result = result == var.level88value
+            count = len(var_list)
+            found_count = 1
         else:
             count = count + 1
 
@@ -809,6 +746,18 @@ def convert_from_comp(var: COBOLVariable, temp_result: str):
     result = result + str(fromhex(t, signed))  
 
     return result
+
+def convert_to_comp3(value: str, var: COBOLVariable):
+    result = EMPTY_STRING
+    if len(value) % 2 != ZERO:
+        value = ZERO_STRING + value
+
+    for x in range(0,len(value), 2):
+        hv = find_hex_value(value[x:x+2])
+        result = result + hv.EBCDIC_value
+
+    return result
+    
 
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
@@ -1080,7 +1029,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('11', '\x11', '\x11'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('12', '\x12', '\x12'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('13', '\x13', '\x13'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x3C', '\x14'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x14', '\x14'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('15', '\x15', '\x15'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('16', '\x08', '\x16'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('17', '\x17', '\x17'))
