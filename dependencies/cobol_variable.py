@@ -469,11 +469,12 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if value.startswith(NEGATIVE_SIGN):
                             var.sign = NEGATIVE_SIGN
-                            value = value[1:]
+                            if var.comp_indicator != COMP_5_INDICATOR:
+                                value = value[1:]
                         else:
                             var.sign = POSITIVE_SIGN
                     pad_length = var.unpacked_length
-                    if var.comp_indicator == COMP_3_INDICATOR or (var.comp_indicator == COMP_5_INDICATOR and var.data_type == NUMERIC_SIGNED_DATA_TYPE):
+                    if var.comp_indicator == COMP_3_INDICATOR:
                         if not value.endswith(POSITIVE_SIGNED_HEX_FLAG) and not value.endswith(NEGATIVE_SIGNED_HEX_FLAG) and not value.endswith(UNSIGNED_HEX_FLAG):
                             if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                                 if var.sign == NEGATIVE_SIGN:
@@ -488,6 +489,15 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     if value.startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
                     value = convert_to_comp3(value, var)
+                elif var.comp_indicator == COMP_5_INDICATOR:
+                    if value.startswith(HEX_PREFIX):
+                        value = value.replace(HEX_PREFIX, EMPTY_STRING)
+                        new_value = EMPTY_STRING
+                        for x in range(0, len(value), 2):
+                            new_value = new_value + find_hex_value(value[x:x+2]).EBCDIC_value
+                        value = new_value
+                    else:
+                        value = convert_to_comp(value, var)
                 length = var.length
                 if length == ZERO:
                     length = var.child_length
@@ -621,6 +631,9 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
             length = var.length
             if length == ZERO:
                 length = var.child_length
+            if length == ZERO and var.redefines != EMPTY_STRING:
+                rvar = _find_variable(var_list, var.redefines)
+                length = rvar.length
             var_parent = _find_variable(var_list, var_list[count].parent)
             start = var_list[count].main_memory_position
             if var_parent != None:
@@ -757,7 +770,22 @@ def convert_to_comp3(value: str, var: COBOLVariable):
         result = result + hv.EBCDIC_value
 
     return result
-    
+
+def convert_to_comp(value, var):
+    return tohex(int(value), var.length)
+
+def convert_multi_comp(var_list, var: COBOLVariable, value: str):
+    children = _find_all_children(var_list, var.name)
+    new_value = EMPTY_STRING
+    start = 0
+    for child in children:
+        l = child.length
+        if l == ZERO:
+            new_value = new_value + convert_multi_comp(var_list, var, value[start:])
+        else:
+            new_value = new_value + convert_to_comp(value[start:start+l], child)
+
+    return new_value
 
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name

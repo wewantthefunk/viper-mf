@@ -16,7 +16,7 @@
 
            MOVE X'001D12345C54321D' TO TEST-FIELD.
 
-           DISPLAY 'expected value is -001+12345-54321'
+           DISPLAY 'expected value is ↔↕☺*ã▬↔'
            DISPLAY 'actual value is   ' TEST-FIELD.           
 
            DISPLAY 'expected value is -001'

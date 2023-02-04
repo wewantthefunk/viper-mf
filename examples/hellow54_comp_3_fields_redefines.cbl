@@ -31,7 +31,7 @@
 
            MOVE X'F4F254321D' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 42T▬↔'
+           DISPLAY 'expected value is 42ã▬↔'
            DISPLAY '(note: linux may not show some characters)'
            DISPLAY 'actual value is   ' TEST-FIELD.
 
@@ -41,7 +41,7 @@
            DISPLAY 'expected value is 54321'
            DISPLAY 'actual value is   ' COMP-3-FIELD-2.
 
-           DISPLAY 'expected value is 42-54321'
+           DISPLAY 'expected value is 42ã▬↔'
            DISPLAY 'actual value is   ' TEST-FIELD-2.
 
            STOP RUN.

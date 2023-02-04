@@ -16,7 +16,7 @@
 
            MOVE X'00100000FF3200001C00' TO TEST-FIELD.
 
-           DISPLAY 'expected value is 16653307168'
+           DISPLAY 'expected value is ►ÿ▬∟'
            DISPLAY 'actual value is   ' TEST-FIELD.           
 
            DISPLAY 'expected value is 16'
