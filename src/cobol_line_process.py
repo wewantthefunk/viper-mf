@@ -256,12 +256,16 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(tokens) < 1:
         return
     if len(tokens) < 2:
-        return
+        tokens.append(gen_rand(5))
+        if tokens[0] == "01":
+            cascade_data_type = EMPTY_STRING
 
     if VALUE_CLAUSE == tokens[1] or OCCURS_CLAUSE == tokens[1]:
         tokens.insert(1, gen_rand(5))
 
+    is_top_redefines = 'False'
     if REDEFINES_KEYWORD in tokens:
+        is_top_redefines = 'True'
         if tokens[1] == REDEFINES_KEYWORD:
             tokens.insert(1, REDEFINES_KEYWORD + gen_rand(4))
         current_line.redefines = tokens[tokens.index(REDEFINES_KEYWORD) + 1]
@@ -288,6 +292,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
                 data_division_cascade_stack.pop()
+
+        if len(data_division_cascade_stack) > 0:
+            if data_division_cascade_stack[len(data_division_cascade_stack) - 1] != cascade_data_type:
+                cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
 
         if len(data_division_var_stack) == 0:
             data_division_level_stack.append(tokens[0])
@@ -328,11 +336,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 data_division_cascade_stack.append(cascade_data_type)
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
             current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
-            cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
+            
             if (tokens[1] not in data_division_var_stack):
                 data_division_var_stack.append(tokens[1])
                 data_division_level_stack.append(tokens[0])
                 data_division_cascade_stack.append(cascade_data_type)
+
+            cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
 
         if OCCURS_CLAUSE in tokens:
             i = tokens.index(OCCURS_CLAUSE)
@@ -398,17 +408,17 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(data_info) < 4:
         data_info.append(EMPTY_STRING)
 
-    if cascade_data_type == COMP_KEYWORD:
+    if cascade_data_type == COMP_KEYWORD and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_KEYWORD
-    elif data_info[3] == COMP_1_KEYWORD or cascade_data_type == COMP_1_KEYWORD:
+    elif (data_info[3] == COMP_1_KEYWORD or cascade_data_type == COMP_1_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_1_KEYWORD
-    elif data_info[3] == COMP_2_KEYWORD or cascade_data_type == COMP_2_KEYWORD:
+    elif (data_info[3] == COMP_2_KEYWORD or cascade_data_type == COMP_2_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_2_KEYWORD
-    elif data_info[3] == COMP_3_KEYWORD or cascade_data_type == COMP_3_KEYWORD:
+    elif (data_info[3] == COMP_3_KEYWORD or cascade_data_type == COMP_3_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_3_KEYWORD
-    elif data_info[3] == COMP_4_KEYWORD or cascade_data_type == COMP_4_KEYWORD:
+    elif (data_info[3] == COMP_4_KEYWORD or cascade_data_type == COMP_4_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_4_KEYWORD
-    elif data_info[3] == COMP_5_KEYWORD or cascade_data_type == COMP_5_KEYWORD:
+    elif (data_info[3] == COMP_5_KEYWORD or cascade_data_type == COMP_5_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_5_KEYWORD
 
     v_name = tokens[1]
@@ -420,7 +430,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         memory_name = SELF_REFERENCE + EIB_MEMORY 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
-            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "')" + NEWLINE)
+            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 

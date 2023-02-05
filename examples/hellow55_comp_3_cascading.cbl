@@ -6,6 +6,12 @@
 
        WORKING-STORAGE SECTION.
 
+       01 SYNC.
+           05 COMP-3.
+              10 NESTED-COMP3-FIELD  PIC S9(5).
+           05 BACK-TO-REG.
+              10 BTG-1 PIC X(2).
+              
        01 COMP-3.
            05 TEST-FIELD.
               10 NUMBER-FIELD     PIC S9(2).

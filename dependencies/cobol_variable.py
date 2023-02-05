@@ -514,8 +514,15 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                         eh = find_hex_value(value[x:x+2])
                         new_value = new_value + eh.EBCDIC_value
                     value = new_value[:length]
-                var.is_hex = is_hex
-                main_variable_memory = main_variable_memory[:start] + value[:length] + main_variable_memory[start + length:]
+                    var.is_hex = is_hex
+                elif str(value) == SPACES_INITIALIZER:
+                    value = pad(length)
+                elif var.data_type not in NUMERIC_DATA_TYPES:
+                    value = value.ljust(length, SPACE)
+                if var.name == DFHCOMMAREA_NAME:
+                    _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, value)
+                else:
+                    main_variable_memory = main_variable_memory[:start] + value[:length] + main_variable_memory[start + length:]
             return [True, main_variable_memory]
         else:
             count = count + 1
@@ -627,32 +634,47 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
 
     for x in range(0, len(var_list)):
         if var_list[count].name == var_name or var_list[count].parent in parent:
-            var = var_list[count]
-            length = var.length
-            if length == ZERO:
-                length = var.child_length
-            if length == ZERO and var.redefines != EMPTY_STRING:
-                rvar = _find_variable(var_list, var.redefines)
-                length = rvar.length
-            var_parent = _find_variable(var_list, var_list[count].parent)
-            start = var_list[count].main_memory_position
-            if var_parent != None:
-                pl = var_parent.child_length
-                start = (pl * (occurrence - 1)) + start
-            result = main_variable_memory[start:start + length]
+            if var_list[count].name == DFHCOMMAREA_NAME:
+                result = result + _read_file(orig_var_list[0][0].value + COMM_AREA_EXT)
+                count = len(var_list)
+                found_count = 1
+            elif var_list[count].level == LEVEL_88:
+                var_parent = _find_variable(var_list, var_list[count].parent)
+                if var_parent != None:
+                    result = var_list[count].level88value == str(Get_Variable_Value(main_variable_memory, orig_var_list, var_parent.name, var_parent.name))
+                else:
+                    result = False
+                count = len(var_list)
+                found_count = 1
+            else:
+                var = var_list[count]
+                length = var.length
+                if length == ZERO:
+                    length = var.child_length
+                if length == ZERO and var.redefines != EMPTY_STRING:
+                    rvar = _find_variable(var_list, var.redefines)
+                    length = rvar.length
+                    if length == ZERO:
+                        length = rvar.child_length
+                var_parent = _find_variable(var_list, var_list[count].parent)
+                start = var_list[count].main_memory_position
+                if var_parent != None:
+                    pl = var_parent.child_length
+                    start = (pl * (occurrence - 1)) + start
+                result = main_variable_memory[start:start + length]
 
-            if var.data_type in NUMERIC_DATA_TYPES:
-                if var.comp_indicator == COMP_3_INDICATOR:
-                    result = convert_from_comp3(result, var)
-                elif var.comp_indicator == COMP_5_INDICATOR:
-                    result = convert_from_comp(var, result)
-                elif var.data_type == NUMERIC_SIGNED_DATA_TYPE:
-                    if var.sign == NEGATIVE_SIGN:
-                        result = var.sign + result
-            elif var.level == LEVEL_88:
-                result = result == var.level88value
-            count = len(var_list)
-            found_count = 1
+                if var.data_type in NUMERIC_DATA_TYPES:
+                    if var.comp_indicator == COMP_3_INDICATOR:
+                        result = convert_from_comp3(result, var)
+                    elif var.comp_indicator == COMP_5_INDICATOR:
+                        result = convert_from_comp(var, result)
+                    elif var.data_type == NUMERIC_SIGNED_DATA_TYPE:
+                        if var.sign == NEGATIVE_SIGN:
+                            result = var.sign + result
+                elif var.level == LEVEL_88:
+                    result = result == var.level88value
+                count = len(var_list)
+                found_count = 1
         else:
             count = count + 1
 

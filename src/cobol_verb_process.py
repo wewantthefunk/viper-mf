@@ -473,8 +473,9 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         if tokens[1] in EIB_VARIABLES:
             memory_area = SELF_REFERENCE + EIB_MEMORY
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + \
-            called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + \
+            "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE \
+                + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE + CLOSE_PARENS + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
                 SELF_REFERENCE + EIB_MEMORY + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + \
                 COMMA + "'EIBTERM'" + COMMA + "'EIBTERM'" + CLOSE_PARENS + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + \
                 VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
