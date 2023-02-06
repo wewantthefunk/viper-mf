@@ -81,9 +81,10 @@ class EBCDICASCII:
         self.EBCDIC_value = ebcdic_val
         self.ASCII_value = ascii_val
         self.decimal_value = int(hex_val, 16)
+        self.COMP3_value = ascii_val
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int, index: str):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int, index: str, array_pos: int, is_top_redefines: bool):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -108,6 +109,8 @@ class COBOLVariable:
         self.sign = EMPTY_STRING
         self.unpacked_length = unpacked_length
         self.index_variable = index
+        self.array_pos = array_pos
+        self.is_top_redefines = is_top_redefines
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -155,7 +158,7 @@ class COBOLFileVariable:
         if self.file_pointer != None:
             self.file_pointer.write(data)
 
-def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING):
+def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING, is_top_redefines = False):
     for l in list:
         if l.name == name:
             return [list, main_variable_memory]
@@ -203,11 +206,13 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     if level == LEVEL_88:
         redefines = EMPTY_STRING
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index))
+    if len(list) == 83:
+        x = 0
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines))
 
     update_length = length
     if redefines != EMPTY_STRING:
-        update_length = 0
+        update_length = length
     result = _update_parent_child_length(main_variable_memory, list, parent, update_length)
     skip_add = result[0]
     main_variable_memory = result[1]
@@ -237,7 +242,7 @@ def _update_parent_child_length(main_variable_memory, list, name: str, length: i
                     pc = ZERO_STRING
                 main_variable_memory = main_variable_memory + pad_char(l.occurs_length * length, pc)
                 skip_add = True
-            if l.parent != EMPTY_STRING:
+            if l.parent != EMPTY_STRING and not l.is_top_redefines:
                 result = _update_parent_child_length(main_variable_memory, list, l.parent, length)
                 skip_add = result[0]
                 main_variable_memory = result[1]
@@ -402,7 +407,8 @@ def _search_Variable_Array(main_variable_memory, variable_lists, operand1_list: 
             if found:
                 break
 
-            main_variable_memory = Set_Variable(main_variable_memory, variable_lists, index_var.name, x + 2, index_var.name)[1]
+            if x + 2 <= array_var.occurs_length:
+                main_variable_memory = Set_Variable(main_variable_memory, variable_lists, index_var.name, x + 2, index_var.name)[1]
 
         count = count + 1
         compare_results.append(found)
@@ -658,9 +664,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         length = rvar.child_length
                 var_parent = _find_variable(var_list, var_list[count].parent)
                 start = var_list[count].main_memory_position
-                if var_parent != None:
-                    pl = var_parent.child_length
-                    start = (pl * (occurrence - 1)) + start
+                start = _calc_start_pos(var_list, var_parent, start, occurrence)
                 result = main_variable_memory[start:start + length]
 
                 if var.data_type in NUMERIC_DATA_TYPES:
@@ -692,6 +696,17 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         type_result = result
 
     return [type_result, found_count, result, count]
+
+def _calc_start_pos(var_list, var_parent: COBOLFileVariable, start: int, occurrence: int):
+    result = start
+    if var_parent != None:
+        if var_parent.child_length > 0:
+            pl = var_parent.child_length
+            start = (pl * (occurrence - 1)) + start
+            result = start
+        else:
+            result = result = _calc_start_pos(var_list, _find_variable(var_list, var_parent.parent), start, occurrence)
+    return result
 
 def _get_multidimensional_array_values(var_name: str, w_indexes: str, main_variable_memory: str, variable_lists):
     indexes = w_indexes.split(COMMA)
@@ -727,6 +742,7 @@ def _get_multidimensional_array_values(var_name: str, w_indexes: str, main_varia
                 major_index = major_index + Get_Variable_Value(main_variable_memory, variable_lists, index, index)
 
     sub_occurrences = 0
+    main_occurrences = 0
 
     index = indexes[1]
 
@@ -736,8 +752,14 @@ def _get_multidimensional_array_values(var_name: str, w_indexes: str, main_varia
             parent_var = _find_variable(var_list, var.parent)
             if parent_var != None:
                 sub_occurrences = parent_var.occurs_length
+                parent_parent_var = _find_variable(var_list, parent_var.parent)
+                if parent_parent_var != None:
+                    main_occurrences = parent_parent_var.occurs_length
 
     occurence = ((major_index - 1) * (sub_occurrences - 1)) + major_index
+
+    if occurence > main_occurrences * sub_occurrences:
+        occurence = occurence - 2
 
     if occurence <= 0:
         occurence = 1
@@ -963,6 +985,13 @@ def find_hex_value_by_ebcdic(value: str):
 
     return EBCDIC_ASCII_CHART[0]
 
+def find_hex_value_by_comp3(value: str):
+    for hv in EBCDIC_ASCII_CHART:
+        if hv.COMP3_value == value:
+            return hv
+
+    return EBCDIC_ASCII_CHART[0]
+
 def parse_accept_statement(accept: str):
     result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING)
     if result != EMPTY_STRING:
@@ -1063,10 +1092,10 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('01', '\x01', '\x01'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('02', '\x02', '\x02'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('03', '\x03', '\x03'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('04', '\x09', '\x04'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('04', '\x04', '\x04'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('05', '\x05', '\x05'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('06', '\x06', '\x06'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('07', '\x7F', '\x07'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('07', '\x07', '\x07'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('08', '\x08', '\x08'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('09', '\x09', '\x09'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('0A', '\x0A', '\x0A'))
@@ -1079,9 +1108,9 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('11', '\x11', '\x11'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('12', '\x12', '\x12'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('13', '\x13', '\x13'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\x14', '\x14'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('14', '\xD3', '\x14'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('15', '\x15', '\x15'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('16', '\x08', '\x16'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('16', '\x16', '\x16'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('17', '\x17', '\x17'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('18', '\x18', '\x18'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('19', '\x19', '\x19'))
@@ -1091,28 +1120,28 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('1D', '\x1D', '\x1D'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('1E', '\x1E', '\x1E'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('1F', '\x1F', '\x1F'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('20', '\x20', '\x20'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('20', '\x20', ' '))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('21', '\x21', '\x21'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('22', '\x22', '\x22'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('23', '\x23', '\x23'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('24', '\x24', '\x24'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('25', '\x0A', '\x25'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('26', '\x17', '&'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('27', '\x27', '\x27'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('28', '\x28', '\x28'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('29', '\x29', '\x29'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x5C', '\x2A'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2B', '\x2B', '\x2B'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2C', '\x2C', '\x2C'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2D', '\x05', '\x2D'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2E', '\x06', '\x2E'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2F', '\x07', '\x2F'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x00', '0'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('22', '\x22', '"'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('23', '\x23', '#'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('24', '\x24', '$'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('25', '\x25', '%'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('26', '\x26', '&'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('27', '\x27', "'"))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('28', '\x28', '('))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('29', '\x29', ')'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x2A', '*'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2B', '\x2B', '+'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2C', '\x2C', ','))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2D', '\x2D', '\x2D'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2E', '\x2E', '.'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2F', '\x2F', '/'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x30', '0'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('31', '\x31', '1'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('32', '\x16', '2'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('32', '\x32', '2'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('33', '\x33', '3'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('34', '☺', '4'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('35', '\x1E', '5'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('34', '\x34', '4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('35', '\x35', '5'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('36', '\x36', '6'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('37', '\x04', '7'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('38', '\x38', '8'))
@@ -1120,10 +1149,10 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('3A', '\x3A', ':'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('3B', '\x3B', ';'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('3C', '\x14', '<'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('3D', '\x15', '='))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('3D', '\x3D', '='))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('3E', '\x3E', '>'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('3F', '\x1A', '?'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('40', ' ', '@'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('3F', '\x3F', '?'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('40', ' '   , '@'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('41', '\x41', 'A'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('42', '\x42', 'B'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('43', '\x43', 'C'))
@@ -1140,32 +1169,32 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('4E', '+', 'N'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('4F', '|', 'O'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('50', '&', 'P'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('51', '\xD8', 'Q'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('52', '\xD9', 'R'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('53', '\xE2', 'S'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('54', '\xE3', 'T'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('55', '\xE4', 'U'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('56', '\xE5', 'V'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('57', '\xE6', 'W'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('58', '\xE7', 'X'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\xE8', 'Y'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('51', '\x51', 'Q'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('52', '\x52', 'R'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('53', '\x53', 'S'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('54', '\x54', 'T'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('55', '\x55', 'U'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('56', '\x56', 'V'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('57', '\x57', 'W'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('58', '\x58', 'X'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\x59', 'Y'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5A', '!', 'Z'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5B', '$', '['))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5C', '*', '\x5C'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5D', ')', ']'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5E', ';', '\x5E'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('5F', '\x5F', '_'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5F', '¬', '_'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('60', '-', '\x60'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('61', '/', 'a'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('62', '\x82', 'b'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x83', 'c'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x84', 'd'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x85', 'e'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x86', 'f'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x87', 'g'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x88', 'h'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x89', 'i'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('6A', '!', 'j'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('62', '\x62', 'b'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x63', 'c'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x64', 'd'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x65', 'e'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x66', 'f'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x67', 'g'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x68', 'h'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x69', 'i'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('6A', '!'   , 'j'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6B', '.', 'k'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6C', '%', 'l'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('6D', '_', 'm'))
@@ -1284,7 +1313,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('DE', '\xDE', '\xDE'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('DF', '\xDF', '\xDF'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('E0', '\xE0', '\xE0'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('E1', 'X\E1', '\xE1'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('E1', '\xE1', '\xE1'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('E2', 'S', '\xE2'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('E3', 'T', '\xE3'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('E4', 'U', '\xE4'))
