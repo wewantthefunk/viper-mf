@@ -572,11 +572,10 @@ def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig
             result = result.replace(o, rep_array[count])
             count = count + 1
 
-        Set_Variable(main_variable_memory, variable_lists, name, result, name)
+        main_variable_memory = Set_Variable(main_variable_memory, variable_lists, name, result, name)[1]
+        return [True, main_variable_memory]
 
-        return True
-
-    return False
+    return [False, main_variable_memory]
 
 def Build_String(main_variable_memory, variable_lists, target: str, strings):
 
@@ -1126,21 +1125,21 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('23', '\x23', '#'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('24', '\x24', '$'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('25', '\x25', '%'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('26', '\x26', '&'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('26', '\x50', '&'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('27', '\x27', "'"))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('28', '\x28', '('))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('29', '\x29', ')'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x2A', '*'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2A', '\x61', '*'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2B', '\x2B', '+'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2C', '\x2C', ','))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2D', '\x2D', '\x2D'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('2E', '\x2E', '.'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('2F', '\x2F', '/'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('2F', '\x07', '/'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('30', '\x30', '0'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('31', '\x31', '1'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('32', '\x32', '2'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('33', '\x33', '3'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('34', '\x34', '4'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('34', '\xF4', '4'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('35', '\x35', '5'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('36', '\x36', '6'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('37', '\x04', '7'))
@@ -1180,7 +1179,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('59', '\x59', 'Y'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5A', '!', 'Z'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5B', '$', '['))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('5C', '*', '\x5C'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('5C', '*', '\x2A'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5D', ')', ']'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5E', ';', '\x5E'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('5F', '¬', '_'))
@@ -1190,7 +1189,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('63', '\x63', 'c'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('64', '\x64', 'd'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('65', '\x65', 'e'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x66', 'f'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('66', '\x86', 'f'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('67', '\x67', 'g'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('68', '\x68', 'h'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('69', '\x69', 'i'))
@@ -1217,7 +1216,7 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('7E', '=', '~'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('7F', '"', '\x7F'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('80', '\x80', '\x80'))
-    EBCDIC_ASCII_CHART.append(EBCDICASCII('81', 'a', '\x81'))
+    EBCDIC_ASCII_CHART.append(EBCDICASCII('81', 'a', '\x5C'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('82', 'b', '\x82'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('83', 'c', '\x83'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('84', 'd', '\x84'))

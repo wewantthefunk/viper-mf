@@ -515,7 +515,7 @@ def process_cics_link(tokens, name, indent, level, args, current_line):
 
 def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:
-        func = "Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS
+        func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
 
     return
