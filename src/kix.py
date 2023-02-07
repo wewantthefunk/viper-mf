@@ -45,12 +45,14 @@ PIPE_FLAG = "<"
 SET_DD = "set dd"
 SET_TRANSACTION = "set tran"
 SHOW_SYSOUT = "show sysout"
+SINGLE_QUOTE = "'"
 SPACE = " "
 STANDARD_BACKGROUND_COLOR = "black"
 STANDARD_CURSOR_SIZE = 10
 STANDARD_FONT = "Courier"
 STANDARD_FONT_SIZE = 14
 STANDARD_TEXT_COLOR = "white"
+STANDARD_INFO_TEXT_COLOR = "light green"
 START_COMMAND = "start"
 SYSOUT_TITLE = "KIX SYSOUT Display"
 SYSOUT_WINDOW_SIZE = '300x300+30+30'
@@ -101,6 +103,8 @@ class KIX:
             cobol_variable._write_file(TERMINAL_CONFIG, self.create_terminal_id())
 
         self.terminal_id = cobol_variable._read_file(TERMINAL_CONFIG, True)
+        self.transaction_id = EMPTY_STRING
+        self.transaction_label = None
 
         self.set_dd_values()
 
@@ -165,8 +169,15 @@ class KIX:
         term_lbl1 = Label(self.window, text="TERM ID:", font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="terminal_id_lbl",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
         term_lbl1.place(x=1,y=30)
 
-        term_lbl = Label(self.window, text=self.terminal_id, font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="terminal_id",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
+        tran_lbl1 = Label(self.window, text="TRAN ID:", font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="transaction_id_lbl",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_TEXT_COLOR)
+        tran_lbl1.place(x=150,y=30)
+
+        term_lbl = Label(self.window, text=self.terminal_id, font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="terminal_id",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_INFO_TEXT_COLOR)
         term_lbl.place(x=95,y=30)
+
+        tran_lbl = Label(self.window, text=EMPTY_STRING, font=(STANDARD_FONT, STANDARD_FONT_SIZE),name="transaction_id",background=STANDARD_BACKGROUND_COLOR,foreground=STANDARD_INFO_TEXT_COLOR)
+        tran_lbl.place(x=245,y=30)
+        self.transaction_label = tran_lbl
 
         self.sysout_label = self.create_label(self.sysout, EMPTY_STRING, "sysout_label", 5, 5)
         self.sysout.geometry(SYSOUT_WINDOW_SIZE)
@@ -276,6 +287,7 @@ class KIX:
 
             s = dd_split.split(COLON)
             os.environ[s[0]] = s[1].replace(NEWLINE, EMPTY_STRING).replace(CARRIAGE_RETURN, EMPTY_STRING)
+        return
 
     def process_command(self, text: str):
         self.current_command_entry = len(self.command_list) - 1
@@ -299,6 +311,7 @@ class KIX:
         else:
             trans = self.check_for_transaction(text)
             if trans != EMPTY_STRING:
+                self.set_current_transaction(trans)
                 self.start_module(START_COMMAND + SPACE + trans)
             else:
                 self.show_error_message(text)
@@ -308,12 +321,18 @@ class KIX:
 
         return
 
+    def set_current_transaction(self, trans_id: str):
+        self.transaction_id = trans_id.upper()
+        if self.transaction_label != None:
+            self.transaction_label.config(text=self.transaction_id)
+
     def show_error_message(self, text: str):
         self.message_label.config(foreground=ERROR_TEXT_COLOR)
         self.message_label.config(text=INVALID_COMMAND_MSG + SPACE + text)
+        return
 
     def list_transactions(self):
-        current_transactions = cobol_variable._read_file(TRANSACTION_CONFIG_FILE)
+        current_transactions = cobol_variable._read_file(TRANSACTION_CONFIG_FILE, False)
         self.write_to_sysout(current_transactions + NEWLINE)
         return
 
@@ -354,13 +373,13 @@ class KIX:
 
     def check_for_transaction(self, trans: str):
         trans = trans.lower().strip()
-        current_transactions = cobol_variable._read_file(TRANSACTION_CONFIG_FILE).split(NEWLINE)
+        current_transactions = cobol_variable._read_file(TRANSACTION_CONFIG_FILE, False).split(NEWLINE)
         for ct in current_transactions:
             s = ct.split(COLON)
             if len(s) < 2 or s[0] == EMPTY_STRING:
                 return EMPTY_STRING
             if s[0].lower().strip() == trans:
-                self.last_known_trans_id = trans
+                self.last_known_trans_id = trans.upper()
                 return s[1]
 
         return EMPTY_STRING
@@ -435,17 +454,17 @@ class KIX:
         for widget in frame.winfo_children():
             widget.destroy()
 
-    def build_map(self, info: str):
+    def build_map(self, map_name: str, data: str, map_only: bool, data_only: bool):
         self.clear_frame(self.main_frame)
-        map = cobol_variable._read_file(info + ".txt", False)
+        map = cobol_variable._read_file(map_name + ".txt", False)
         if map == EMPTY_STRING:
-            map = cobol_variable._read_file(info + ".map", False)
+            map = cobol_variable._read_file(map_name + ".map", False)
             if map == EMPTY_STRING:
-                map = cobol_variable._read_file("maps/" + info + ".map", False)
+                map = cobol_variable._read_file("maps/" + map_name + ".map", False)
                 if map == EMPTY_STRING:
-                    map = cobol_variable._read_file("maps/" + info + ".txt", False)
+                    map = cobol_variable._read_file("maps/" + map_name + ".txt", False)
                     if map == EMPTY_STRING:
-                        self.show_error_message("MAP " + info + " NOT FOUND")
+                        self.show_error_message("MAP " + map_name + " NOT FOUND")
                         return
 
         lines = map.split(NEWLINE)
@@ -459,10 +478,10 @@ class KIX:
             
             field_info = field_info + line + SPACE
             if line.endswith(MAP_CONTINUATION_CHARACTER) == False:
-                self.build_field(field_info)
+                self.build_field(field_info, data, map_only, data_only)
                 field_info = EMPTY_STRING
 
-        self.build_field(field_info)
+        self.build_field(field_info, data, map_only, data_only)
 
         return
 
@@ -476,9 +495,12 @@ class KIX:
         field_y = 1
         field_text = EMPTY_STRING
         tokens = self.parse_tokens(field_info)
+        if tokens[0] == MAP_FIELD_IDENTIFIER:
+            tokens.insert(0, ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)))
         skip_lines = 0
         var_name = tokens[0].lower()
         has_focus = False
+        in_literal = False
         for token in tokens:
             skip_lines = skip_lines + 1
             if ATTRB_KEYWORD in token:
@@ -496,16 +518,29 @@ class KIX:
                 pos = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COMMA)
                 field_y = int(pos[0].replace(COMMA, EMPTY_STRING))
                 field_x = int(pos[1].replace(COMMA, EMPTY_STRING))
+                if field_y == 2:
+                    x1 = 0
             elif 'LENGTH' in token:
                 s = token.split(EQUALS)
                 field_length = int(s[1].replace(COMMA, EMPTY_STRING))
-            elif 'INITIAL' in token:
+            elif 'INITIAL' in token or in_literal:
                 s = token.split(EQUALS)
-                field_text = s[1]
-                if field_text.startswith("'"):
-                    field_text = field_text[1:]
-                if field_text.endswith("'"):
-                    field_text = field_text[:len(field_text) - 1]
+                if len(s) > 1:
+                    temp_field_text = s[1]
+                else:
+                    temp_field_text = s[0]
+                if temp_field_text.startswith(SINGLE_QUOTE):
+                    temp_field_text = temp_field_text[1:]
+                    in_literal = True
+
+                if temp_field_text.endswith(SINGLE_QUOTE):
+                    if field_text == temp_field_text[:len(field_text) - 1]:
+                        field_text = field_text[:len(field_text) - 1]
+                    else:
+                        field_text = field_text + SPACE + temp_field_text[:len(temp_field_text) - 1]
+                    in_literal = False
+                else:
+                    field_text = field_text + SPACE + temp_field_text
             elif 'DFHMSD' in token or 'DFHMDI' in token:
                 field_type = "none"
 
