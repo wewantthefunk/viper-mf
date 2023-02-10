@@ -544,7 +544,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
         else:
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
-        line = line.replace(replace_info[1], replace_info[3]).replace(NEWLINE, EMPTY_STRING).strip()
+        line = line[6:].replace(replace_info[1], replace_info[3]).replace(NEWLINE, EMPTY_STRING).strip()
         if line != EMPTY_STRING and line.startswith(COBOL_COMMENT) == False:
             create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
     append_file(outfile, NEWLINE)

@@ -10,6 +10,7 @@ examples/*.cobol
 examples/hw.cbl
 temp/
 .vscode/
+work/
 converted/*.txt
 src/scratch.py
 src/HELLOWO1.py
@@ -19,3 +20,4 @@ src/test-records.txt
 *.config
 *comm.txt
 *eib.txt
+copybooks/CABEHUHE.CPY
