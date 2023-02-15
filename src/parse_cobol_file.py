@@ -266,5 +266,6 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow24_search_all_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")
-    parse_cobol_file("examples/hellow55_comp_3_cascading.cbl", "converted/")
+    #parse_cobol_file("examples/hellow53_comp_3_fields.cbl", "converted/")
     #parse_cobol_file("work/extract_huhe.cbl", "converted/")
+    parse_cobol_file("examples/hellow66_evaluate_also_statement.cbl", "converted/")

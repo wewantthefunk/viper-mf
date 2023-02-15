@@ -121,8 +121,12 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         last_cmd_display = False
     elif verb == COBOL_VERB_EVALUATE:
         is_first_when = True
+        long_evaluate_compare = EMPTY_STRING
+        for x in range (2,len(tokens)):
+            long_evaluate_compare = long_evaluate_compare + tokens[x] + SPACE
+
         evaluate_compare = tokens[1]
-        evaluate_compare_stack.append([evaluate_compare, evaluate_compare])
+        evaluate_compare_stack.append([evaluate_compare, long_evaluate_compare])
         level = level + 1
     elif verb == COBOL_VERB_WHEN:
         if tokens[1] == WHEN_OTHER_KEYWORD:
@@ -592,11 +596,37 @@ def process_evaluate_verb(tokens, name: str, level: int):
                 memory_area = SELF_REFERENCE + name + MEMORY
                 if operand2 in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
-                operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
+                operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
     elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'True'
     elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD:
         operand2 = 'False'
+    else:
+        if len(evaluate_compare_stack) > 0:
+            if evaluate_compare_stack[len(evaluate_compare_stack) - 1][1] != EMPTY_STRING:
+                operand2 = EMPTY_STRING
+                et = evaluate_compare_stack[len(evaluate_compare_stack) - 1][1].split(SPACE)
+                if tokens[1] == TRUE_KEYWORD:
+                    operand2 = operand2 + convert_operator(et[0]) + SPACE + et[1]
+                else:
+                    operand2 = operand2 + convert_operator_opposite(et[0]) + SPACE + et[1]
+
+                if et[2] == ALSO_KEYWORD:
+                    also_index = tokens.index(ALSO_KEYWORD)
+                    operand2 = operand2 + " and "
+                    if et[3].startswith(SINGLE_QUOTE) == False and et[3].isnumeric() == False:
+                        memory_area = SELF_REFERENCE + name + MEMORY
+                        if et[3] in EIB_VARIABLES:
+                            memory_area = SELF_REFERENCE + EIB_MEMORY
+                        operand2 = operand2 + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + et[3] + "','" + et[3] + "') "
+                    else:
+                        operand2 = operand2 + et[3]
+                    if tokens[also_index + 1] == TRUE_KEYWORD:
+                        operand2 = operand2 + convert_operator(et[4]) + SPACE + et[5]
+                    else:
+                        operand2 = operand2 + convert_operator_opposite(et[4]) + SPACE + et[5]
+
+                operator = EMPTY_STRING
 
     prefix = "if "
     if is_first_when == False:
