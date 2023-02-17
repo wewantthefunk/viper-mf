@@ -263,19 +263,42 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
     count = 0
 
     temp_tokens = []
+    skip_next = False
+    skip_next_2 = False
     for t in tokens:
+        if skip_next_2:
+            skip_next = True
+            skip_next_2 = False
+            count = count + 1
+            continue
+        if skip_next:
+            skip_next = False
+            count = count + 1
+            continue
         if t.startswith(OPEN_PARENS) or t.endswith(CLOSE_PARENS):
             if len(temp_tokens) > 0:
                 temp_tokens[len(temp_tokens) - 1] = temp_tokens[len(temp_tokens) - 1] + t.replace(OPEN_PARENS, "{").replace(CLOSE_PARENS, "}")
         elif t == EMPTY_STRING or t == PERIOD:
+            count = count + 1
             continue
+        elif t == LENGTH_KEYWORD:
+            offset = 1
+            if tokens[count + 1] == OF_KEYWORD:
+                skip_next_2 = True
+                skip_next = False
+                offset = 2
+
+            temp_tokens.append('len_' + tokens[count + offset])
         else:
             if len(temp_tokens) > 0 and check_valid_verb(t, t, True) == False:
                 temp_tokens.append(t)
             elif len(temp_tokens) == 0:
                 temp_tokens.append(t)
 
+        count = count + 1
+
     tokens = temp_tokens
+    count = 0
 
     end_len = len(tokens)
     if tokens[len(tokens) - 1] == PERIOD:
@@ -315,6 +338,8 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
                 v = token.replace("{", OPEN_PARENS).replace("}", CLOSE_PARENS)
                 if v.startswith(PLUS_SIGN):
                     token = v
+                elif v.startswith('len_'):
+                    token = "Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + "\"" + v[len('len_'):] + "\")"
                 else:
                     token = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",\"" + v + "\",\"" + v + "\")"
 
@@ -505,6 +530,7 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
 
 def process_cics_link(tokens, name, indent, level, args, current_line):
     new_tokens = [COBOL_VERB_CALL, '', USING_KEYWORD, '', PERIOD]
+    count = 0
     for token in tokens:
         if token.startswith(PROGRAM_KEYWORD):
             s = token.split(OPEN_PARENS)
@@ -512,6 +538,19 @@ def process_cics_link(tokens, name, indent, level, args, current_line):
         elif token.startswith(COMMAREA_KEYWORD):
             s = token.split(OPEN_PARENS)
             new_tokens[3] = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+        elif token.startswith(LENGTH_KEYWORD):
+            s = token.split(OPEN_PARENS)
+            # does the length of the passed data really matter?
+            '''if s[1] == LENGTH_KEYWORD and tokens[count + 1] == OF_KEYWORD:
+                new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON 
+                new_tokens[3] = new_tokens[3] + "Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[count + 2] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS
+            else:
+                if s[1].isnumeric() == False:
+                    new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON + "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME \
+                        + COMMA + SINGLE_QUOTE + s[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS
+                else:
+                    new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON + s[1] + CLOSE_PARENS'''
+        count = count + 1
     
     process_call_verb(new_tokens, name, indent, level, args, current_line)
 
@@ -916,10 +955,13 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
     target_offset = 3
 
+    memory_area = SELF_REFERENCE + name + MEMORY
+
     if value.startswith(SINGLE_QUOTE) == False \
             and value.startswith(MAIN_ARG_VARIABLE_PREFIX) == False \
             and value.startswith(HEX_PREFIX) == False \
-            and value.startswith(DOUBLE_QUOTE) == False:
+            and value.startswith(DOUBLE_QUOTE) == False \
+            and value.startswith(LENGTH_KEYWORD) == False:
         if OPEN_PARENS in value:
             old_value = value
             s = value.split(OPEN_PARENS)
@@ -961,6 +1003,9 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                 value = str(int(value))
     elif value.startswith(SINGLE_QUOTE):
         x = 0
+    elif value.startswith(LENGTH_KEYWORD):
+        target_offset = 5
+        value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + 'len_' + tokens[3] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[3] + SINGLE_QUOTE + CLOSE_PARENS
 
     target = tokens[target_offset].replace(PERIOD, EMPTY_STRING)
 
@@ -979,6 +1024,7 @@ def process_display_verb(tokens, name: str, level: int):
     count = 0
     skip_the_rest = False
     skip_next = False
+    skip_next_2 = False
     for t in tokens:
         t = str(t)
         if t == PERIOD:
@@ -990,6 +1036,10 @@ def process_display_verb(tokens, name: str, level: int):
             continue
         if skip_next:
             skip_next = False
+            continue
+        if skip_next_2:
+            skip_next = True
+            skip_next_2 = False
             continue
         if count > 0:
             if tokens[count] in COBOL_VERB_LIST:
@@ -1011,6 +1061,12 @@ def process_display_verb(tokens, name: str, level: int):
             if (t.startswith(SINGLE_QUOTE) and t.endswith(SINGLE_QUOTE)) or t == EMPTY_STRING:
                 t = t.replace(SINGLE_QUOTE, EMPTY_STRING)
                 parent = LITERAL
+            if t.startswith(LENGTH_KEYWORD) and is_literal == False:
+                skip_next_2 = True
+                skip_next = False
+                if tokens[count + 1] == OF_KEYWORD:
+                    t = 'len_' + tokens[count + 2]
+                    parent = tokens[count + 2]
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
@@ -1025,11 +1081,16 @@ def process_math_verb(tokens, name: str, level: int):
             giving = tokens[4]
     mod = "'" + tokens[1] + "'"
     target = tokens[3]
-    if tokens[1].lstrip('+-').isdigit() == False:
+    if tokens[1].lstrip('+-').isdigit() == False and tokens[1] != LENGTH_KEYWORD:
         memory_area = SELF_REFERENCE + name + MEMORY
         if tokens[1] in EIB_VARIABLES:
             memory_area = SELF_REFERENCE + EIB_MEMORY
-        mod = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+        mod = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+    elif tokens[1] == LENGTH_KEYWORD:
+        t = 2
+        if tokens[2] == OF_KEYWORD:
+            t = 3
+        mod = "Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[t] + SINGLE_QUOTE + CLOSE_PARENS
 
     if tokens[0] == COBOL_VERB_MULTIPLY:
         mod = "'" + tokens[3] + "'"

@@ -347,6 +347,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         if OCCURS_CLAUSE in tokens:
             i = tokens.index(OCCURS_CLAUSE)
             occurs_length = int(tokens[i + 1])
+            if tokens[i + 2] == TO_KEYWORD:
+                occurs_length = int(tokens[i + 3])
 
         if INDEXED_CLAUSE in tokens:
             i = tokens.index(INDEXED_CLAUSE) + 1

@@ -37,5 +37,9 @@
            DISPLAY 'expected value 28'
            DISPLAY 'actual value   ' JUNK-VAR.
 
+           SET L-ONE
+               ONE TO TRUE.
+           
+
            STOP RUN.
 

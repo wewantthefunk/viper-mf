@@ -26,9 +26,10 @@ GREATER_THAN = ">"
 GREATER_THAN_EQUAL = ">="
 HEX_DISPLAY_PREFIX = "0x"
 HEX_PREFIX = "_hex_"
-LEVEL_88 = "88"
+LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
+LEVEL_88 = "88"
 LITERAL = "literal"
 MULTIPLICATION_OPERATOR = "*"
 NEGATIVE_SIGN = "-"
@@ -612,6 +613,10 @@ def Get_Variable_Length(variable_lists, name: str):
 def Get_Variable_Value(main_variable_memery, variable_lists, name: str, parent: str, force_str = False):
     t = EMPTY_STRING
 
+    if name.startswith(LENGTH_FUNC_PREFIX):
+        type_result = Get_Variable_Length(variable_lists, name[len(LENGTH_FUNC_PREFIX):])
+        return type_result
+
     for var_list in variable_lists:
         t = _get_variable_value(main_variable_memery, var_list, name, [parent], force_str, variable_lists)
         if t[1] > 0:
@@ -700,7 +705,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     else:
         type_result = result
 
-    return [type_result, found_count, result, count]
+    return [type_result, found_count, result, count, var]
 
 def _calc_start_pos(var_list, var_parent: COBOLFileVariable, start: int, occurrence: int):
     result = start
@@ -839,11 +844,21 @@ def convert_multi_comp(var_list, var: COBOLVariable, value: str):
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
     if is_literal == False:
-        for var_list in variable_lists:
-            r = _get_variable_value(main_variable_memory, var_list, name, [parent], False, variable_lists)
-            dv = r[2]
-            if r[1] > 0:
-                break
+        get_length_of = False
+        if name.startswith(LENGTH_FUNC_PREFIX):
+            get_length_of = True
+            name = name[len(LENGTH_FUNC_PREFIX):]
+            dv = Get_Variable_Length(variable_lists, name)
+        else:
+            for var_list in variable_lists:            
+                r = _get_variable_value(main_variable_memory, var_list, name, [parent], False, variable_lists)
+                if r[1] > 0:
+                    if get_length_of:
+                        dv = str(r[4].length)
+                    else:
+                        dv = r[2]
+                if r[1] > 0:
+                    break
 
     print_value(dv)
 

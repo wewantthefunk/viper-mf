@@ -72,9 +72,23 @@ class KIXEntry:
         self.entry_field = None
 
         return
+    
+class KIXQueue:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.items = []
+
+    def push(self, item: str):
+        self.items.append(item)
+        return True
+
+    def pop(self):
+        return self.items.pop()
 
 class KIX:     
     def __init__(self):
+        self.queues = []
+
         self.window = Tk()
 
         self.window.title(WINDOW_TITLE)
@@ -565,6 +579,35 @@ class KIX:
 
     def create_terminal_id(self):
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    
+    def writeq(self, name: str, item: str):
+        index = -1
+        for q in self.queues:
+            index = index + 1
+            if q.name == name:
+                break
+
+        if index < 0:
+            self.queues.append(KIXQueue(name))
+            index = len(self.queues) - 1
+
+        self.queues[index].push(item)
+
+        return [index, len(self.queues[index]) - 1]
+    
+    def readq(self, name: str):
+        index = -1
+        for q in self.queues:
+            index = index + 1
+            if q.name == name:
+                break
+
+        if index >= 0:
+            queue = self.queues[index]
+            if len(queue) > 0:
+                return queue.pop()
+            
+        return EMPTY_STRING
 
 if __name__ == '__main__':
     Kix_obj = KIX()

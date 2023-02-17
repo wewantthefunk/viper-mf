@@ -1,0 +1,22 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLOW69.
+       AUTHOR. CHRISTIAN STRAMA.
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+       01 WS-LIMIT  PIC 9(3).
+
+       01 TEST-ARRAY OCCURS 10 TO 100 TIMES 
+              DEPENDING ON WS-LIMIT
+              INDEXED BY TS-INDEX.
+           05 VALUE-ONE    PIC X(2).
+           05 VALUE-TWO    PIC X(2).
+
+       PROCEDURE DIVISION.
+
+           SET WS-LIMIT TO 50.
+
+           STOP RUN.
+
