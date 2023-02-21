@@ -439,12 +439,28 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
-        init_val = tokens[tokens.index(VALUE_CLAUSE) + 1]
-        if init_val == IS_KEYWORD:
-            init_val = tokens[tokens.index(VALUE_CLAUSE) + 2]
-        if init_val.startswith("X'"):
-            init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
-        var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
+        value_index = tokens.index(VALUE_CLAUSE) + 1
+        if tokens[value_index] == IS_KEYWORD:
+            value_index = tokens.index(VALUE_CLAUSE) + 2
+        if value_index == len(tokens) - 1:
+            init_val = tokens[value_index]
+            var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
+        else:
+            for x in range(value_index, len(tokens) - 1):
+                init_val = tokens[value_index]
+                if init_val.startswith("X'"):
+                    init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
+                if init_val == LOW_VALUES_KEYWORD:
+                    init_val = SINGLE_QUOTE + HEX_PREFIX + '00' + SINGLE_QUOTE
+                if init_val == THRU_KEYWORD:
+                    val = int(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + 1
+                    end = int(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING))
+                    while val < end:
+                        var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
+                        val = val + 1
+                else:
+                    var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
+                value_index = value_index + 1
 
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]
@@ -509,6 +525,7 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
+    current_line.skip_the_next_lines = 0
     is_eib = False
     if copybook == EIB_COPYBOOK:
         is_eib = True

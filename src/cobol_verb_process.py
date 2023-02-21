@@ -728,6 +728,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
     num_spaces = len(INDENT) * level
     last_known_operand1 = tokens[1]
     skip_next = False
+    inside_of_bracket = False
 
     for token in tokens:
         if count == 0:
@@ -740,6 +741,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             skip_next = False
             continue
         need_closed_parens = False
+        need_closed_bracket = False
         slice_compare = EMPTY_STRING
         if len(tokens) > count:
             if tokens[count] == NUMERIC_KEYWORD:
@@ -758,14 +760,22 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             if is_boolean_keyword(s[0]):
                 tokens.insert(count, OPEN_PARENS + s[1])
                 token = s[0]
+            elif tokens[count] == OR_KEYWORD:
+                token = IN_KEYWORD
+                tokens[count] = COMMA
+                tokens.insert(count, s[1])                
         else:
             if token.startswith(OPEN_PARENS):
                 line = line + OPEN_PARENS
             token = token.replace(OPEN_PARENS, EMPTY_STRING)
 
             if token.endswith(CLOSE_PARENS):
-                need_closed_parens = True
-                token = token.replace(CLOSE_PARENS, EMPTY_STRING)
+                if inside_of_bracket:
+                    token = token.replace(CLOSE_PARENS, EMPTY_STRING)
+                    need_closed_bracket = True
+                else:
+                    need_closed_parens = True
+                    token = token.replace(CLOSE_PARENS, EMPTY_STRING)
 
         if token.startswith(SINGLE_QUOTE):
             if in_ALL_function:
@@ -806,12 +816,15 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             line = line + "Get_Spaces(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
         elif token == NEGATIVE_KEYWORD:
             line = line + " < 0"
-        elif token == OPEN_PARENS or token == CLOSE_PARENS:
+        elif token == OPEN_PARENS or token == CLOSE_PARENS or token == COMMA:
             line = line + token
         elif token in COBOL_ARITHMATIC_OPERATORS:
             if token == DIVISION_OPERATOR:
                 token = DIVISION_OPERATOR + DIVISION_OPERATOR
             line = line + SPACE + token + SPACE
+        elif token == IN_KEYWORD:
+            line = line + SPACE + IN_KEYWORD + SPACE + OPEN_BRACKET
+            inside_of_bracket = True
         else:
             var = token
             if count < len(tokens):
@@ -840,6 +853,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             line = line + CLOSE_PARENS + SPACE
         if need_closed_parens:
             line = line + CLOSE_PARENS + SPACE
+        if need_closed_bracket:
+            line = line + CLOSE_BRACKET + SPACE
 
     line = line + COLON + NEWLINE
 

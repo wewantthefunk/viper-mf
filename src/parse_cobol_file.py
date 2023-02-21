@@ -260,7 +260,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCV.cobol", "converted/")
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
-    parse_cobol_file("examples/COMPL001.cbl", "converted/")
+    #parse_cobol_file("examples/COMPL001.cbl", "converted/")
     #parse_cobol_file("examples/cics02_link.cbl", "converted/")
     #parse_cobol_file("examples/hellow69_variable_occurs_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
@@ -270,4 +270,4 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow53_comp_3_fields.cbl", "converted/")
     #parse_cobol_file("work/extract_huhe.cbl", "converted/")
-    #parse_cobol_file("examples/hellow67_length_of_function.cbl", "converted/")
+    parse_cobol_file("examples/hellow71_multi_or_if_statement.cbl", "converted/")

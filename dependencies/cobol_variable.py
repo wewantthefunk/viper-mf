@@ -101,7 +101,7 @@ class COBOLVariable:
         else:
             self.parent = EMPTY_STRING
         self.value = EMPTY_STRING
-        self.level88value = EMPTY_STRING
+        self.level88value = []
         self.occurs_values = []
         self.occurs_indexes = []
         self.redefines = redefines
@@ -475,7 +475,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 if value == 'True':
                     main_variable_memory = Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)[1]
                 else:
-                    var.level88value = value
+                    var.level88value.append(value)
                 return [True, main_variable_memory]
             else:
                 if var.data_type in NUMERIC_DATA_TYPES:
@@ -657,7 +657,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
             elif var_list[count].level == LEVEL_88:
                 var_parent = _find_variable(var_list, var_list[count].parent)
                 if var_parent != None:
-                    result = var_list[count].level88value == str(Get_Variable_Value(main_variable_memory, orig_var_list, var_parent.name, var_parent.name))
+                    result = str(Get_Variable_Value(main_variable_memory, orig_var_list, var_parent.name, var_parent.name)) in var_list[count].level88value
                 else:
                     result = False
                 count = len(var_list)
@@ -686,7 +686,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         if var.sign == NEGATIVE_SIGN:
                             result = var.sign + result
                 elif var.level == LEVEL_88:
-                    result = result == var.level88value
+                    result = result in var.level88value
                 count = len(var_list)
                 found_count = 1
         else:
