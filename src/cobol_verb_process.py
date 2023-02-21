@@ -636,9 +636,14 @@ def process_evaluate_verb(tokens, name: str, level: int):
                 if operand2 in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD:
+    elif (evaluate_compare == TRUE_KEYWORD or evaluate_compare == FALSE_KEYWORD) and operand2 != NUMERIC_KEYWORD and operator == IN_KEYWORD:
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if operand2 in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
+    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
         operand2 = 'True'
-    elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD:
+    elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
         operand2 = 'False'
     else:
         if len(evaluate_compare_stack) > 0:
@@ -682,7 +687,7 @@ def process_evaluate_verb(tokens, name: str, level: int):
 
     operand1_name = evaluate_compare
 
-    if operand2 == 'True' or operand2 == 'False' or operand2 == NUMERIC_KEYWORD:
+    if operand2 == 'True' or operand2 == 'False' or operand2 == NUMERIC_KEYWORD or operand2.startswith("Get_Variable_Value("):
         operand1_name = tokens[1]
 
     memory_area = SELF_REFERENCE + name + MEMORY

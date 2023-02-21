@@ -80,10 +80,15 @@ class KIXQueue:
 
     def push(self, item: str):
         self.items.append(item)
-        return True
+        return len(self.items) - 1
 
-    def pop(self):
-        return self.items.pop()
+    def pop(self, item_number: int = -1):
+        if len(self.items) > 0:
+            pos = item_number
+            if pos < 0:
+                pos = len(self.items) - 1
+            return self.items.pop(pos)
+        return EMPTY_STRING
 
 class KIX:     
     def __init__(self):
@@ -591,7 +596,7 @@ class KIX:
             self.queues.append(KIXQueue(name))
             index = len(self.queues) - 1
 
-        self.queues[index].push(item)
+        self.queues[index].append(item)
 
         return [index, len(self.queues[index]) - 1]
     
@@ -605,7 +610,7 @@ class KIX:
         if index >= 0:
             queue = self.queues[index]
             if len(queue) > 0:
-                return queue.pop()
+                return queue.pop(0)
             
         return EMPTY_STRING
 

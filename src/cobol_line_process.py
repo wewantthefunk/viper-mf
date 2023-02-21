@@ -66,10 +66,10 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
             break
 
     val = tokens[2].replace(SINGLE_QUOTE, EMPTY_STRING)
-    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + tokens[1] + "', " \
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + tokens[1] + "', " \
          + str(len(val)) + ", '" + "X" + "','" + EMPTY_STRING + "','" + EMPTY_STRING + "')" + NEWLINE)
-    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
-    append_file(name + PYTHON_EXT + pad(len(INDENT) * 2), SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
     var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
 
@@ -428,9 +428,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
     memory_name = SELF_REFERENCE + name + MEMORY 
+    variable_list = format(current_section)
     if is_eib:
         memory_name = SELF_REFERENCE + EIB_MEMORY 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars,'" + v_name + "', " \
+        variable_list = EIB_VARIABLE_LIST
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + variable_list + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
             + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
