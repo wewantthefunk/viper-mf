@@ -11,6 +11,7 @@
        PROCEDURE DIVISION.
 
            IF TEST-VAL = ('1' OR '2')
+              OR TEST-VAL = '3'
               DISPLAY 'true'
            END-IF.
 
