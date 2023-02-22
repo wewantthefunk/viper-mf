@@ -12,7 +12,7 @@
 
            DISPLAY 'expected value: true'
            
-           IF TEST-VAL = ('1' OR '2')
+           IF TEST-VAL = ('1' OR '2' OR '4' OR '5')
               OR TEST-VAL = '3'
               DISPLAY 'actual value:   true'
            ELSE

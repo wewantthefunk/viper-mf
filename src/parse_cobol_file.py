@@ -270,4 +270,4 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow53_comp_3_fields.cbl", "converted/")
     #parse_cobol_file("work/extract_huhe.cbl", "converted/")
-    parse_cobol_file("examples/hellow72_level_88_array.cbl", "converted/")
+    parse_cobol_file("examples/hellow71_multi_or_if_statement.cbl", "converted/")

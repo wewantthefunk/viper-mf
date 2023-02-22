@@ -130,6 +130,7 @@ def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: 
             in_literal = True
             if (t.endswith("'") and t != "'"):
                 in_literal = False
+                literal = ''
         elif (t.endswith("'")):
             literal = literal + " " + t
             t = literal
@@ -144,6 +145,7 @@ def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: 
 
         if t != ignore_value and not in_literal:
             line_elements.append(t)
+            t = ''
 
         count = count + 1
 

@@ -763,7 +763,9 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             elif tokens[count] == OR_KEYWORD:
                 token = IN_KEYWORD
                 tokens[count] = COMMA
-                tokens.insert(count, s[1])                
+                tokens.insert(count, s[1])    
+        elif token == OR_KEYWORD and inside_of_bracket:
+            token = COMMA            
         else:
             if token.startswith(OPEN_PARENS):
                 line = line + OPEN_PARENS
@@ -855,6 +857,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             line = line + CLOSE_PARENS + SPACE
         if need_closed_bracket:
             line = line + CLOSE_BRACKET + SPACE
+            inside_of_bracket = False
 
     line = line + COLON + NEWLINE
 
@@ -904,8 +907,11 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
     memory_area = SELF_REFERENCE + name + MEMORY
     if tokens[varying_index + 1] in EIB_VARIABLES:
         memory_area = SELF_REFERENCE + EIB_MEMORY
+    operand2 = tokens[until_index + 3]
+    if operand2.isnumeric() == False and operand2.startswith(SINGLE_QUOTE) == False:
+        operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
     line = "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + SPACE \
-        + convert_operator_opposite(tokens[until_index + 2]) + SPACE + tokens[until_index + 3]
+        + convert_operator_opposite(tokens[until_index + 2]) + SPACE + operand2
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + line)
     for or_index in or_indices:
