@@ -17,8 +17,11 @@
 
            SET TWO(1) TO TRUE.
 
+           DISPLAY 'expected value: true'
            IF TWO(1)
-              DISPLAY 'true'
+              DISPLAY 'actual value:   true'
+           ELSE
+              DISPLAY 'actual value:   false'
            END-IF.
 
            STOP RUN.

@@ -16,11 +16,12 @@
        PROCEDURE DIVISION.
            MOVE '1' TO LEVEL-88-TEST.
 
+           DISPLAY 'expected value: True'
            EVALUATE TRUE
                WHEN ONE-LIST
-                  DISPLAY 'True'
+                  DISPLAY 'actual value:   True'
                WHEN OTHER
-                  DISPLAY 'False'
+                  DISPLAY 'actual value:   False'
            END-EVALUATE
            
            

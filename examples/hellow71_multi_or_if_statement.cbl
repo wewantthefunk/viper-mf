@@ -10,9 +10,13 @@
 
        PROCEDURE DIVISION.
 
+           DISPLAY 'expected value: true'
+           
            IF TEST-VAL = ('1' OR '2')
               OR TEST-VAL = '3'
-              DISPLAY 'true'
+              DISPLAY 'actual value:   true'
+           ELSE
+              DISPLAY 'actual value:   false'
            END-IF.
 
            STOP RUN.
