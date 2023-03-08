@@ -7,7 +7,7 @@ args = []
 
 
 
-def parse_cobol_file(file: str, target_dir: str):
+def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     global args
     args = []
     r_lines = read_raw_file_lines(file, 0)
@@ -139,7 +139,7 @@ def parse_cobol_file(file: str, target_dir: str):
 
     move_file(name + PYTHON_EXT, target_dir + name + PYTHON_EXT)
 
-    copy_file("dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
+    copy_file(dep_dir + "dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
 def insert(originalfile,imports):
     for imp in imports:
