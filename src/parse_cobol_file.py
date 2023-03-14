@@ -97,6 +97,11 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
         append_file(name + PYTHON_EXT, NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+
+    append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def retrieve_pointer(self, pos):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "pass" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if " + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER  + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
@@ -114,12 +119,12 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     if len(args) > 0:
         append_file(name + PYTHON_EXT, "print" + OPEN_PARENS)
 
-    append_file(name + PYTHON_EXT, "main_obj.main" + OPEN_PARENS)
+    append_file(name + PYTHON_EXT, "main_obj.main" + OPEN_PARENS + "main_obj")
 
     arg_count = 0
     if len(args) > 0:
         for x in range(0, len(args)):
-            if x > 3:
+            if x > 2:
                 append_file(name + PYTHON_EXT, COMMA)
             if x > 2:
                 arg_count = arg_count + 1
@@ -191,7 +196,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                 append_file(name + PYTHON_EXT, "# EIB Fields" + NEWLINE)
                 insert_copybook(name + PYTHON_EXT, EIB_COPYBOOK, current_line, name, current_line.current_section, next_few_lines, args)
                 append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main" + OPEN_PARENS + "self")
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def main" + OPEN_PARENS + "self,caller")
 
                 if USING_KEYWORD in line:
                     args = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
@@ -203,9 +208,12 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                             append_file(name + PYTHON_EXT, COMMA + MAIN_ARG_VARIABLE_PREFIX + str(arg_count))
                         count = count + 1
                 
-                append_file(name + PYTHON_EXT, CLOSE_PARENS + COLON + NEWLINE)
+                append_file(name + PYTHON_EXT, ",*therest" + CLOSE_PARENS + COLON + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "try:" + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + EIB_MEMORY + EQUALS + "Retrieve_EIB_Area(" + SELF_REFERENCE + "_INTERNALVars[0].value" + CLOSE_PARENS + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + "self.caller_module = caller" + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + "_INTERNALVars[1].value = " + SINGLE_QUOTE + ADDRESS_INDICATOR + SINGLE_QUOTE + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + "_INTERNALVars[1].address_module = AddressModule(caller, 0)" + NEWLINE)
 
                 count = 0
                 arg_count = 0
@@ -233,6 +241,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "caller_module = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + EIB_MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + " = []" + NEWLINE)
@@ -242,6 +251,8 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(self._" + EIB_VARIABLE_LIST + "Vars)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = Add_Variable('', self._INTERNALVars, 'MODULE-NAME', 0, 'X', 'MODULE-NAME', '', 0, 0, '', '01')[0]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars[0].value = " + SINGLE_QUOTE + name + SINGLE_QUOTE + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars[0].address_module = AddressModule(self, 0)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = Add_Variable('', self._INTERNALVars, 'CALLING-MODULE-NAME', 0, 'X', 'CALLING-MODULE-NAME', '', 0, 0, '', '01')[0]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + SPACE + EQUALS + SPACE + NONE_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CALLING_MODULE_MEMBER + SPACE + EQUALS + SPACE + NONE_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
@@ -266,8 +277,8 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow38_search_table_redefined_literals.cbl", "converted/")
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
-    #parse_cobol_file("examples/hellow24_search_all_statement.cbl", "converted/")
-    #parse_cobol_file("examples/hellow48_compute_statement.cbl", "converted/")
-    #parse_cobol_file("examples/hellow53_comp_3_fields.cbl", "converted/")
+    #parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")
+    #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
+    parse_cobol_file("examples/hellow73_low_values_high_values.cbl", "converted/")
     #parse_cobol_file("work/extract_huhe.cbl", "converted/")
-    parse_cobol_file("examples/hellow71_multi_or_if_statement.cbl", "converted/")
+    parse_cobol_file("examples/hellow68_address_of_function.cbl", "converted/")

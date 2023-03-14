@@ -5,6 +5,7 @@ from os.path import exists
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
 ADD_COMMAND = "add"
+ADDRESS_INDICATOR = "&&*"
 ALPHANUMERIC_DATA_TYPE = "X"
 BIG_BYTE_ORDER = "big"
 CLOSE_PARENS = ")"
@@ -118,6 +119,11 @@ class COBOLVariable:
         self.index_variable = index
         self.array_pos = array_pos
         self.is_top_redefines = is_top_redefines
+
+class AddressModule:
+    def __init__(self, module, pos) -> None:
+        self.module = module
+        self.position = pos
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
@@ -434,8 +440,34 @@ def _search_Variable_Array(main_variable_memory, variable_lists, operand1_list: 
 
     return result
 
-def Set_Variable(main_variable_memory, variable_lists, name: str, value: str, parent: str, index_pos = 0):  
-    found = [False, EMPTY_STRING]
+def Set_Variable_Address(caller_module, main_variable_memory, variable_lists, name: str, value, parent: str):
+    var = None
+    for var_list in variable_lists:
+        var = _find_variable(var_list, name)
+        if var != None:
+            break
+
+    if var != None:
+        if type(value) == AddressModule:
+            var.value = ADDRESS_INDICATOR
+            var.address_module = value
+        else:
+            var2 = None
+            for var_list in variable_lists:
+                var2 = _find_variable(var_list, value)
+                if var2 != None:
+                    break
+
+            if var2 != None:
+                var.value = ADDRESS_INDICATOR
+                var.address_module = AddressModule(caller_module, var2.array_pos)
+
+    return [True, main_variable_memory]
+
+def Set_Variable(main_variable_memory, variable_lists, name: str, value, parent: str, index_pos = 0, caller_module = None):
+    if type(value) == AddressModule:
+        return Set_Variable_Address(caller_module, main_variable_memory, variable_lists, name, value, name)
+    found = [False, main_variable_memory]
     for var_list in variable_lists:
         found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists)
         if found[0]:
@@ -610,7 +642,24 @@ def Get_Variable_Length(variable_lists, name: str):
             return var.length
     return 0
 
-def Get_Variable_Value(main_variable_memery, variable_lists, name: str, parent: str, force_str = False):
+def Get_Variable_Address(caller_module, main_variable_memory, variable_lists, name: str, parent: str, force_str = False):
+    var = None
+
+    for var_list in variable_lists:
+        var = _find_variable(var_list, name)
+        if var != None:
+            break
+
+    if var == None and caller_module != None:
+        result = caller_module.retrieve_pointer(name)
+    elif var != None:
+        result = AddressModule(caller_module, var.array_pos)
+    else:
+        result = AddressModule(caller_module, str(len(main_variable_memory) + 1))
+
+    return result
+
+def Get_Variable_Value(main_variable_memory, variable_lists, name: str, parent: str, force_str = False):
     t = EMPTY_STRING
 
     if name.startswith(LENGTH_FUNC_PREFIX):
@@ -618,7 +667,7 @@ def Get_Variable_Value(main_variable_memery, variable_lists, name: str, parent: 
         return type_result
 
     for var_list in variable_lists:
-        t = _get_variable_value(main_variable_memery, var_list, name, [parent], force_str, variable_lists)
+        t = _get_variable_value(main_variable_memory, var_list, name, [parent], force_str, variable_lists)
         if t[1] > 0:
             break
 

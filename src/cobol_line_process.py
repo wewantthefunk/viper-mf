@@ -286,7 +286,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     occurs_length = 0
     index_var = EMPTY_STRING
 
-    if len(tokens) == 2 or PIC_CLAUSE not in tokens:  
+    if len(tokens) == 2 or (PIC_CLAUSE not in tokens and POINTER_CLAUSE not in tokens):  
         new_level = tokens[0]
         while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
@@ -490,6 +490,8 @@ def get_data_info(tokens):
         if (t == PIC_CLAUSE):
             info = get_type_length(tokens, count)
             break
+        elif (t == POINTER_CLAUSE):
+            info = [POINTER_DATATYPE, 10, 0, EMPTY_STRING]
         count = count + 1
 
     return info

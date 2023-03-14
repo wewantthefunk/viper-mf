@@ -6,27 +6,19 @@
 
        WORKING-STORAGE SECTION.
 
-       01 TEST-VALUE   PIC X(10).
+       01 TEST-VALUE         PIC X(10).
 
-       01 TEST-COMP-3  PIC S9(5) COMP-3.
+       01 TEST-VALUE-ADDRESS POINTER.
 
-       01 LENGTH-VAL   PIC 9(3).
+       01 TEST-VALUE-2       PIC X(10).
 
        PROCEDURE DIVISION.
 
-           DISPLAY 'expected value: 10'
-           DISPLAY 'actual value:   ' LENGTH OF TEST-VALUE.
+           MOVE 'test' TO TEST-VALUE.
 
-           DISPLAY 'expected value: 3'
-           DISPLAY 'actual value:   ' LENGTH OF TEST-COMP-3.
+           SET TEST-VALUE-ADDRESS TO ADDRESS OF TEST-VALUE.
 
-           MOVE LENGTH OF TEST-VALUE TO LENGTH-VAL.
-
-           DISPLAY 'expected value: 010'
-           DISPLAY 'actual value:   ' LENGTH-VAL.
-
-
-           COMPUTE LENGTH-VAL = LENGTH OF TEST-VALUE + 5.
+           SET ADDRESS OF TEST-VALUE-2 TO TEST-VALUE-ADDRESS.
 
            STOP RUN.
 

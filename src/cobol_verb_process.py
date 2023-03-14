@@ -58,8 +58,23 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_SET:
         ind = tokens.index(TO_KEYWORD)
 
-        for x in range(1, ind):
-            process_move_verb([COBOL_VERB_MOVE, tokens[ind + 1], TO_KEYWORD, tokens[x]], name, indent, level)
+        offset = 1
+        start = 1
+        prefix = EMPTY_STRING
+
+        if ADDRESS_KEYWORD in tokens:
+            prefix = ADDRESS_OF_PREFIX
+            prefix2 = EMPTY_STRING
+            x = tokens.index(ADDRESS_KEYWORD) + 2
+            if x > ind:
+                offset = x - ind
+            else:
+                prefix = EMPTY_STRING
+                prefix2 = ADDRESS_OF_PREFIX
+                start = 3
+
+        for x in range(start, ind):
+            process_move_verb([COBOL_VERB_MOVE, prefix + tokens[ind + offset], TO_KEYWORD, prefix2 + tokens[x]], name, indent, level)
         last_cmd_display = False
     elif verb == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
@@ -177,8 +192,12 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             if tokens[3].startswith("ABSTIME"):
                 s = tokens[3].split(OPEN_PARENS)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "',milliseconds_since_1900(),'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "')[1]" + NEWLINE)
-    elif verb == CICS_VERB_LINK:
+    elif verb == CICS_VERB_LINK or verb == CICS_VERB_XCTL:
         process_cics_link(tokens, name, indent, level, args, current_line)
+        if verb == CICS_VERB_XCTL:
+            # add a program quit here because XCTL doesn't return control to the calling program.
+            # we will emulate this behavior by quitting the program on return
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit(0)" + NEWLINE)
     elif verb == CICS_VERB_HANDLE_ABEND:
         for token in tokens:
             if token.startswith(LABEL_KEYWORD):
@@ -492,10 +511,10 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + using_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + "module_name"
         memory_area = SELF_REFERENCE + name + MEMORY
@@ -514,10 +533,10 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(module_instance.main)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + using_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
         #append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = module_instance.main(module_instance, Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + using_args + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None and str(sig_args) != '()':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
@@ -1020,10 +1039,14 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
         elif value == TRUE_KEYWORD:
             value = 'True'
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
+            func_name = "Get_Variable_Value("
+            if value.startswith(ADDRESS_OF_PREFIX):
+                func_name = "Get_Variable_Address(self.caller_module,"
+                value = value.replace(ADDRESS_OF_PREFIX, EMPTY_STRING)
             memory_area = SELF_REFERENCE + name + MEMORY
             if value in EIB_VARIABLES:
                 memory_area = SELF_REFERENCE + EIB_MEMORY
-            value = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
+            value = func_name + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + value + "','" + value + "')"
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric():
             if PERIOD not in value:
                 value = str(int(value))
@@ -1035,7 +1058,18 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
     target = tokens[target_offset].replace(PERIOD, EMPTY_STRING)
 
-    append_file(name + PYTHON_EXT, do_indent + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "')[1]" + NEWLINE)
+    set_func_name = "Set_Variable("
+
+    suffix = EMPTY_STRING
+
+    if target.startswith(ADDRESS_OF_PREFIX):
+        target = target.replace(ADDRESS_OF_PREFIX, EMPTY_STRING)
+        set_func_name = "Set_Variable_Address(self.caller_module,"
+        if value.startswith("Get_Variable_Value"):
+            t = value.split(COMMA)
+            value = t[2]
+
+    append_file(name + PYTHON_EXT, do_indent + SELF_REFERENCE + name + MEMORY + " = " + set_func_name + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "'" + suffix + ")[1]" + NEWLINE)
 
     if len(tokens) > 1 + target_offset and tokens[1 + target_offset] != PERIOD and tokens[1 + target_offset] != NEG_ONE and tokens[1 + target_offset] not in COBOL_END_BLOCK_VERBS and tokens[1 + target_offset] not in COBOL_VERB_LIST:
         limit = len(tokens)
