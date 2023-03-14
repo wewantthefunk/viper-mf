@@ -16,5 +16,14 @@
               DISPLAY 'actual value:   false'
            END-IF.
 
+           MOVE HIGH-VALUES TO TEST-VAR.
+
+           DISPLAY 'expected value: true'
+           IF TEST-VAR = HIGH-VALUES
+              DISPLAY 'actual value:   true'
+           ELSE
+              DISPLAY 'actual value:   false'
+           END-IF.
+
            STOP RUN.
 

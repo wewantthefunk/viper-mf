@@ -27,11 +27,13 @@ GREATER_THAN = ">"
 GREATER_THAN_EQUAL = ">="
 HEX_DISPLAY_PREFIX = "0x"
 HEX_PREFIX = "_hex_"
+HIGH_VALUES_NAME = 'HIGH-VALUES'
 LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
 LEVEL_88 = "88"
 LITERAL = "literal"
+LOW_VALUES_NAME = 'LOW-VALUES'
 MULTIPLICATION_OPERATOR = "*"
 NEGATIVE_SIGN = "-"
 NEGATIVE_SIGNED_HEX_FLAG = "D"
@@ -661,6 +663,12 @@ def Get_Variable_Address(caller_module, main_variable_memory, variable_lists, na
 
 def Get_Variable_Value(main_variable_memory, variable_lists, name: str, parent: str, force_str = False):
     t = EMPTY_STRING
+
+    if name == LOW_VALUES_NAME:
+        return pad_char(100, '\x00')
+    
+    if name == HIGH_VALUES_NAME:
+        return pad_char(100, '\xff')
 
     if name.startswith(LENGTH_FUNC_PREFIX):
         type_result = Get_Variable_Length(variable_lists, name[len(LENGTH_FUNC_PREFIX):])

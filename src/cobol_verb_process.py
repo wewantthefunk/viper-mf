@@ -835,6 +835,10 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 line = line + last_known_operand1
         elif token == SPACE_KEYWORD or token == SPACES_KEYWORD:
             line = line + "Get_Spaces(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'))" + SPACE
+        elif token == LOW_VALUES_KEYWORD:
+            line = line + "pad_char(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "'), '\\x00')" + SPACE
+        elif token == HIGH_VALUES_KEYWORD:
+            line = line + "pad_char(Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "'), '\\xff')" + SPACE
         elif token == NEGATIVE_KEYWORD:
             line = line + " < 0"
         elif token == OPEN_PARENS or token == CLOSE_PARENS or token == COMMA:
