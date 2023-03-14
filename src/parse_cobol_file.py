@@ -80,6 +80,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
         if current_division == ABEND:
             break
 
+    x = get_last_line_of_file(name + PYTHON_EXT)
     lc = 0
     for lambda_func in current_line.lambda_functions:
         lc = lc + 1
@@ -100,6 +101,9 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def retrieve_pointer(self, pos):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "pass" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def receive_control(self):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "pass" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
@@ -211,7 +215,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
                 append_file(name + PYTHON_EXT, ",*therest" + CLOSE_PARENS + COLON + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "try:" + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + EIB_MEMORY + EQUALS + "Retrieve_EIB_Area(" + SELF_REFERENCE + "_INTERNALVars[0].value" + CLOSE_PARENS + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + "self.caller_module = caller" + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + CALLING_MODULE_MEMBER + " = caller" + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + "_INTERNALVars[1].value = " + SINGLE_QUOTE + ADDRESS_INDICATOR + SINGLE_QUOTE + NEWLINE)
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * 3) + SELF_REFERENCE + "_INTERNALVars[1].address_module = AddressModule(caller, 0)" + NEWLINE)
 
@@ -241,7 +245,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "caller_module = None" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CALLING_MODULE_MEMBER + " = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + EIB_MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + " = []" + NEWLINE)
@@ -279,6 +283,6 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
-    parse_cobol_file("examples/hellow73_low_values_high_values.cbl", "converted/")
+    parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("work/extract_huhe.cbl", "converted/")
-    parse_cobol_file("examples/hellow68_address_of_function.cbl", "converted/")
+    parse_cobol_file("examples/hellow74_go_to_statement.cbl", "converted/")

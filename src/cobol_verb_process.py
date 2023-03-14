@@ -83,34 +83,13 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_math_verb(tokens, name, level)
         last_cmd_display = False
     elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT:
-
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
-
-        if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN:
-            level = BASE_LEVEL
-            append_file(name + PYTHON_EXT, SPACE + OPEN_BRACKET)
-            c = 0
-            for a in args:
-                if c > 3:
-                    append_file(name + PYTHON_EXT, COMMA + SPACE)               
-                if c > 2:
-                    memory_area = SELF_REFERENCE + name + MEMORY
-                    if a in EIB_VARIABLES:
-                        memory_area = SELF_REFERENCE + EIB_MEMORY
-                    append_file(name + PYTHON_EXT, "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
-                c = c + 1
-
-            append_file(name + PYTHON_EXT, CLOSE_BRACKET)
-
-        append_file(name + PYTHON_EXT, NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
-        current_line.needs_except_block = False
+        process_exit_verbs(level, name, tokens, current_line, args)
         
     elif verb == COBOL_VERB_PERFORM:
         level = process_perform_verb(tokens, name, level, current_line)
     elif verb == COBOL_VERB_GO:
         level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line)
+        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == COBOL_VERB_IF:
         if current_line.in_else_block:
             current_line.nested_level = current_line.nested_level - 1
@@ -123,6 +102,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         current_line.in_else_block = True
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
+        x = get_last_line_of_file(name + PYTHON_EXT)
+        if x.startswith(RETURN_KEYWORD) == False:
+            process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
         current_line.nested_level = 0
         if current_line.needs_except_block:
             append_file(name + PYTHON_EXT, NEWLINE)
@@ -210,7 +192,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit()" + NEWLINE)
+        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == COBOL_VERB_STRING:
         process_string_verb(tokens, level, name, current_line)
     else:
@@ -244,6 +226,29 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     return
 
+def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args):
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
+
+    if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN:
+        level = BASE_LEVEL
+        append_file(name + PYTHON_EXT, SPACE + OPEN_BRACKET)
+        c = 0
+        for a in args:
+            if c > 3:
+                append_file(name + PYTHON_EXT, COMMA + SPACE)               
+            if c > 2:
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if a in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                append_file(name + PYTHON_EXT, "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
+            c = c + 1
+
+        append_file(name + PYTHON_EXT, CLOSE_BRACKET)
+
+    append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+    current_line.needs_except_block = False
 def process_send_map(tokens, level: int, name: str):
     map_name = EMPTY_STRING
     map_only = 'False'
@@ -273,8 +278,8 @@ def process_send_map(tokens, level: int, name: str):
                 memory_area = SELF_REFERENCE + EIB_MEMORY
             data = "Get_Variable_Value(" + memory_area+ COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if self.calling_module != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.calling_module.build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
     
     return
 
@@ -1045,7 +1050,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
         elif value.replace(PLUS_SIGN, EMPTY_STRING).replace(MINUS_SIGN, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).isnumeric() == False:
             func_name = "Get_Variable_Value("
             if value.startswith(ADDRESS_OF_PREFIX):
-                func_name = "Get_Variable_Address(self.caller_module,"
+                func_name = "Get_Variable_Address(" + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA
                 value = value.replace(ADDRESS_OF_PREFIX, EMPTY_STRING)
             memory_area = SELF_REFERENCE + name + MEMORY
             if value in EIB_VARIABLES:
@@ -1068,7 +1073,7 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
 
     if target.startswith(ADDRESS_OF_PREFIX):
         target = target.replace(ADDRESS_OF_PREFIX, EMPTY_STRING)
-        set_func_name = "Set_Variable_Address(self.caller_module,"
+        set_func_name = "Set_Variable_Address(" + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA
         if value.startswith("Get_Variable_Value"):
             t = value.split(COMMA)
             value = t[2]

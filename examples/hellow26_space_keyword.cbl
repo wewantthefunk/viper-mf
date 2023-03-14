@@ -22,6 +22,12 @@
            ELSE
                DISPLAY 'actual value is incorrect'
            END-IF.
+
+           IF TEST-VAR = SPACES
+               DISPLAY 'actual value is correct'
+           ELSE
+               DISPLAY 'actual value is incorrect'
+           END-IF.
            
 
            STOP RUN.

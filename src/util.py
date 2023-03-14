@@ -44,6 +44,18 @@ def read_raw_file_lines(file: str, skip: str):
             count = count + 1
     return result
 
+def get_last_line_of_file(file: str):
+    with open(file, 'rb') as f:
+        try:  # catch OSError in case of a one line file 
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b'\n':
+                f.seek(-2, os.SEEK_CUR)
+        except OSError:
+            f.seek(0)
+        last_line = f.readline().decode()
+
+    return last_line
+
 def write_file(file: str, data: str):
     _write_file_data(file,data,"w")
 
