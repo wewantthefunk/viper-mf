@@ -166,6 +166,7 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
         current_line.end_of_search_criteria = True
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
         level = process_verb(temp_tokens, name, True, level, args, current_line)
     else:
         for nl in next_few_lines:
@@ -179,6 +180,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
                         temp_tokens.append(t)
                     if check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) == False:
                         skip = skip + 1
+
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
                 level = process_verb(temp_tokens, name, True, level, args, current_line)
                 break
             else:
@@ -637,5 +640,9 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
             continue
         if line != EMPTY_STRING and line.startswith(COBOL_COMMENT) == False:
             create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
+    current_line.skip_the_next_lines = 0
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
+    delete_file("temp_cpybook.txt")
+
+    return

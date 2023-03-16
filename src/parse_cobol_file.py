@@ -12,7 +12,10 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
     raw_lines = []
 
+    count = 0
+    start_tracking_line_number = False
     for rl in r_lines:
+        count = count + 1
         rl = rl.replace(NEWLINE, EMPTY_STRING)
         if len(rl) < 7:
             rl = EMPTY_STRING
@@ -20,6 +23,9 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
         if rl == EMPTY_STRING:
             continue
         if (rl[6] != COBOL_COMMENT and rl[7:] != EMPTY_STRING):
+            if " PROCEDURE DIVISION" in rl:
+                start_tracking_line_number = True
+
             if rl[6:7] == "-":
                 line = rl[6:]
             else:
@@ -41,6 +47,11 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                     l = l + pl
                 else:
                     l = l + t_line[1]
+            if start_tracking_line_number:
+                if " PROCEDURE DIVISION" not in rl:
+                    l = l + "^^^" + str(count)
+                else:
+                    l = rl
             raw_lines.append(l)
 
     lines = []
@@ -53,7 +64,11 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     total = len(raw_lines)
     count = 0
     skip_the_next_lines_count = 0
-    for line in raw_lines:
+    for l1 in raw_lines:
+        l1s = l1.split("^^^")
+        line = l1s[0]
+        if len(l1s) > 1:
+            current_line.current_line_number = l1s[1]
         count = count + 1
         next_few_lines_count = LINES_AHEAD
         lines_left = total - count
@@ -114,6 +129,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "exc_type, exc_obj, exc_tb = sys.exc_info()" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(exc_type, fname, exc_tb.tb_lineno)" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('COBOL File Line Number: ' + self.debugger_line)" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
@@ -243,6 +259,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "debug_line = '0'" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CALLING_MODULE_MEMBER + " = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + EIB_MEMORY + " = EMPTY_STRING" + NEWLINE)
@@ -275,10 +292,10 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
     #parse_cobol_file("examples/COMPL001.cbl", "converted/")
     #parse_cobol_file("examples/cics02_link.cbl", "converted/")
-    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
-    parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
-    parse_cobol_file("examples/hellowo3_hierarchical_variables.cbl", "converted/")
-    parse_cobol_file("examples/hellowo4_paragraphd.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo3_hierarchical_variables.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo4_paragraph.cbl", "converted/")
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow38_search_table_redefined_literals.cbl", "converted/")
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
