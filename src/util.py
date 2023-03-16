@@ -26,11 +26,18 @@ class LexicalInfo:
         self.last_known_index = 0
         self.end_of_search_criteria = False
 
-def read_file(file: str):
+class Replacement:
+    def __init__(self) -> None:
+        self.old_value = ""
+        self.new_value = ""
+
+def read_file(file: str, should_strip = False):
     result = ""
     with open(file) as file:
         for line in file:
-            result = result + line.replace("\n", "")
+            if should_strip:
+                line = line.strip() + "\n"
+            result = result + line
     return result
 
 def read_raw_file_lines(file: str, skip: str):

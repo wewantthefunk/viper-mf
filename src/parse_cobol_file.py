@@ -5,8 +5,6 @@ from util import *
 
 args = []
 
-
-
 def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     global args
     args = []
@@ -277,12 +275,15 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
     #parse_cobol_file("examples/COMPL001.cbl", "converted/")
     #parse_cobol_file("examples/cics02_link.cbl", "converted/")
-    #parse_cobol_file("examples/hellow69_variable_occurs_array.cbl", "converted/")
+    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
+    parse_cobol_file("examples/hellowo3_hierarchical_variables.cbl", "converted/")
+    parse_cobol_file("examples/hellowo4_paragraphd.cbl", "converted/")
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow38_search_table_redefined_literals.cbl", "converted/")
     #parse_cobol_file("examples/hellow23_search_statement.cbl", "converted/")
     #parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
-    parse_cobol_file("examples/cics06_return.cbl", "converted/")
-    #parse_cobol_file("work/extract_huhe.cbl", "converted/")
-    parse_cobol_file("examples/hellow74_go_to_statement.cbl", "converted/")
+    #parse_cobol_file("examples/cics06_return.cbl", "converted/")
+    parse_cobol_file("work/CUTE2B123.cobol", "converted/")
+    #parse_cobol_file("examples/hellow74_go_to_statement.cbl", "converted/")

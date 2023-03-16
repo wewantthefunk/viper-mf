@@ -213,6 +213,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
+    if tokens[0].isnumeric() == False:
+        return
+
     cascade_data_type = current_line.cascade_data_type
 
     if COMP_3_KEYWORD in tokens:
@@ -532,10 +535,60 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
     if copybook == EIB_COPYBOOK:
         is_eib = True
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
+    replacement_list = []
     if REPLACING_KEYWORD in copybook:
         replace_info = copybook.split(REPLACING_DELIMITER)
         copybook = replace_info[0].replace(REPLACING_KEYWORD, EMPTY_STRING).strip()
-        print(copybook)
+        if replace_info[len(replace_info) - 1] != PERIOD:
+            for next_line in next_few_lines:
+                replace_info.append(next_line)
+                if next_line.endswith(PERIOD):
+                    break
+        indices = [i for i in range(len(replace_info)) if BY_KEYWORD in replace_info[i]]
+        for index in indices:
+            count = index
+            found = False
+            s = replace_info[count].split(BY_KEYWORD)
+            replacement_list.append(Replacement())
+            last = len(replacement_list) - 1
+            if s[0].strip() != EMPTY_STRING:
+                replacement_list[last].old_value = s[0].strip().replace("==.", EMPTY_STRING).replace("==", EMPTY_STRING)
+            while not found:                
+                if replace_info[count].strip().startswith("==") or replace_info[count].endswith("==."):
+                    if count != index:
+                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                        t = t.replace("==", EMPTY_STRING)
+                        replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
+                    found = True
+                else:
+                    if count != index:
+                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                        t = t.replace("==", EMPTY_STRING)
+                        replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
+                    count = count - 1
+                    if count < 0:
+                        count = 0
+
+            replacement_list[last].old_value = replacement_list[last].old_value.strip()
+            count = index
+            found = False
+            if s[1].strip() != EMPTY_STRING:
+                replacement_list[last].new_value = s[1].strip().replace("==.", EMPTY_STRING).replace("==", EMPTY_STRING)
+            while not found:
+                if replace_info[count].strip().endswith("==") or replace_info[count].endswith("==."):
+                    if count != index:
+                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                        t = t.replace("==", EMPTY_STRING)
+                        replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
+                    found = True
+                else:
+                    if count != index:
+                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                        t = t.replace("==", EMPTY_STRING)
+                        replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
+                    count = count + 1
+                    if count > len(replace_info) - 1:
+                        count = len(replace_info) - 1
     file_exists = exists(copybook)
     if file_exists == False:
         copybook = copybook + COPYBOOK_EXT
@@ -549,11 +602,18 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                 if file_exists == False:
                     return
 
-    raw_lines = read_raw_file_lines(copybook, 0)
+    file_lines = read_file(copybook, True)
+    for repl in replacement_list:
+        file_lines = file_lines.replace(repl.old_value, repl.new_value)
+
+    write_file("temp_cpybook.txt", file_lines)
+    raw_lines = read_raw_file_lines("temp_cpybook.txt", 0)
+    
     total = len(raw_lines)
     count = 0
     skip_the_next_lines_count = 0
     for line in raw_lines:
+        line = "      " + line
         count = count + 1
         next_few_lines_count = LINES_AHEAD
         lines_left = total - count
@@ -562,12 +622,19 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                 lines_left = lines_left - 1
             next_few_lines_count = lines_left
         next_few_lines = raw_lines[count:count+next_few_lines_count]
+        count2 = 0
+        for nfl in next_few_lines:
+            next_few_lines[count2] = "      " + next_few_lines[count2]
+            count2 = count2 + 1
         if skip_the_next_lines_count == current_line.skip_the_next_lines:
             skip_the_next_lines_count = 0
+            current_line.skip_the_next_lines = 0
         else:
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
-        line = line[6:].replace(replace_info[1], replace_info[3]).replace(NEWLINE, EMPTY_STRING).strip()
+        line = line[6:].strip()
+        if line == EMPTY_STRING:
+            continue
         if line != EMPTY_STRING and line.startswith(COBOL_COMMENT) == False:
             create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
     append_file(outfile, NEWLINE)
