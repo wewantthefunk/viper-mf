@@ -170,7 +170,9 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
         level = process_verb(temp_tokens, name, True, level, args, current_line)
     else:
         for nl in next_few_lines:
-            nlt = parse_line_tokens(nl[6:], SPACE, EMPTY_STRING, True)
+            nll = nl.split("^^^")
+            nllt = nll[0]
+            nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) == 0:
                 continue
 

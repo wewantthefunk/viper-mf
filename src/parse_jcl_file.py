@@ -45,7 +45,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
 def write_out_job_info(job_name, target_dir):
     write_file(target_dir + job_name + CONVERTED_JCL_EXT, "#" + job_name + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\n") 
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "start_time = datetime.now()\n")
@@ -79,9 +79,17 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
         elif a[1].startswith("DSN") or a[1].startswith("DSNAME"):
             split = a[1].split(EQUALS)
             file_info = split[1].split(OPEN_PARENS)
-            path = file_info[0].replace(PERIOD, FORWARD_SLASH)
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("' + path + '").mkdir(parents=True, exist_ok=True)\n')
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + FORWARD_SLASH + file_info[1].replace(CLOSE_PARENS, EMPTY_STRING) + "', string_io.getvalue())\n")
+            filename = file_info[0]
+            path = EMPTY_STRING
+            if len(file_info) > 1:
+                filename = file_info[1].replace(CLOSE_PARENS, EMPTY_STRING)
+                path = file_info[0].replace(PERIOD, FORWARD_SLASH)
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("' + path + '").mkdir(parents=True, exist_ok=True)\n')
+
+            if a[0] == "SYSOUT":
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + FORWARD_SLASH + filename + "', string_io.getvalue())\n")
+            else:
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + SINGLE_QUOTE + NEWLINE)
 
 if __name__ == "__main__":
-    parse_jcl_file("examples/helloworld_tests.jcl", "converted/")
+    parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")

@@ -302,5 +302,5 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow64_dfhcommarea_receive.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
-    parse_cobol_file("work/CUTE2B123.cobol", "converted/")
-    #parse_cobol_file("examples/hellow74_go_to_statement.cbl", "converted/")
+    #parse_cobol_file("work/CUTE2B123.cobol", "converted/")
+    parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
