@@ -16,6 +16,7 @@ COMM_AREA_EXT = "comm.txt"
 COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
 COMP_5_INDICATOR = "COMP-5"
+DATA_FILE_EXT = ".dat"
 DFHCOMMAREA_NAME = "DFHCOMMAREA"
 DISP_COMMAND = "display"
 DIVISION_OPERATOR = "/"
@@ -28,6 +29,8 @@ GREATER_THAN_EQUAL = ">="
 HEX_DISPLAY_PREFIX = "0x"
 HEX_PREFIX = "_hex_"
 HIGH_VALUES_NAME = 'HIGH-VALUES'
+INDEX_FILE_EXT = ".idx"
+INDEX_FILE_FIELD_DELIMITER = "^^^"
 LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
@@ -139,9 +142,14 @@ class COBOLFileVariable:
         self.record = EMPTY_STRING
         self.parent = EMPTY_STRING
         self.redefines = EMPTY_STRING
+        self.filename = EMPTY_STRING
 
     def open_file(self, main_variable_memory, variables_list, method: str):
         filename = os.getenv(self.assign)
+
+        if self.organization == "INDEXED":
+            filename = filename + INDEX_FILE_EXT
+
         if filename == None:
             result = Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
             return result[1]
@@ -152,11 +160,14 @@ class COBOLFileVariable:
         self.file_pointer = open(filename, method)
 
         result = Set_Variable(main_variable_memory, variables_list, self.file_status, '00', self.file_status)
+
+        self.filename = filename
         return result[1]
 
     def close_file(self):
         if self.file_pointer != None:
             self.file_pointer.close()
+            self.file_pointer = None
         
     def _read_sequential(self):
         line = self.file_pointer.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
@@ -170,7 +181,33 @@ class COBOLFileVariable:
         return [line, at_end]
     
     def _read_indexed(self, main_variable_memory, variables_list):
-        return ["", True]
+        key_data = Get_Variable_Value(main_variable_memory, variables_list, self.record_key, [self.record_key], True)
+        self.file_pointer.seek(0)
+        line = self.file_pointer.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
+        rec_line = -1
+        while line:
+            s = line.split(INDEX_FILE_FIELD_DELIMITER)
+            if s[0] == key_data:
+                rec_line = int(s[1])
+                break
+            line = self.file_pointer.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
+        
+        if rec_line == -1:
+            return [EMPTY_STRING, True]
+
+        data_filename = self.filename[0:len(self.filename) - len(INDEX_FILE_EXT)] + DATA_FILE_EXT
+        data_file = open(data_filename, "rb")
+        data_line = data_file.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
+        count = 0
+        at_end = False
+        while data_line and count < rec_line:
+            data_line = data_file.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
+            count = count + 1
+
+        if count != rec_line:
+            at_end = True
+            
+        return [data_line, at_end]
     
     def _write_sequential(self, data: str):
         if self.file_pointer != None:
@@ -321,12 +358,12 @@ def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_e
     read_result = [False, main_variable_memory]
     for var in var_list:
         if var.name == name:
-            read_result = var.read(main_variable_memory, var_list)
+            read_result = var.read(main_variable_memory, file_rec_var_list)
             if read_result[1]:
                 read_result = [True, main_variable_memory]
                 break
             # set the variable from the read
-            read_result = _set_variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0, file_rec_var_list)
+            read_result = Set_Variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0)
             read_result[0] = not read_result[0]
             break
 

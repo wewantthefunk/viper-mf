@@ -143,7 +143,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
         
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars,self._FILE_SECTIONVars, '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
         if len(tokens) > 3:
             if tokens[2] == AT_KEYWORD and tokens[3] == END_KEYWORD:

@@ -23,3 +23,6 @@ src/test-records.txt
 copybooks/CABEHUHE.CPY
 copybooks/CUTE2B31.CPY
 temp_cpybook.txt
+test-records-indexed.txt.dat
+test-records-indexed.txt.idx
+test-records.txt

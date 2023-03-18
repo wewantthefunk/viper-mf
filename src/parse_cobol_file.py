@@ -129,7 +129,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "exc_type, exc_obj, exc_tb = sys.exc_info()" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(exc_type, fname, exc_tb.tb_lineno)" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('COBOL File Line Number: ' + self.debugger_line)" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('COBOL File Line Number: ' + self.debug_line)" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
@@ -304,3 +304,4 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("work/CUTE2B123.cobol", "converted/")
     parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
+    parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
