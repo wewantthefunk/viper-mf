@@ -1,6 +1,7 @@
 CLOSE_PARENS = ")"
 COMMA = ","
 CONVERTED_JCL_EXT = "_jcl.py"
+DASH = "-"
 DD_ARG_DELIMITER = "^^^"
 EMPTY_STRING = ""
 EQUALS = "="

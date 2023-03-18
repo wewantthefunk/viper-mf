@@ -64,6 +64,7 @@ def write_out_final_job_info(job_name, target_dir):
 def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     insert_beginning_of_file(target_dir + job_name + CONVERTED_JCL_EXT, "from " + program_name + " import *\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "# Step: " + step_name + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('" + pad_char(20, DASH) + "')" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing Step: " + step_name + "')" + NEWLINE)
 
     environment_vars = []

@@ -183,9 +183,12 @@ def get_all_indices(list, search: str):
     return indices
 
 def pad(l: int):
+    return pad_char(l, " ")
+
+def pad_char(l: int, c: str):
     result = ""
     for x in range(l):
-        result = result + " "
+        result = result + c
 
     return result
 

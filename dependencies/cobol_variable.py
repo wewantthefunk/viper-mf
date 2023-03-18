@@ -157,8 +157,8 @@ class COBOLFileVariable:
     def close_file(self):
         if self.file_pointer != None:
             self.file_pointer.close()
-
-    def read(self):
+        
+    def _read_sequential(self):
         line = self.file_pointer.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
 
         at_end = False
@@ -168,10 +168,24 @@ class COBOLFileVariable:
             line = EMPTY_STRING
 
         return [line, at_end]
-
-    def write(self, data: str):
+    
+    def _read_indexed(self, main_variable_memory, variables_list):
+        return ["", True]
+    
+    def _write_sequential(self, data: str):
         if self.file_pointer != None:
             self.file_pointer.write(data)
+    
+    def read(self, main_variable_memory, variables_list):
+        if self.organization == "LINE SEQUENTIAL" or self.organization == "SEQUENTIAL":
+            return self._read_sequential()
+        elif self.organization == "INDEXED":
+            return self._read_indexed(main_variable_memory, variables_list)
+        return [EMPTY_STRING, True]
+
+    def write(self, data: str):
+        if self.organization == "LINE SEQUENTIAL" or self.organization == "SEQUENTIAL":
+            self._write_sequential(data)
 
 def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING, is_top_redefines = False):
     for l in list:
@@ -307,7 +321,7 @@ def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_e
     read_result = [False, main_variable_memory]
     for var in var_list:
         if var.name == name:
-            read_result = var.read()
+            read_result = var.read(main_variable_memory, var_list)
             if read_result[1]:
                 read_result = [True, main_variable_memory]
                 break
