@@ -1,5 +1,5 @@
 from datetime import datetime
-import os, math
+import os, math, random, string
 from pathlib import Path
 from os.path import exists
 
@@ -143,6 +143,7 @@ class COBOLFileVariable:
         self.parent = EMPTY_STRING
         self.redefines = EMPTY_STRING
         self.filename = EMPTY_STRING
+        self.method = EMPTY_STRING
 
     def open_file(self, main_variable_memory, variables_list, method: str):
         filename = os.getenv(self.assign)
@@ -162,6 +163,8 @@ class COBOLFileVariable:
         result = Set_Variable(main_variable_memory, variables_list, self.file_status, '00', self.file_status)
 
         self.filename = filename
+        self.method = method
+
         return result[1]
 
     def close_file(self):
@@ -207,11 +210,38 @@ class COBOLFileVariable:
         if count != rec_line:
             at_end = True
             
+        data_file.close()
+
         return [data_line, at_end]
     
     def _write_sequential(self, data: str):
         if self.file_pointer != None:
             self.file_pointer.write(data)
+    
+        return
+
+    def _write_indexed(self, data: str, key_value: str):
+        if self.file_pointer == None:
+            return
+
+        
+        data_filename = self.filename[0:len(self.filename) - len(INDEX_FILE_EXT)] + DATA_FILE_EXT
+
+        data_file = open(data_filename, "ab+")
+        data_file.write(bytes(NEWLINE + data, 'utf-8'))
+        count = -1
+        data_file.seek(0)
+        line = data_file.readline()
+        while line:
+            line = data_file.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
+            count = count + 1
+        data_file.close()
+
+        self.file_pointer.write(bytes(NEWLINE + key_value + INDEX_FILE_FIELD_DELIMITER + str(count),"utf-8"))
+
+        self.file_pointer.flush()
+
+        return
     
     def read(self, main_variable_memory, variables_list):
         if self.organization == "LINE SEQUENTIAL" or self.organization == "SEQUENTIAL":
@@ -220,9 +250,13 @@ class COBOLFileVariable:
             return self._read_indexed(main_variable_memory, variables_list)
         return [EMPTY_STRING, True]
 
-    def write(self, data: str):
+    def write(self, data: str, key_data: str):
         if self.organization == "LINE SEQUENTIAL" or self.organization == "SEQUENTIAL":
             self._write_sequential(data)
+        if self.organization == "INDEXED":
+            self._write_indexed(data, key_data)
+
+        return
 
 def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING, is_top_redefines = False):
     for l in list:
@@ -369,11 +403,13 @@ def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_e
 
     return read_result
 
-def Write_File(var_list, file_rec_var_list, name: str):
+def Write_File(var_list, variables_list, main_variable_memory: str, name: str):
     for var in var_list:
-        if var.name == name:
+        if var.record == name:
+            data = Get_Variable_Value(main_variable_memory, variables_list, name, name, True)
+            key_value = Get_Variable_Value(main_variable_memory, variables_list, var.record_key, var.record_key, True)
             # write the value from the variable indicated in 'name' parameter
-            var.write(EMPTY_STRING)
+            var.write(data, key_value)
             break
 
 def Set_File_Record(var_list, name: str, record: str):
@@ -1058,6 +1094,9 @@ def print_value(l: str):
         end_l = NEWLINE
     print(l, end=end_l)
 
+def gen_rand(length: int):
+    return ''.join(random.choices(string.ascii_lowercase, k=length))
+
 def Check_Value_Numeric(value):
     return str(value).isnumeric()
 
@@ -1079,7 +1118,7 @@ def convert_open_method(method: str):
         return "rb"
     elif method == "OUTPUT":
         return "ab"
-    elif method == "INPUT-OUTPUT":
+    elif method == "INPUT-OUTPUT" or method == "I-O":
         return "ab+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):

@@ -25,6 +25,7 @@ class LexicalInfo:
         self.nested_level = 0
         self.last_known_index = 0
         self.end_of_search_criteria = False
+        self.source_filename = "unknown"
 
 class Replacement:
     def __init__(self) -> None:

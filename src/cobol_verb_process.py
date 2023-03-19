@@ -150,7 +150,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
                 process_move_verb(tokens[4:], name, True, level + 1)
     elif verb == COBOL_VERB_WRITE:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_SECTIONVars, '" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
     elif verb == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
     elif verb == COBOL_VERB_SEARCH:
