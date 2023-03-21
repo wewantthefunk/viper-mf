@@ -1,0 +1,44 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. RANDSTR.
+       
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       
+       WORKING-STORAGE SECTION.
+       01 STRING-COUNTER          PIC 9(02) VALUE 1.
+       01 RANDOM-NUMBER           PIC 9(09).
+       01 CHARACTER-CODE          PIC 9(03).
+       01 CURRENT-CHARACTER       PIC X.
+       01 SEED                    PIC 9(09).
+
+       LINKAGE SECTION. 
+
+       01 STRING-LENGTH           PIC 9(02).
+       01 RANDOM-STRING           PIC X(50).
+       
+       PROCEDURE DIVISION USING STRING-LENGTH, RANDOM-STRING.
+           MOVE SPACES TO RANDOM-STRING 
+           ACCEPT SEED FROM DATE
+           PERFORM STRING-GENERATION
+           GOBACK
+           .
+       
+       STRING-GENERATION.
+           PERFORM UNTIL STRING-COUNTER > STRING-LENGTH
+               COMPUTE RANDOM-NUMBER = FUNCTION NUMVAL-C (SEED)
+               DIVIDE RANDOM-NUMBER BY 61 GIVING CHARACTER-CODE
+               ADD 48 TO CHARACTER-CODE
+               IF CHARACTER-CODE > 57
+                   ADD 7 TO CHARACTER-CODE
+               END-IF
+               IF CHARACTER-CODE > 90
+                   ADD 6 TO CHARACTER-CODE
+               END-IF
+               MOVE CHARACTER-CODE TO CURRENT-CHARACTER
+               STRING CURRENT-CHARACTER DELIMITED BY SIZE
+                      INTO RANDOM-STRING 
+               ADD 1 TO STRING-COUNTER 
+               MULTIPLY SEED BY 1103515245 GIVING SEED
+               ADD 12345 TO SEED
+           END-PERFORM
+           .

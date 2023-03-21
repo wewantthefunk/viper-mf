@@ -305,6 +305,8 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("work/CUTE2B123.cobol", "converted/")
-    parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
-    parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
-    parse_cobol_file("examples/hellow76_indexed_file_write.cbl", "converted/")
+    #parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
+    #parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
+    parse_cobol_file("examples/hellow77_number_to_string.cbl", "converted/")
+
+    parse_cobol_file("dependencies/RANDSTR.cbl", "converted/")

@@ -1,0 +1,21 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLOW77.
+       AUTHOR. CHRISTIAN STRAMA.
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+       01 RAN-NUM       PIC 9(3).
+
+       01 CONV-CHAR     PIC X.
+
+       PROCEDURE DIVISION.
+
+           MOVE 129 TO RAN-NUM.
+
+           MOVE RAN-NUM TO CONV-CHAR.
+
+           DISPLAY CONV-CHAR.     
+
+           STOP RUN.
