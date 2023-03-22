@@ -1,7 +1,8 @@
 from datetime import datetime
-import os, math, random, string
+import os, math, string
 from pathlib import Path
 from os.path import exists
+from random import *
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
 ADD_COMMAND = "add"
@@ -424,6 +425,9 @@ def Exec_Function(func_name: str):
     result = EMPTY_STRING
     if func_name == "CURRENT-DATE":
         result = datetime.today().strftime('%Y%m%d%H%M%S%f')
+    elif func_name.startswith("RANDOM"):
+        s = func_name.split("(")
+        result = gen_rand_number(int(s[1].replace(")", EMPTY_STRING)))
 
     return result
 
@@ -582,7 +586,17 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
         elif COLON in offset_val:
             occurrence = 1
             s1 = offset_val.split(COLON)
-            sub_string = [int(s1[0]) - 1, int(s1[1])]
+            s_start = 1
+            s_end = 1
+            if s1[0].isnumeric():
+                s_start = int(s1[0])
+            else:
+                s_start = int(Get_Variable_Value(main_variable_memory, orig_var_list, s1[0], offset_val))
+            if s1[1].isnumeric():
+                s_end = int(s1[1])
+            else:
+                s_end = int(Get_Variable_Value(main_variable_memory, orig_var_list, s1[1], offset_val))
+            sub_string = [s_start - 1, s_end]
         else:
             occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
@@ -653,6 +667,11 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     value = pad(length)
                 elif var.data_type not in NUMERIC_DATA_TYPES:
                     value = value.ljust(length, SPACE)
+                
+                if len(sub_string) > 0:
+                    start = start + sub_string[0]
+                    length = sub_string[1]
+                    value = value[0:length]
                 if var.name == DFHCOMMAREA_NAME:
                     _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, value)
                 else:
@@ -848,6 +867,9 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
             type_result = result
     else:
         type_result = result
+
+    if force_str:
+        type_result = str(result)
 
     return [type_result, found_count, result, count, var]
 
@@ -1095,7 +1117,10 @@ def print_value(l: str):
     print(l, end=end_l)
 
 def gen_rand(length: int):
-    return ''.join(random.choices(string.ascii_lowercase, k=length))
+    return ''.join(random.choices(string.ascii_lowercase + string.ascii_uppercase + string.digits, k=length))
+
+def gen_rand_number(limit):
+    return randint(0,limit)
 
 def Check_Value_Numeric(value):
     return str(value).isnumeric()

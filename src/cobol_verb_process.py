@@ -61,6 +61,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         offset = 1
         start = 1
         prefix = EMPTY_STRING
+        prefix2 = EMPTY_STRING
 
         if ADDRESS_KEYWORD in tokens:
             prefix = ADDRESS_OF_PREFIX
@@ -305,6 +306,9 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         elif t == EMPTY_STRING or t == PERIOD:
             count = count + 1
             continue
+        elif t == FUNCTION_KEYWORD:
+            skip_next = True
+            temp_tokens.append("Exec_Function(\"" + tokens[count + 1] + "\")")
         elif t == LENGTH_KEYWORD:
             offset = 1
             if tokens[count + 1] == OF_KEYWORD:
@@ -347,6 +351,8 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         if token in COBOL_ARITHMATIC_OPERATORS or token == EMPTY_STRING:
             count = count + 1
             continue
+        elif token.startswith("Exec_Function("):
+            x = 0
         else:
             if token.startswith(OPEN_PARENS):
                 set_open_parens = True
@@ -485,18 +491,22 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     quoted = EMPTY_STRING
 
     if (len(tokens) > 2 and tokens[2] == USING_KEYWORD):
-        params = parse_line_tokens(tokens[3], COMMA, EMPTY_STRING, False)
-        param_count = 0
-        for param in params:
-            if param_count > 0:
+        for x in range(3,len(tokens) - 1):
+            params = parse_line_tokens(tokens[x], COMMA, EMPTY_STRING, False)
+            param_count = 0
+            if x > 3:
                 using_args = using_args + COMMA
                 comm_area_args = comm_area_args + COMMA
-            param_count = param_count + 1
-            memory_area = SELF_REFERENCE + name + MEMORY
-            if param in EIB_VARIABLES:
-                memory_area = SELF_REFERENCE + EIB_MEMORY
-            using_args = using_args + quoted + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "')" + quoted
-            comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
+            for param in params:
+                if param_count > 0:
+                    using_args = using_args + COMMA
+                    comm_area_args = comm_area_args + COMMA
+                param_count = param_count + 1
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if param in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                using_args = using_args + quoted + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "',True)" + quoted
+                comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
 
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
 

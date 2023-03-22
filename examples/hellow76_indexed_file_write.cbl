@@ -24,8 +24,10 @@
            RECORD CONTAINS 14 CHARACTERS.
 
        01  TEST-REC.
-           02 TEST-REC-KEY   PIC X(4).
-           02 TEST-REC-DATA  PIC X(14).
+           02 TEST-REC-KEY    PIC X(4).
+           02 TEST-REC-DATA.
+              05 TEST-REC-D-1 PIC X(12).
+              05 TEST-REC-D-2 PIC X(2).
 
        WORKING-STORAGE SECTION.
 
@@ -34,6 +36,10 @@
        01 NO-MORE-RECORDS  PIC X(1) VALUE 'Y'.
 
        01 FILE-STATUS      PIC X(2).
+
+       01 NEW-KEY          PIC X(4).
+
+       01 KEY-LEN          PIC 9(2) VALUE 4.
 
        PROCEDURE DIVISION.
 
@@ -65,8 +71,12 @@
            EXIT.
 
        1000-WRITE-FILE.
-           MOVE '0004' TO SEARCH-KEY.
-           MOVE '0004test record 4' TO TEST-REC.
+           CALL 'RANDSTR' USING KEY-LEN, NEW-KEY.
+           MOVE NEW-KEY TO SEARCH-KEY.
+           MOVE NEW-KEY TO TEST-REC-KEY.
+           MOVE 2 TO KEY-LEN.
+           CALL 'RANDSTR' USING KEY-LEN, TEST-REC-D-2.
+           MOVE 'test record' TO TEST-REC-D-1.
 
            WRITE TEST-REC.
 

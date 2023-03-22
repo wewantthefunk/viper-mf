@@ -103,6 +103,6 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")
 
 if __name__ == "__main__":
-    parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
-    parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
+    #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
+    #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
     parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   

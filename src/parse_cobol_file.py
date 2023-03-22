@@ -61,6 +61,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     current_line = LexicalInfo()
     current_line.source_filename = file
     current_line.level = BASE_LEVEL
+    current_line.current_line_number = ZERO
 
     total = len(raw_lines)
     count = 0
@@ -308,5 +309,5 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
     #parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
     parse_cobol_file("examples/hellow77_number_to_string.cbl", "converted/")
-
+    parse_cobol_file("examples/hellow76_indexed_file_write.cbl", "converted/")
     parse_cobol_file("dependencies/RANDSTR.cbl", "converted/")
