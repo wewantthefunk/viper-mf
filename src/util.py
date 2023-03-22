@@ -26,6 +26,7 @@ class LexicalInfo:
         self.last_known_index = 0
         self.end_of_search_criteria = False
         self.source_filename = "unknown"
+        self.is_evaluating = False
 
 class Replacement:
     def __init__(self) -> None:

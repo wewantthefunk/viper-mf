@@ -6,6 +6,7 @@ wait
 
 cd ../src/
 
+python3 main.py '../dependencies/RANDSTR.cbl' '../converted/' &
 python3 main.py &
 
 wait

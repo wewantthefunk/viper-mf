@@ -199,6 +199,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
+    current_line.is_evaluating = is_evaluating
+    
     return level
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):

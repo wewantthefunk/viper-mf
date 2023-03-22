@@ -183,7 +183,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
                     if check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) == False:
                         skip = skip + 1
 
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
+                if temp_tokens[0] != COBOL_VERB_WHEN and current_line.is_evaluating == False:
+                    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
                 level = process_verb(temp_tokens, name, True, level, args, current_line)
                 break
             else:
