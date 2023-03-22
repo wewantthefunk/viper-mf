@@ -340,6 +340,31 @@ wait
 #python3 HELLOW64.py &
 #wait
 
+echo
+echo HELLOW65 - multi dimensional array
+python3 HELLOW65.py &
+wait
+
+echo
+echo HELLOW66 - evaluate also statement
+python3 HELLOW66.py &
+wait
+
+echo
+echo HELLOW67 - LENGTH OF function
+python3 HELLOW67.py &
+wait
+
+echo
+echo HELLOW68 - ADDRESS OF function
+python3 HELLOW68.py &
+wait
+
+echo
+echo HELLOW69 - variable occurs array
+python3 HELLOW69.py &
+wait
+
 #echo
 #echo CICS01 - cics asktime
 #python3 CICS01.py &

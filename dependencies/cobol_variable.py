@@ -570,7 +570,10 @@ def Set_Variable(main_variable_memory, variable_lists, name: str, value, parent:
 def _set_variable(main_variable_memory, var_list, name: str, value: str, parent, index_pos: int, orig_var_list):
     count = 0
     occurrence = 1
-    value = str(value)
+    if type(value) == list:
+        value = str(value[0])
+    else:
+        value = str(value)
     var_name = name
     new_value = EMPTY_STRING
     is_hex = False
