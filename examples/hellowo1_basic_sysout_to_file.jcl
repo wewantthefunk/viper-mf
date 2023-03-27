@@ -1,0 +1,5 @@
+//HELLOW1F   JOB  12345,'TEST JOB'
+//
+//STEP01    EXEC PGM=HELLOWO1
+//SYSOUT    DD DSN=hw_basic_out.txt
+//

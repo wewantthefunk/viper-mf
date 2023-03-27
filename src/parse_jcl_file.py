@@ -1,6 +1,6 @@
 from util import *
 from jcl_lexicon import *
-import os
+import sys
 
 job_name = EMPTY_STRING
 
@@ -44,16 +44,19 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     return
 
 def write_out_job_info(job_name, target_dir):
-    write_file(target_dir + job_name + CONVERTED_JCL_EXT, "#" + job_name + NEWLINE)
+    write_file(target_dir + job_name + CONVERTED_JCL_EXT, "# JOB NAME: " + job_name + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "start_time = datetime.now()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing Job: " + job_name + "')\n")
 
 def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "end_time = datetime.now()\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('" + pad_char(20, DASH) + "')" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Job Complete')\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('   Start: {}'.format(start_time))\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('     End: {}'.format(end_time))\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Duration: {}'.format(end_time - start_time))\n")
@@ -63,32 +66,38 @@ def write_out_final_job_info(job_name, target_dir):
 
 def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     insert_beginning_of_file(target_dir + job_name + CONVERTED_JCL_EXT, "from " + program_name + " import *\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "# Step: " + step_name + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, NEWLINE + "# STEP: " + step_name + NEWLINE + "#  PGM: " + program_name + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('" + pad_char(20, DASH) + "')" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing Step: " + step_name + "')" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing    Step: " + step_name + "')\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('          Program: " + program_name + "')" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print()" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     environment_vars = []
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
         
         if a[0] not in IGNORED_DD_STATEMENTS:
-            a1 = a[1].split(EQUALS)
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + a1[1] + "'\n")
+            split = a[1].split(EQUALS)
+            split1 = split[1].split(COMMA)
+            file_info = split1[0].split(OPEN_PARENS)
+            filename = file_info[0]
+            path = EMPTY_STRING
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + "'\n")
             environment_vars.append(a[0])
 
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step = " + program_name + "Class()" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self)\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
 
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
         if a[1] == "SYSOUT=*":
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print(string_io.getvalue())\n")
         elif a[1].startswith("DSN") or a[1].startswith("DSNAME"):
             split = a[1].split(EQUALS)
-            file_info = split[1].split(OPEN_PARENS)
+            split1 = split[1].split(COMMA)
+            file_info = split1[0].split(OPEN_PARENS)
             filename = file_info[0]
             path = EMPTY_STRING
             if len(file_info) > 1:
@@ -97,12 +106,30 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("' + path + '").mkdir(parents=True, exist_ok=True)\n')
 
             if a[0] == "SYSOUT":
-                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + FORWARD_SLASH + filename + "', string_io.getvalue())\n")
+                if path != EMPTY_STRING:
+                    if path.endswith(FORWARD_SLASH) == False:
+                        path = path + FORWARD_SLASH
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + filename + "', string_io.getvalue())\n")
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
+
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.truncate(0)\n")
 
     for e in environment_vars:
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")
 
 if __name__ == "__main__":
-    #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
-    #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
-    parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   
+    prefix = "../"
+    for file in os.listdir("./"):
+        d = os.path.join("./", file)
+        if os.path.isdir(d):
+            if 'examples' in d:
+                prefix = ""
+                break
+    if len(sys.argv) > 1:
+        parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
+    else:
+        parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
+        parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
+        parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
+        #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
+        #parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   

@@ -7,6 +7,7 @@ wait
 cd ../src/
 
 python3 main.py '../dependencies/RANDSTR.cbl' '../converted/' &
+python3 parse_jcl_file.py '../examples/hellowo1_basic.jcl' '../converted/' &
 python3 main.py &
 
 wait
@@ -14,7 +15,7 @@ wait
 cd ../converted/
 
 echo HELLOWO1 - basic DISPLAY statement of literal value
-python3 HELLOWO1.py &
+python3 HELLOWO1_jcl.py &
 wait
 
 echo 

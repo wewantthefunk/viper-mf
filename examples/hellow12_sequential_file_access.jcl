@@ -2,5 +2,5 @@
 //
 //STEP01    EXEC PGM=HELLOW12
 //SYSOUT    DD SYSOUT=*
-//TESTFILE  DD DSN=test-records.txt
+//TESTFILE  DD DSN=test-records.txt,DISP=(NEW,KEEP,)
 //
