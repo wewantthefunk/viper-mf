@@ -216,6 +216,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
         if name != "abend":            
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
+                create_index_variables(current_line.index_variables)
                 append_file(name + PYTHON_EXT, "# EIB Fields" + NEWLINE)
                 insert_copybook(name + PYTHON_EXT, EIB_COPYBOOK, current_line, name, current_line.current_section, next_few_lines, args)
                 append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)

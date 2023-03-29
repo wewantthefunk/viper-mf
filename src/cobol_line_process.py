@@ -469,10 +469,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         i = tokens.index(INDEXED_CLAUSE) + 1
         if BY_KEYWORD in tokens:
             i = i + 1
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-            + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+        current_line.index_variables.append([tokens[i], tokens[1], tokens[0], format(current_section)])
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
+        #    + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
         index_var = tokens[i]
 
     if len(tokens) == 2:
@@ -480,6 +481,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         current_line.highest_ws_level = int(tokens[0])
 
     current_line.cascade_data_type = cascade_data_type
+
+def create_index_variables(vars, name: str):
+    for var in vars:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + var[3] + "Vars,'" + var[0] + "', " \
+            + "10, '9','" + var[1] + "','',0,0,'','" + var[2] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + var[3] + "Vars = result[0]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
 def init_vars(name: str, args, current_line):
     global var_init_list
