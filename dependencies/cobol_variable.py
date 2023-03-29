@@ -1100,6 +1100,10 @@ def _read_file(file: str, remove_line_breaks = True):
             result = result + line
     return result
 
+def cat_file(file: str):
+    with open(file, 'r') as f:
+        print(f.read())
+
 def format_date_cyyddd():
     now = datetime.now()
     century = str(now.year)[0:1]
