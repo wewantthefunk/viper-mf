@@ -48,18 +48,20 @@ def write_out_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self):\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "start_time = datetime.now()\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing Job: " + job_name + "')\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("JES2/OUTPUT/").mkdir(parents=True, exist_ok=True)\n')
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "jes_result_file = 'JES2/OUTPUT/" + job_name + "_' + datetime.strftime(start_time, '%d-%b-%Y-%H-%M-%S')" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")    
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing Job: " + job_name + "' + NEWLINE)\n")
 
 def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "end_time = datetime.now()\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('" + pad_char(20, DASH) + "')" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Job Complete')\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('   Start: {}'.format(start_time))\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('     End: {}'.format(end_time))\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Duration: {}'.format(end_time - start_time))\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Job Complete' + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '   Start: {}'.format(start_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '     End: {}'.format(end_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Duration: {}'.format(end_time - start_time) + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "if __name__ == '__main__':\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj = " + job_name + "JCLClass()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj.main()\n")
@@ -67,10 +69,9 @@ def write_out_final_job_info(job_name, target_dir):
 def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     insert_beginning_of_file(target_dir + job_name + CONVERTED_JCL_EXT, "from " + program_name + " import *\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, NEWLINE + "# STEP: " + step_name + NEWLINE + "#  PGM: " + program_name + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('" + pad_char(20, DASH) + "')" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Executing    Step: " + step_name + "')\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('          Program: " + program_name + "')" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print()" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing    Step: " + step_name + "' + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          Program: " + program_name + "' + NEWLINE)" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     environment_vars = []
@@ -93,7 +94,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
         a = arg.split(DD_ARG_DELIMITER)
         if a[1] == "SYSOUT=*":
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print(string_io.getvalue())\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, string_io.getvalue() + NEWLINE)\n")
         elif a[1].startswith("DSN") or a[1].startswith("DSNAME"):
             split = a[1].split(EQUALS)
             split1 = split[1].split(COMMA)
@@ -109,10 +110,12 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
                 if path != EMPTY_STRING:
                     if path.endswith(FORWARD_SLASH) == False:
                         path = path + FORWARD_SLASH
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          SYSOUT messages are stored in: " + path + filename + "' + NEWLINE)\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + filename + "', string_io.getvalue())\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.truncate(0)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.seek(0)\n")
 
     for e in environment_vars:
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")

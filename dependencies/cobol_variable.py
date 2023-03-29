@@ -1065,6 +1065,15 @@ def Retrieve_EIB_Area(module_name: str):
     eib_data = _read_file(module_name + EIB_EXT, False)
     return eib_data
 
+def append_file_data(file: str, data: str):
+    _append_file(file, data)
+
+def _append_file(file: str, data: str):
+    _append_binary_file(file,bytes(data, 'utf-8'))
+
+def _append_binary_file(file: str, data):
+    _write_file_data(file,data,"ab")
+
 def write_file_data(file: str, data: str):
     _write_file(file, data)
 
