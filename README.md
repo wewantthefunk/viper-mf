@@ -39,6 +39,8 @@ The main goal is to not burden the mainframe developer with having to write code
 
 This tool is intended, for now, to be a mechanism for automated unit testing. It is a "brute force", line-by-line conversion of COBOL code. There is no manipulation to use objected oriented practices or patterns, except with the cobol_variable.py module. Bad COBOL code will be bad Python code. This is not intended for production use.
 
+This tool DOES NOT check for proper COBOL syntax. It is NOT a compiler. It will do it's best, but if there is bad COBOL syntax, it will create bad Python syntax that probably won't execute.
+
 #### Comments in the COBOL program
 
 The comments in the COBOL are not copied to the Python program. The Python program is not intended to be used for debugging, it is used for test validation. Comments are added to the Python to give an indication of the corresponding COBOL Division and Section, so basic understanding of where the logic is in the Python is gained.
@@ -65,7 +67,7 @@ See above, IF Blocks
 
 See above, IF Blocks
 
-### Fall throuh paragraphs
+### Fall through paragraphs
 
 Don't use fall through paragraphs. Even though COBOL has no concept of encapsulation, that doesn't mean you shouldn't try to write clean code. Since paragraphs are converted to actual functions with encapsulation, fall through paragraphs won't convert correctly. Sorry, not sorry.
 
