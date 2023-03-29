@@ -219,6 +219,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
+    if tokens[1] == 'DDNAME':
+        x = 0
+
     if tokens[0].isnumeric() == False:
         return
 
@@ -353,22 +356,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
             cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
 
-        if OCCURS_CLAUSE in tokens:
-            i = tokens.index(OCCURS_CLAUSE)
-            occurs_length = int(tokens[i + 1])
-            if tokens[i + 2] == TO_KEYWORD:
-                occurs_length = int(tokens[i + 3])
-
-        if INDEXED_CLAUSE in tokens:
-            i = tokens.index(INDEXED_CLAUSE) + 1
-            if BY_KEYWORD in tokens:
-                i = i + 1
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-                + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
-            index_var = tokens[i]
-
     elif current_line.highest_ws_level < int(tokens[0]):
         if len(data_division_var_stack) > 0:
             current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
@@ -432,6 +419,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     elif (data_info[3] == COMP_5_KEYWORD or cascade_data_type == COMP_5_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_5_KEYWORD
 
+
+    if OCCURS_CLAUSE in tokens:
+        i = tokens.index(OCCURS_CLAUSE)
+        occurs_length = int(tokens[i + 1])
+        if tokens[i + 2] == TO_KEYWORD:
+            occurs_length = int(tokens[i + 3])
+
     v_name = tokens[1]
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
@@ -470,6 +464,16 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 else:
                     var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
                 value_index = value_index + 1
+
+    if INDEXED_CLAUSE in tokens:
+        i = tokens.index(INDEXED_CLAUSE) + 1
+        if BY_KEYWORD in tokens:
+            i = i + 1
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
+            + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+        index_var = tokens[i]
 
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]

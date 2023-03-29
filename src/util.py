@@ -18,7 +18,7 @@ class LexicalInfo:
         self.redefines_level = "01"
         self.lambda_functions = []
         self.skip_the_next_lines = 0
-        self.loop_modifier = ""
+        self.loop_modifier = []
         self.cascade_data_type = ""
         self.needs_except_block = False
         self.in_else_block = False

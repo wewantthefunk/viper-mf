@@ -1,5 +1,5 @@
 from datetime import datetime
-import os, math, string
+import os, math, string, time
 from pathlib import Path
 from os.path import exists
 from random import *
@@ -332,7 +332,7 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 def _update_parent_child_length(main_variable_memory, list, name: str, length: int):
     skip_add = False
     if name == EMPTY_STRING:
-        return skip_add
+        return [skip_add, main_variable_memory]
 
     for l in list:
         if l.name == name:
@@ -421,13 +421,17 @@ def Set_File_Record(var_list, name: str, record: str):
 
     return var_list
 
-def Exec_Function(func_name: str):
+def Exec_Function(module: str, func_name: str):
     result = EMPTY_STRING
     if func_name == "CURRENT-DATE":
         result = datetime.today().strftime('%Y%m%d%H%M%S%f')
     elif func_name.startswith("RANDOM"):
         s = func_name.split("(")
         result = gen_rand_number(int(s[1].replace(")", EMPTY_STRING)))
+    elif func_name.startswith("WHEN-COMPILED"):
+        ti_c = os.path.getmtime('converted/' + module + '.py')
+        date_time = datetime.fromtimestamp(ti_c)
+        result = date_time.strftime('%Y%m%d%H%M%S')
 
     return result
 
