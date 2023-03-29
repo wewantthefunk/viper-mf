@@ -216,7 +216,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
         if name != "abend":            
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
-                create_index_variables(current_line.index_variables)
+                create_index_variables(current_line.index_variables, name)
                 append_file(name + PYTHON_EXT, "# EIB Fields" + NEWLINE)
                 insert_copybook(name + PYTHON_EXT, EIB_COPYBOOK, current_line, name, current_line.current_section, next_few_lines, args)
                 append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
@@ -319,11 +319,11 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("work/CUTE2B123.cobol", "converted/")
-    parse_cobol_file("work/cabbsmbd-work.cbl", "converted/")
-    parse_cobol_file("dependencies/GETDSNS.cbl", "converted/")
+    #parse_cobol_file("work/cabbsmbd-work.cbl", "converted/")
+    #parse_cobol_file("dependencies/GETDSNS.cbl", "converted/")
     #parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
     #parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
-    #parse_cobol_file("examples/hellow77_number_to_string.cbl", "converted/")
+    parse_cobol_file("examples/hellowo6_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow76_indexed_file_write.cbl", "converted/")
     #parse_cobol_file("dependencies/RANDSTR.cbl", "converted/")
     #parse_cobol_file("examples/hellow10_evaluate_statement.cbl", "converted/")
