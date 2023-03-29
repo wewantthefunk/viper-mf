@@ -22,6 +22,8 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
         if rl == EMPTY_STRING:
             continue
+        if rl.strip().startswith("CBL "):
+            continue
         if (rl[6] != COBOL_COMMENT and rl[7:] != EMPTY_STRING):
             if " PROCEDURE DIVISION" in rl:
                 start_tracking_line_number = True
@@ -277,6 +279,9 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = Add_Variable('', self._INTERNALVars, 'CALLING-MODULE-NAME', 0, 'X', 'CALLING-MODULE-NAME', '', 0, 0, '', '01')[0]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + SPACE + EQUALS + SPACE + NONE_KEYWORD + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CALLING_MODULE_MEMBER + SPACE + EQUALS + SPACE + NONE_KEYWORD + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + JOB_NAME_MEMBER + SPACE + EQUALS + SPACE + "EMPTY_STRING" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + JOB_STEP_MEMBER + SPACE + EQUALS + SPACE + "EMPTY_STRING" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + DD_NAME_LIST + SPACE + EQUALS + SPACE + "[]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
         result = process_environment_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
@@ -284,6 +289,8 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         result = process_data_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
         current_line.current_section = result[1]
     elif current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
+        if current_line.current_line_number == '254':
+            x = 0
         result = process_procedure_division_line(line, name, current_line, next_few_lines, args)
         current_line.level = result[1]
         current_line.skip_the_next_lines = result[0]
@@ -295,8 +302,8 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/CMNDATCT.cobol", "converted/")
     #parse_cobol_file("examples/COMPL001.cbl", "converted/")
     #parse_cobol_file("examples/cics02_link.cbl", "converted/")
-    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
-    parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo2_variable.cbl", "converted/")
     #parse_cobol_file("examples/hellowo3_hierarchical_variables.cbl", "converted/")
     #parse_cobol_file("examples/hellowo4_paragraph.cbl", "converted/")
     #parse_cobol_file("examples/hellow65_multi_dimensional_array.cbl", "converted/")
@@ -306,6 +313,7 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/cics06_return.cbl", "converted/")
     #parse_cobol_file("work/CUTE2B123.cobol", "converted/")
+    parse_cobol_file("work/cabbsmbd.cbl", "converted/")
     #parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
     #parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
     #parse_cobol_file("examples/hellow77_number_to_string.cbl", "converted/")

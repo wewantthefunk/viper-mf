@@ -77,9 +77,15 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     environment_vars = []
+
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step = " + program_name + "Class()" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.job_name = '" + job_name + "'\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.job_step = '" + step_name + "'\n")
+
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
         
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.dd_name_list.append(['" + a[0] + "','" + a[1].split(EQUALS)[1] + "'])\n")
         if a[0] not in IGNORED_DD_STATEMENTS:
             split = a[1].split(EQUALS)
             split1 = split[1].split(COMMA)
@@ -89,7 +95,6 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + "'\n")
             environment_vars.append(a[0])
 
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step = " + program_name + "Class()" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self)\n")
 
     for arg in args:

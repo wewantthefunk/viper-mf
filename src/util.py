@@ -130,6 +130,7 @@ def get_value_safe(dict,key: str, default: str):
         return default
 
 def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: bool):
+    line = line.replace("'''", "'")
     t_elements = line.split(split_on)
     line_elements = []
     literal = ""

@@ -615,6 +615,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
     write_file("temp_cpybook.txt", file_lines)
     raw_lines = read_raw_file_lines("temp_cpybook.txt", 0)
     
+    append_file(outfile, "# Inserted Copybook: " + copybook + NEWLINE)
     total = len(raw_lines)
     count = 0
     skip_the_next_lines_count = 0

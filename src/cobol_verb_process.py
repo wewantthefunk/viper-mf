@@ -221,7 +221,13 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
         for y in range(start_at, end_at):
             if y > start_at:
                 string_list = string_list + COMMA
-            string_list = string_list + OPEN_BRACKET + SINGLE_QUOTE + tokens[y] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[end_at + 1] + SINGLE_QUOTE + CLOSE_BRACKET
+            var_name = SINGLE_QUOTE + tokens[y] + SINGLE_QUOTE
+            delim_by = tokens[end_at + 1]
+            if tokens[y].startswith(SINGLE_QUOTE):
+                var_name = tokens[y]
+                delim_by = 'LITERAL'
+
+            string_list = string_list + OPEN_BRACKET + var_name + COMMA + SINGLE_QUOTE + delim_by + SINGLE_QUOTE + CLOSE_BRACKET
 
     build_string_func = "Build_String(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA \
         + SINGLE_QUOTE + target + SINGLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
@@ -770,9 +776,12 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         if count == 0:
             count = count + 1
             continue
-        if token in COBOL_VERB_LIST or token == PERIOD or token == NUMERIC_KEYWORD:
-            continue
         count = count + 1
+        count_1 = count
+        if count_1 > len(tokens) - 1:
+            count_1 = count
+        if token in COBOL_VERB_LIST or token == PERIOD or token == NUMERIC_KEYWORD or (token == NOT_KEYWORD and tokens[count_1] == NUMERIC_KEYWORD):
+            continue
         if skip_next:
             skip_next = False
             continue
@@ -780,7 +789,9 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         need_closed_bracket = False
         slice_compare = EMPTY_STRING
         if len(tokens) > count:
-            if tokens[count] == NUMERIC_KEYWORD:
+            if tokens[count] == NUMERIC_KEYWORD or (tokens[count] == NOT_KEYWORD and tokens[count_1] == NUMERIC_KEYWORD):
+                if tokens[count] == NOT_KEYWORD:
+                    line = line + " not "
                 line = line + "Check_Value_Numeric("
                 checking_function = True
         if OPEN_PARENS in token and CLOSE_PARENS in token and COLON in token:
@@ -894,10 +905,34 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             checking_function = False
             line = line + CLOSE_PARENS + SPACE
         if need_closed_parens:
-            line = line + CLOSE_PARENS + SPACE
+            #line = line + CLOSE_PARENS + SPACE
+            keep_going = True
+            c = 0
+            rev = tokens[count - 1][::-1]
+            while keep_going:
+                if rev[c: c + 1] == CLOSE_PARENS:
+                    line = line + CLOSE_PARENS + SPACE
+                else:
+                    break
+                c = c + 1
+                if c > len(tokens[count - 1]):
+                    break
         if need_closed_bracket:
             line = line + CLOSE_BRACKET + SPACE
             inside_of_bracket = False
+
+    #if tokens[len(tokens) - 1].endswith(CLOSE_PARENS):
+    #    keep_going = True
+    #    count = 1
+    #    rev = tokens[len(tokens) - 1][::-1]
+    #    while keep_going:
+    #        if rev[count: count + 1] == CLOSE_PARENS:
+    #            line = line + CLOSE_PARENS + SPACE
+    #        else:
+    #            break
+    #        count = count + 1
+    #        if count > len(tokens[len(tokens) - 1]):
+    #            break
 
     line = line + COLON + NEWLINE
 
@@ -919,20 +954,35 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
     else:
         if tokens[1] == UNTIL_KEYWORD:
-            operand2 = tokens[4]
-            if tokens[4].startswith(SINGLE_QUOTE) == False and tokens[4] != ZERO_KEYWORD:
+            if len(tokens) > 4:
+                operand2 = tokens[4]
+                if tokens[4].startswith(SINGLE_QUOTE) == False and tokens[4] != ZERO_KEYWORD:
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if tokens[4] in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
+                elif tokens[4] == ZERO_KEYWORD:
+                    operand2 = ZERO
                 memory_area = SELF_REFERENCE + name + MEMORY
-                if tokens[4] in EIB_VARIABLES:
+                if tokens[2] in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
-                operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[4] + "','" + tokens[4] + "')"
-            elif tokens[4] == ZERO_KEYWORD:
-                operand2 = ZERO
-            memory_area = SELF_REFERENCE + name + MEMORY
-            if tokens[2] in EIB_VARIABLES:
-                memory_area = SELF_REFERENCE + EIB_MEMORY
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
-                + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
-            level = level + 1
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
+                    + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
+                level = level + 1
+            else:
+                not_op = EMPTY_STRING
+                if tokens[2] == NOT_KEYWORD:
+                    operand2 = tokens[3]
+                    not_op = " not "
+                else:
+                    operand2 = tokens[2]
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if operand2 in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
+                    + COLON + NEWLINE)
+                level = level + 1
+                
 
     return level
 
