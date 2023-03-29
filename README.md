@@ -27,7 +27,7 @@ The main goal is to not burden the mainframe developer with having to write code
 
 * The converted Python file name is the PROGRAM-ID of the COBOL with a .py extension.
 
-* File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file status of 35 is assigned to the field designated. If the environment variable is set, but the file does not exist, a file status of 35 is assigned to the field designated.
+* File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file status of 35 is assigned to the file status field designated. If the environment variable is set, but the file does not exist, a file status of 35 is assigned to the file status field designated.
 
 * CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module. A psuedo memory management passing feature is used to simulate the DFHCOMMAREA.
 
@@ -47,7 +47,7 @@ The comments in the COBOL are not copied to the Python program. The Python progr
 
 #### The first 6 characters of a line in a COBOL program
 
-The first six characters are ignored. The seventh character is reserved for the comment indicator of asterisk (*). 
+The first six characters of COBOL source code lines are ignored. The seventh character is reserved for the comment indicator of asterisk (*). 
 
 #### Whitespace in the COBOL program
 
@@ -57,7 +57,7 @@ The whitespace in the COBOL is not copied to the Python program. The Python prog
 
 ### IF Blocks
 
-IF blocks need to end with and END-IF statement. Sure, I could look for the period, but nested IF blocks make it that much harder. Just use a decent coding practice and use and END-IF statement. Spare me the "COBOL doesn't require it" nonsense. When there isn't an END-IF statement it's bad code, and you know it.
+IF blocks need to end with and END-IF statement. Sure, I could look for the period, but nested IF blocks make it that much harder. Just implement a decent coding practice and use an END-IF statement. Spare me the "COBOL doesn't require it" nonsense. When there isn't an END-IF statement it's bad code, and you know it.
 
 ### EVALUATE Blocks
 
