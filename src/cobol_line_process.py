@@ -419,6 +419,12 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     elif (data_info[3] == COMP_5_KEYWORD or cascade_data_type == COMP_5_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_5_KEYWORD
 
+    if INDEXED_CLAUSE in tokens:
+        i = tokens.index(INDEXED_CLAUSE) + 1
+        if BY_KEYWORD in tokens:
+            i = i + 1
+        current_line.index_variables.append([tokens[i], tokens[i], "01", format(current_section)])
+        index_var = tokens[i]
 
     if OCCURS_CLAUSE in tokens:
         i = tokens.index(OCCURS_CLAUSE)
@@ -438,7 +444,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + variable_list + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
             + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + format(current_section) + "Vars = result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + variable_list + "Vars = result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
@@ -464,17 +470,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 else:
                     var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
                 value_index = value_index + 1
-
-    if INDEXED_CLAUSE in tokens:
-        i = tokens.index(INDEXED_CLAUSE) + 1
-        if BY_KEYWORD in tokens:
-            i = i + 1
-        current_line.index_variables.append([tokens[i], tokens[1], tokens[0], format(current_section)])
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + "_" + format(current_section) + "Vars,'" + tokens[i] + "', " \
-        #    + "10, '9','" + tokens[1] + "','',0,0,'','" + tokens[0] + "')" + NEWLINE)
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = result[0]" + NEWLINE)
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
-        index_var = tokens[i]
 
     if len(tokens) == 2:
         current_line.highest_var_name = tokens[1]
