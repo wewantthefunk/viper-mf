@@ -843,6 +843,11 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                     if length == ZERO:
                         length = rvar.child_length
                 var_parent = _find_variable(var_list, var_list[count].parent)
+                if occurrence > 0 and var_parent != None:
+                    if occurrence > var_parent.occurs_length:
+                        result = EMPTY_STRING
+                        found_count = 1
+                        break
                 start = var_list[count].main_memory_position
                 start = _calc_start_pos(var_list, var_parent, start, occurrence)
                 result = main_variable_memory[start:start + length]
