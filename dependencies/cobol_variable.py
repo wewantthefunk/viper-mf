@@ -307,14 +307,10 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     if level == LEVEL_88:
         redefines = EMPTY_STRING
 
-    if len(list) == 83:
-        x = 0
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines))
 
     update_length = length
-    if redefines != EMPTY_STRING:
-        update_length = length
-    result = _update_parent_child_length(main_variable_memory, list, parent, update_length)
+    result = _update_parent_child_length(main_variable_memory, list, parent, update_length, occurs_length)
     skip_add = result[0]
     main_variable_memory = result[1]
 
@@ -329,7 +325,7 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     return [list, main_variable_memory]
 
-def _update_parent_child_length(main_variable_memory, list, name: str, length: int):
+def _update_parent_child_length(main_variable_memory, list, name: str, length: int, sub_occurs_length: int):
     skip_add = False
     if name == EMPTY_STRING:
         return [skip_add, main_variable_memory]
@@ -343,8 +339,15 @@ def _update_parent_child_length(main_variable_memory, list, name: str, length: i
                     pc = ZERO_STRING
                 main_variable_memory = main_variable_memory + pad_char(l.occurs_length * length, pc)
                 skip_add = True
+            if sub_occurs_length > 0:
+                pc = SPACE
+                if l.data_type in NUMERIC_DATA_TYPES:
+                    pc = ZERO_STRING
+                main_variable_memory = main_variable_memory + pad_char(sub_occurs_length * length, pc)
+                l.length = l.length + length * sub_occurs_length
+                skip_add = True
             if l.parent != EMPTY_STRING and not l.is_top_redefines:
-                result = _update_parent_child_length(main_variable_memory, list, l.parent, length)
+                result = _update_parent_child_length(main_variable_memory, list, l.parent, length, ZERO)
                 skip_add = result[0]
                 main_variable_memory = result[1]
             break
@@ -844,10 +847,11 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                         length = rvar.child_length
                 var_parent = _find_variable(var_list, var_list[count].parent)
                 if occurrence > 0 and var_parent != None:
-                    if occurrence > var_parent.occurs_length:
-                        result = EMPTY_STRING
-                        found_count = 1
-                        break
+                    if var_parent.occurs_length > 0:
+                        if occurrence > var_parent.occurs_length:
+                            result = EMPTY_STRING
+                            found_count = 1
+                            break
                 start = var_list[count].main_memory_position
                 start = _calc_start_pos(var_list, var_parent, start, occurrence)
                 result = main_variable_memory[start:start + length]

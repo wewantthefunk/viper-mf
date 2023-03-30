@@ -219,9 +219,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if tokens[1] == 'DDNAME':
-        x = 0
-
     if tokens[0].isnumeric() == False:
         return
 

@@ -25,6 +25,16 @@
 
        PROCEDURE DIVISION USING GETDSNS-PARAMETERS.
 
-           DISPLAY GP-DDNAME.
+           IF GP-DDNAME = 'INPUT   '
+              MOVE 'DSN1' TO GP-DATA-SET-NAME(1)
+              MOVE 'DSN2' TO GP-DATA-SET-NAME(2)
+              MOVE 2 TO GP-CURRENT-DATA-SETS 
+           END-IF.
+
+           IF GP-DDNAME = 'OUTPUT  '
+              MOVE 'O-DSN1' TO GP-DATA-SET-NAME(1)
+              MOVE 'O-DSN2' TO GP-DATA-SET-NAME(2)
+              MOVE 2 TO GP-CURRENT-DATA-SETS
+           END-IF.
 
            GOBACK.
