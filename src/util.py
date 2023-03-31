@@ -28,6 +28,7 @@ class LexicalInfo:
         self.source_filename = "unknown"
         self.is_evaluating = False
         self.index_variables = []
+        self.sections_list = []
 
 class Replacement:
     def __init__(self) -> None:

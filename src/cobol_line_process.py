@@ -26,7 +26,9 @@ def process_environment_division_line(line: str, current_section: str, name: str
 
     if line == FILE_CONTROL_SECTION:
         current_section = FILE_CONTROL_SECTION
-        current_line.current_section = current_section
+        current_line.current_section = current_section    
+        if current_section not in current_line.sections_list:
+            current_line.sections_list.append(current_section)    
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = []" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars)" + NEWLINE)
@@ -43,6 +45,8 @@ def process_environment_division_line(line: str, current_section: str, name: str
     elif line == SPECIAL_NAMES_SECTION:
         current_section = SPECIAL_NAMES_SECTION
         current_line.current_section = current_section
+        if current_section not in current_line.sections_list:
+            current_line.sections_list.append(current_section)
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars = []" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + UNDERSCORE + format(current_section) + "Vars)" + NEWLINE)
@@ -303,7 +307,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 data_division_cascade_stack.pop()
 
         if len(data_division_cascade_stack) > 0:
-            if data_division_cascade_stack[len(data_division_cascade_stack) - 1] != cascade_data_type:
+            if data_division_cascade_stack[len(data_division_cascade_stack) - 1] != cascade_data_type and cascade_data_type not in tokens:
                 cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
 
         if len(data_division_var_stack) == 0:
@@ -438,11 +442,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if is_eib:
         memory_name = SELF_REFERENCE + EIB_MEMORY 
         variable_list = EIB_VARIABLE_LIST
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + variable_list + "Vars,'" + v_name + "', " \
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + variable_list + "Vars = Add_Variable(" + memory_name + "," + SELF_REFERENCE + UNDERSCORE + variable_list + "Vars,'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
-            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + variable_list + "Vars = result[0]" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
+            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")[0]" + NEWLINE)
+    #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_" + variable_list + "Vars = result[0]" + NEWLINE)
+    #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + memory_name + " = result[1]" + NEWLINE)
 
     if VALUE_CLAUSE in tokens:
         value_index = tokens.index(VALUE_CLAUSE) + 1
@@ -480,6 +484,12 @@ def create_index_variables(vars, name: str):
             + "10, '9','" + var[1] + "','',0,0,'','" + var[2] + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + var[3] + "Vars = result[0]" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+
+def allocate_variables(current_line: LexicalInfo, name: str):
+    for cs in current_line.sections_list:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(" + SELF_REFERENCE + UNDERSCORE + format(cs) + "Vars," + SELF_REFERENCE + name + MEMORY + ")" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + UNDERSCORE + format(cs) + "Vars" + SPACE + EQUALS + SPACE + "result[0]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "result[1]" + NEWLINE)
 
 def init_vars(name: str, args, current_line):
     global var_init_list

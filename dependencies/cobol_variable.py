@@ -120,6 +120,7 @@ class COBOLVariable:
         self.main_memory_position = pos
         self.redefine_length = 0
         self.child_length = 0
+        self.child_length_divisor = 1
         self.sign = EMPTY_STRING
         self.unpacked_length = unpacked_length
         self.index_variable = index
@@ -309,21 +310,92 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines))
 
-    update_length = length
-    result = _update_parent_child_length(main_variable_memory, list, parent, update_length, occurs_length)
-    skip_add = result[0]
-    main_variable_memory = result[1]
-
-    pc = SPACE
-    if data_type in NUMERIC_DATA_TYPES:
-        pc = ZERO_STRING
-    if redefines == EMPTY_STRING and length > 0 and skip_add == False:
-        main_variable_memory = main_variable_memory + pad_char(length, pc)
-    elif occurs_length > 0:
-        for x in range(0, occurs_length):
-            main_variable_memory = main_variable_memory + pad_char(length, pc)
-
     return [list, main_variable_memory]
+
+def Allocate_Memory(list, memory: str):
+    memory_temp = EMPTY_STRING
+    child_length = 0
+    child_length_stack = [0]
+    last_known_parent = EMPTY_STRING
+    last_known_level = 100
+    lowest_level = 100
+    divisor = 1
+    count = 0
+    for var in reversed(list):
+        if var.parent == var.name or var.parent == EMPTY_STRING or var.name == last_known_parent:
+            if var.occurs_length > 0:
+                child_length = child_length * var.occurs_length
+                divisor = var.occurs_length
+                child_length_stack[len(child_length_stack) - 1] = child_length
+
+            var.child_length_divisor = divisor
+            if int(var.level) == lowest_level:
+                var.child_length = child_length
+            elif int(var.level) < lowest_level:
+                var.child_length = child_length_stack[len(child_length_stack) - 1]
+            
+            divisor = 1
+             
+        else:
+            if var.occurs_length > 0:
+                child_length = child_length + (var.length * var.occurs_length)
+                child_length_stack[len(child_length_stack) - 1] = child_length_stack[len(child_length_stack) - 1] + (var.length * var.occurs_length)
+                divisor = var.occurs_length
+            else:
+                child_length = child_length + var.length
+                child_length_stack[len(child_length_stack) - 1] = child_length_stack[len(child_length_stack) - 1] + var.length
+        
+        if int(var.level) < lowest_level:
+            lowest_level = int(var.level)
+
+        last_known_parent = var.parent
+
+        if int(var.level) == 1 or count == len(list) - 1:
+            child_length = ZERO
+            var.child_length = child_length_stack[len(child_length_stack) - 1]
+            child_length_stack.append(0)
+            lowest_level = 100
+
+        if int(var.level) < last_known_level:
+            child_length = ZERO
+
+        last_known_level = int(var.level)
+        count = count + 1
+
+    ch = SPACE
+    for i in child_length_stack:
+        memory_temp = memory_temp + pad_char(i, ch)
+
+    memory_temp = memory + memory_temp
+    position = len(memory)
+    for var in list:
+        if var.name == "DDNAME":
+            x = 0
+        var.main_memory_position = position
+        var_parent = _find_variable(list, var.parent)
+        length = var.length
+        if var.occurs_length > 0:
+            length = var.length * var.occurs_length
+        if var_parent != None:
+            if var_parent.occurs_length > 0:
+                length = length * var_parent.occurs_length
+        position = position + length
+
+    return [list, memory_temp]
+
+def Display_Memory(mem_len, list):
+    main_variable_memory = ""
+    count = 0
+    for x in range(0,mem_len):
+        main_variable_memory = main_variable_memory + str(count)
+        count = count + 1
+        if count > 9:
+            count = 0
+    for var in list:
+        length = var.length
+        if length == 0:
+            length = var.child_length
+        print(var.name + "," + str(var.main_memory_position) + "," + str(length) + "," + main_variable_memory[var.main_memory_position:var.main_memory_position + length])
 
 def _update_parent_child_length(main_variable_memory, list, name: str, length: int, sub_occurs_length: int):
     skip_add = False
@@ -662,7 +734,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 var_parent = _find_variable(var_list, var.parent)
                 start = var.main_memory_position
                 if var_parent != None:
-                    pl = var_parent.child_length
+                    pl = int(var_parent.child_length / var_parent.child_length_divisor)
                     start = (pl * (occurrence - 1)) + start
                 if str(value).startswith(HEX_PREFIX):
                     is_hex = True
@@ -893,7 +965,7 @@ def _calc_start_pos(var_list, var_parent: COBOLFileVariable, start: int, occurre
     result = start
     if var_parent != None:
         if var_parent.child_length > 0:
-            pl = var_parent.child_length
+            pl = int(var_parent.child_length / var_parent.child_length_divisor)
             start = (pl * (occurrence - 1)) + start
             result = start
         else:

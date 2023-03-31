@@ -204,6 +204,8 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
             current_division = division
             new_division = True
             if division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
+                create_index_variables(current_line.index_variables, name)
+                allocate_variables(current_line, name)
                 init_vars(name, args, current_line)
             break
 
@@ -216,7 +218,6 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
         if name != "abend":            
             first_time = False
             if current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
-                create_index_variables(current_line.index_variables, name)
                 append_file(name + PYTHON_EXT, "# EIB Fields" + NEWLINE)
                 insert_copybook(name + PYTHON_EXT, EIB_COPYBOOK, current_line, name, current_line.current_section, next_few_lines, args)
                 append_file(name + PYTHON_EXT, "# " + current_division + NEWLINE)
@@ -288,15 +289,19 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + JOB_NAME_MEMBER + SPACE + EQUALS + SPACE + "EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + JOB_STEP_MEMBER + SPACE + EQUALS + SPACE + "EMPTY_STRING" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + DD_NAME_LIST + SPACE + EQUALS + SPACE + "[]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(" + SELF_REFERENCE + "_INTERNALVars," + SELF_REFERENCE + "SPECIALREGISTERSMemory)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_INTERNALVars = result[0]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "SPECIALREGISTERSMemory = result[1]" + NEWLINE)
+
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
         result = process_environment_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
     elif current_division == COBOL_DIVISIONS[DATA_DIVISION_POS]:
         result = process_data_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
         current_line.current_section = result[1]
+        if result[1] not in current_line.sections_list:
+            current_line.sections_list.append(result[1])
     elif current_division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
-        if current_line.current_line_number == '254':
-            x = 0
         result = process_procedure_division_line(line, name, current_line, next_few_lines, args)
         current_line.level = result[1]
         current_line.skip_the_next_lines = result[0]
