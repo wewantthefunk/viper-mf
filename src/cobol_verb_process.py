@@ -18,6 +18,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
 
+    if tokens[0] == COBOL_VERB_CALL and P2C_TERMINATE in tokens[1]:
+        tokens[0] = P2C_TERMINATE
+
     verb = tokens[0]
 
     if tokens[0] == EXEC_KEYWORD and tokens[1] == CICS_KEYWORD:
@@ -242,7 +245,7 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
 
-    if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN:
+    if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == P2C_TERMINATE:
         level = BASE_LEVEL
         append_file(name + PYTHON_EXT, SPACE + OPEN_BRACKET)
         c = 0
@@ -511,12 +514,17 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     comm_area_args = SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + OPEN_BRACKET
     params = []
     quoted = EMPTY_STRING
+    pass_by_content = False
 
     if (len(tokens) > 2 and tokens[2] == USING_KEYWORD):
-        for x in range(3,len(tokens) - 1):
+        start = 3
+        if tokens[3] == CONTENT_KEYWORD:
+            start = 4
+            pass_by_content = True
+        for x in range(start,len(tokens) - 1):
             params = parse_line_tokens(tokens[x], COMMA, EMPTY_STRING, False)
             param_count = 0
-            if x > 3:
+            if x > start:
                 using_args = using_args + COMMA
                 comm_area_args = comm_area_args + COMMA
             for param in params:
@@ -524,13 +532,17 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
                     using_args = using_args + COMMA
                     comm_area_args = comm_area_args + COMMA
                 param_count = param_count + 1
-                memory_area = SELF_REFERENCE + name + MEMORY
-                if param in EIB_VARIABLES:
-                    memory_area = SELF_REFERENCE + EIB_MEMORY
-                elif param in SPECIAL_REGISTERS_VARIABLES:
-                    memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-                using_args = using_args + quoted + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "',True)" + quoted
-                comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
+                if tokens[3] == CONTENT_KEYWORD:
+                    using_args = using_args + param
+                    comm_area_args = comm_area_args + param
+                else:
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if param in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    elif param in SPECIAL_REGISTERS_VARIABLES:
+                        memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+                    using_args = using_args + quoted + "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "','" + param + "',True)" + quoted
+                    comm_area_args = comm_area_args + SINGLE_QUOTE + param + SINGLE_QUOTE
 
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
 
@@ -553,6 +565,8 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if self.terminate:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "return" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + "module_name"
@@ -577,16 +591,16 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if self.terminate:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "return" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = module_instance.main(module_instance, Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + using_args + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None and str(sig_args) != '()':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
-    for param in params:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "if self.terminate:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 3)) + "return" + NEWLINE)
+    if not pass_by_content:
+        for param in params:
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
     return
 
 def process_cics_link(tokens, name, indent, level, args, current_line):
