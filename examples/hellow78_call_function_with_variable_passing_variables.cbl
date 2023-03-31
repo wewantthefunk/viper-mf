@@ -15,5 +15,10 @@
            DISPLAY 'actual message:'
            CALL SUB-PROGRAM USING CONTENT 'content'.
 
+           DISPLAY 'expected message:'
+           DISPLAY 'Called module HELLOW37 content2*'
+           DISPLAY 'actual message:'
+           CALL 'HELLOW37' USING CONTENT 'content2'.
+
            STOP RUN.
 

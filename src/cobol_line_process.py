@@ -135,7 +135,7 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
         data_division_cascade_stack = []
         current_line.skip_the_next_lines = 0
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + "_DataDivisionVars)" + NEWLINE)
+        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + "_DataDivisionVars)" + NEWLINE)
     else:
         tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
         if line.startswith(FD_KEYWORD):
