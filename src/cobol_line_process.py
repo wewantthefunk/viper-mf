@@ -120,9 +120,9 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
                 file_status = tokens[count + 3]
         count = count + 1
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_File_Variable(" + SELF_REFERENCE + "_DataDivisionVars, '" + tokens[1] + "','" + assign \
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_File_Variable(" + SELF_REFERENCE + "_FILE_CONTROLVars, '" + tokens[1] + "','" + assign \
         + "','" + organization + "','" + access + "','" + record_key + "','" + file_status + "')" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_DataDivisionVars = result" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_FILE_CONTROLVars = result" + NEWLINE)
 
 def process_data_division_line(line: str, current_section: str, name: str, current_line: LexicalInfo, next_few_lines, args):
     global data_division_var_stack, data_division_level_stack, data_division_file_record, data_division_cascade_stack

@@ -146,13 +146,18 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[1] + "')" + NEWLINE)
     elif verb == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
+        into_rec = EMPTY_STRING
+        into_index = 0
+        if INTO_KEYWORD in tokens:
+            into_index = tokens.index(INTO_KEYWORD)
+            into_rec = tokens[into_index + 1]
         
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + at_end_clause + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + into_rec + "','" + at_end_clause + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
         if len(tokens) > 3:
-            if tokens[2] == AT_KEYWORD and tokens[3] == END_KEYWORD:
+            if tokens[into_index + 2] == AT_KEYWORD and tokens[into_index + 3] == END_KEYWORD:
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
-                process_move_verb(tokens[4:], name, True, level + 1)
+                process_move_verb(tokens[into_index + 4:], name, True, level + 1)
     elif verb == COBOL_VERB_WRITE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
     elif verb == COBOL_VERB_CALL:

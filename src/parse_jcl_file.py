@@ -140,6 +140,7 @@ if __name__ == "__main__":
     else:
         parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
         parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
+        parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
         parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
         #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
         #parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   

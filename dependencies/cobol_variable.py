@@ -467,7 +467,7 @@ def Close_File(var_list, name: str):
 
     return success
 
-def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_end_clause: str):
+def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, into_rec = "", at_end_clause = ""):
     read_result = [False, main_variable_memory]
     for var in var_list:
         if var.name == name:
@@ -476,7 +476,10 @@ def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, at_e
                 read_result = [True, main_variable_memory]
                 break
             # set the variable from the read
-            read_result = Set_Variable(main_variable_memory, file_rec_var_list, var.record, read_result[0], [var.record], 0)
+            into_record = var.record
+            if into_rec != EMPTY_STRING:
+                into_record = into_rec
+            read_result = Set_Variable(main_variable_memory, file_rec_var_list, into_record, read_result[0], [into_record], 0)
             read_result[0] = not read_result[0]
             break
 
