@@ -83,7 +83,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
         process_math_verb(tokens, name, level)
         last_cmd_display = False
-    elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT:
+    elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT or tokens[0] == P2C_TERMINATE:
         process_exit_verbs(level, name, tokens, current_line, args)
         
     elif verb == COBOL_VERB_PERFORM:
@@ -236,6 +236,10 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
     return
 
 def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args):
+    if tokens[0] == P2C_TERMINATE:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "#inform calling module that termination has happened" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
+
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
 
     if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN:
@@ -581,7 +585,8 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
     for param in params:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
-
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "if self.terminate:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 3)) + "return" + NEWLINE)
     return
 
 def process_cics_link(tokens, name, indent, level, args, current_line):
@@ -1318,7 +1323,7 @@ def check_valid_verb(v: str, compare_verb: str, include_search_multi_verb):
             if multi_verb[0] == compare_verb and multi_verb[1] == v:
                 return False
 
-    if v in COBOL_VERB_LIST:
+    if v in COBOL_VERB_LIST or v in PYTHON_TO_COBOL_VERBS:
         return True
     
     return False

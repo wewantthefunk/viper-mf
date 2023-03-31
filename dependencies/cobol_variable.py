@@ -9,6 +9,7 @@ ADD_COMMAND = "add"
 ADDRESS_INDICATOR = "&&*"
 ALPHANUMERIC_DATA_TYPE = "X"
 BIG_BYTE_ORDER = "big"
+BINARY_INDICATOR = "BINARY"
 CLOSE_PARENS = ")"
 COBOL_FILE_VARIABLE_TYPE = "COBOLFileVariable"
 COLON = ":"
@@ -63,12 +64,14 @@ ZERO_STRING = "0"
 BINARY_COMP_LIST = [
     COMP_5_INDICATOR
     , COMP_INDICATOR
+    , BINARY_INDICATOR
 ]
 
 COMP_DATA_TYPES = [
     COMP_INDICATOR
     , COMP_3_INDICATOR
     , COMP_5_INDICATOR
+    , BINARY_INDICATOR
 ]
 
 EBCDIC_ASCII_CHART = [
@@ -274,7 +277,7 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
             unpacked_length = 4
         elif length == 1:
             unpacked_length = 2
-    elif comp_indicator == COMP_5_INDICATOR and data_type in NUMERIC_DATA_TYPES:
+    elif (comp_indicator in BINARY_COMP_LIST) and data_type in NUMERIC_DATA_TYPES:
         if length < 5:
             length = 2
         elif length < 10:
@@ -329,7 +332,7 @@ def Allocate_Memory(list, memory: str):
                 child_length_stack[len(child_length_stack) - 1] = child_length
 
             var.child_length_divisor = divisor
-            if int(var.level) == lowest_level:
+            if int(var.level) >= lowest_level:
                 var.child_length = child_length
             elif int(var.level) < lowest_level:
                 var.child_length = child_length_stack[len(child_length_stack) - 1]
@@ -699,7 +702,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if value.startswith(NEGATIVE_SIGN):
                             var.sign = NEGATIVE_SIGN
-                            if var.comp_indicator != COMP_5_INDICATOR:
+                            if var.comp_indicator not in BINARY_COMP_LIST:
                                 value = value[1:]
                         else:
                             var.sign = POSITIVE_SIGN
@@ -719,7 +722,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     if value.startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
                     value = convert_to_comp3(value, var)
-                elif var.comp_indicator == COMP_5_INDICATOR:
+                elif var.comp_indicator in BINARY_COMP_LIST:
                     if value.startswith(HEX_PREFIX):
                         value = value.replace(HEX_PREFIX, EMPTY_STRING)
                         new_value = EMPTY_STRING
@@ -931,7 +934,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 if var.data_type in NUMERIC_DATA_TYPES:
                     if var.comp_indicator == COMP_3_INDICATOR:
                         result = convert_from_comp3(result, var)
-                    elif var.comp_indicator == COMP_5_INDICATOR:
+                    elif var.comp_indicator in BINARY_COMP_LIST:
                         result = convert_from_comp(var, result)
                     elif var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if var.sign == NEGATIVE_SIGN:
