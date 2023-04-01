@@ -1,13 +1,15 @@
-# COBOL to Python Converter
+# VIPER MAINFRAME Emulator
 
 ## Author: Christian Strama
 
 ## Purpose:
-The purpose of this utility is to transform COBOL code into Python code. The problem statement is as follows:
+The purpose of this utility is to transform COBOL code into Python code and emulate mainframe execution. The problem statement is as follows:
 
-* Executing COBOL code on a mainframe is slow, disjointed, and expensive. Using JCL jobs requires the execute and feedback be accessed from different areas. By using Python, we can execute the code and get immediate feedback within our same terminal window. This will speed up testing and development efforts.
+* Executing COBOL code on a mainframe is slow, disjointed, and expensive. Using JCL jobs requires the execute and feedback be accessed from different areas, while the jobs are queued and executed serially. By using Python, we can execute the code and get immediate feedback within our same terminal window. This will speed up testing and development efforts.
 
 * COBOL is a language and technology that has a shrinking developer base. It is expensive to run, it does not promote good programming practice, and it is difficult to break into readable, maintainable modules. By converting to Python, the first steps of converting legacy code can be taken.
+
+* JCL is a type of scripting language. It is no more powerful than Bash or DOS batch commands. It can be leveraged to setup dependencies for the code to be executed and keep the results of the execution in a file structure.
 
 ## Hypothesis
 
@@ -19,21 +21,25 @@ If we can make COBOL programs easier and faster to test, we will promote good pr
 
 ## Solution
 
+The VIPER MF emulator is a set of tools designed to improve the quality of life of the developer by providing faster feedback and easier debugging.
+
+## COBRA Converter
+
 This converter will brute force translate a COBOL module line-by-line into an equivalent Python statement. Several "helper" functions have been created to accomodate for COBOL's hierarchichal variable structure. These helper functions are located in the cobol_variable.py module. This module must be carried with the converted .py modules as a dependency. The helper functions were created to handle the hierarchical structure of COBOL variables.
 
-The main goal is to not burden the mainframe developer with having to write code one way for this converter to function, and then make changes for the final mainframe source code. Therefore, mainframe behavior emulation is requireed, along with adherence to IBM standards for COBOL.
+The main goal is to not burden the mainframe developer with having to write code one way for this converter to function, and then make changes for the final mainframe source code. Therefore, mainframe behavior emulation is required, along with adherence to IBM standards for COBOL.
 
 ### Things to know
 
-* The converted Python file name is the PROGRAM-ID of the COBOL with a .py extension.
+* The converted Python file name is the PROGRAM-ID of the COBOL with a .py extension (not the name of the source file).
 
 * File access is accomplished by assigning environment variables. The environment variable name is the ASSIGN value, which is the DD statement in a JCL script. If the environment variable is not assigned, a file status of 35 is assigned to the file status field designated. If the environment variable is set, but the file does not exist, a file status of 35 is assigned to the file status field designated.
 
 * CALL statements call out to other converted Python modules, and any variables in USING clause are treated as byref. The return value from these variables are assigned upon return from the called module. A psuedo memory management passing feature is used to simulate the DFHCOMMAREA.
 
-* Paragraphs are converted to functions
+* Paragraphs are converted to functions.
 
-* CICS statements are converted 
+* CICS statements are converted.
 
 ### Limitations and Understanding
 
@@ -90,7 +96,7 @@ Not only am I contending with the line break and multiple spaces, but the math o
 
 In addition, the lack of a comma between indexes increases the cognitive load for developers. Again, this is clean code we're striving for. While it may be seen as a limitation of the converter (which it is), it's actually enforcing coding standards that should be there, anyway.
 
-## JCL Converter
+## BOA JCL Converter
 
 It became clear over time that some sort of JCL would be needed. The setup of files for input and output is an integral part of mainframe processing. So, the JCL converter was created. This will interpret DD statements to set environment variables to the appropriate path/filename for use in the converted COBOL program.
 
@@ -98,7 +104,7 @@ A JES2-like system for tracking the results of programs was included. The output
 
 As with all things in this project, as functionality is discovered through the conversion of real world legacy code, the product will evolve and become more robust.
 
-## KIX CICS Emulator
+## KRAIT CICS Emulator
 
 CICS is not voodoo or magic. After spending a short amount of time reading the specifications and trying some things out, the nature of CICS became clear. Although the Model-View-Controller concept became solidified in the early 00's, CICS is an early predecessor to MVC (much like quite a few mainframe concepts and features). CICS itself is a memory and task manager. CICS statements are transformed into standard COBOL statements in a preprocessing step in the compilation process. Putting all of this together made it a not difficult feat to create a task and memory manager to emulate the behavior of CICS.
 
