@@ -1,4 +1,4 @@
-# VIPER MAINFRAME Emulator
+# Viper Mainframe Emulator
 
 ## Author: Christian Strama
 
@@ -21,7 +21,11 @@ If we can make COBOL programs easier and faster to test, we will promote good pr
 
 ## Solution
 
-The VIPER MF emulator is a set of tools designed to improve the quality of life of the developer by providing faster feedback and easier debugging.
+The Viper MF emulator is a set of tools designed to improve the quality of life of the developer by providing faster feedback and easier debugging.
+
+* Cobra COBOL Source Code Converter
+* Boa JCL Code Converter
+* Krait CICS Emulator
 
 ## Cobra Converter
 
@@ -87,7 +91,7 @@ it is ugly and difficult to parse. Just put a comma in and make it easy for ever
 
          TABLE-NAME(INDEX-1,INDEX-2)
 
-This is a literal line I was trying to parse from legacy source code
+This is a line I was trying to parse from legacy source code
 
          TABLE-NAME                 
               (INDEX-1 + +1 INDEX-2)
