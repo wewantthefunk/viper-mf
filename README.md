@@ -23,7 +23,7 @@ If we can make COBOL programs easier and faster to test, we will promote good pr
 
 The VIPER MF emulator is a set of tools designed to improve the quality of life of the developer by providing faster feedback and easier debugging.
 
-## COBRA Converter
+## Cobra Converter
 
 This converter will brute force translate a COBOL module line-by-line into an equivalent Python statement. Several "helper" functions have been created to accomodate for COBOL's hierarchichal variable structure. These helper functions are located in the cobol_variable.py module. This module must be carried with the converted .py modules as a dependency. The helper functions were created to handle the hierarchical structure of COBOL variables.
 
@@ -96,7 +96,7 @@ Not only am I contending with the line break and multiple spaces, but the math o
 
 In addition, the lack of a comma between indexes increases the cognitive load for developers. Again, this is clean code we're striving for. While it may be seen as a limitation of the converter (which it is), it's actually enforcing coding standards that should be there, anyway.
 
-## BOA JCL Converter
+## Boa JCL Converter
 
 It became clear over time that some sort of JCL would be needed. The setup of files for input and output is an integral part of mainframe processing. So, the JCL converter was created. This will interpret DD statements to set environment variables to the appropriate path/filename for use in the converted COBOL program.
 
@@ -104,7 +104,7 @@ A JES2-like system for tracking the results of programs was included. The output
 
 As with all things in this project, as functionality is discovered through the conversion of real world legacy code, the product will evolve and become more robust.
 
-## KRAIT CICS Emulator
+## Krait CICS Emulator
 
 CICS is not voodoo or magic. After spending a short amount of time reading the specifications and trying some things out, the nature of CICS became clear. Although the Model-View-Controller concept became solidified in the early 00's, CICS is an early predecessor to MVC (much like quite a few mainframe concepts and features). CICS itself is a memory and task manager. CICS statements are transformed into standard COBOL statements in a preprocessing step in the compilation process. Putting all of this together made it a not difficult feat to create a task and memory manager to emulate the behavior of CICS.
 
