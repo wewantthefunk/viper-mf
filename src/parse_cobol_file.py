@@ -337,4 +337,4 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellowo6_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow76_indexed_file_write.cbl", "converted/")
     #parse_cobol_file("dependencies/RANDSTR.cbl", "converted/")
-    parse_cobol_file("examples/hellow79_sequential_file_access_into.cbl", "converted/")
+    parse_cobol_file("examples/hellow68_address_of_function.cbl", "converted/")

@@ -20,5 +20,7 @@
 
            SET ADDRESS OF TEST-VALUE-2 TO TEST-VALUE-ADDRESS.
 
+           DISPLAY TEST-VALUE-2.
+
            STOP RUN.
 
