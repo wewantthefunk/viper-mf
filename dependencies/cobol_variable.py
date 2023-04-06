@@ -355,9 +355,12 @@ def Allocate_Memory(list, memory: str):
         last_known_parent = var.parent
 
         if int(var.level) == 1 or count == len(list) - 1:
-            child_length = ZERO
-            var.child_length = child_length_stack[len(child_length_stack) - 1]
-            child_length_stack.append(0)
+            if child_length == ZERO:
+                child_length_stack.append(var.length)
+            else:
+                child_length = ZERO
+                var.child_length = child_length_stack[len(child_length_stack) - 1]
+                child_length_stack.append(0)
             lowest_level = 100
 
         if int(var.level) < last_known_level:
@@ -648,16 +651,19 @@ def Set_Variable_Address(caller_module, main_variable_memory, variable_lists, na
     return [True, main_variable_memory]
 
 def Set_Variable(main_variable_memory, variable_lists, name: str, value, parent: str, index_pos = 0, caller_module = None):
-    if type(value) == AddressModule:
+    if type(value) == AddressModule or str(value).startswith(ADDRESS_INDICATOR):
+        if str(value).startswith(ADDRESS_INDICATOR):
+            value = AddressModule(caller_module, str(value).replace(ADDRESS_INDICATOR, EMPTY_STRING))
         return Set_Variable_Address(caller_module, main_variable_memory, variable_lists, name, value, name)
+
     found = [False, main_variable_memory]
     for var_list in variable_lists:
-        found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists)
+        found = _set_variable(main_variable_memory, var_list, name, value, [parent], index_pos, variable_lists, caller_module)
         if found[0]:
             break
     return found
 
-def _set_variable(main_variable_memory, var_list, name: str, value: str, parent, index_pos: int, orig_var_list):
+def _set_variable(main_variable_memory, var_list, name: str, value: str, parent, index_pos: int, orig_var_list, caller_module):
     count = 0
     occurrence = 1
     if type(value) == list:
@@ -667,7 +673,6 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
     var_name = name
     new_value = EMPTY_STRING
     is_hex = False
-    raw_value = str(value)
     sub_string = []
 
     if OPEN_PARENS in name:
@@ -704,6 +709,9 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     main_variable_memory = Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)[1]
                 else:
                     var.level88value.append(value)
+                return [True, main_variable_memory]
+            elif var.data_type == POINTER_DATATYPE or var.value.startswith(ADDRESS_INDICATOR):
+                var.address_module.module.set_value(var.address_module.position, value)
                 return [True, main_variable_memory]
             else:
                 if var.data_type in NUMERIC_DATA_TYPES:
@@ -919,7 +927,10 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 count = len(var_list)
                 found_count = 1
             elif var_list[count].value == ADDRESS_INDICATOR:
-                result = var_list[count].address_module.module.retrieve_pointer(var_list[count].address_module.position)
+                if var_list[count].data_type == POINTER_DATATYPE:
+                    result = ADDRESS_INDICATOR + var_list[count].address_module.position
+                else:
+                    result = var_list[count].address_module.module.retrieve_pointer(var_list[count].address_module.position)
                 found_count = 1
                 count = 1
             else:

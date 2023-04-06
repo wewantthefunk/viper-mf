@@ -513,7 +513,7 @@ def get_data_info(tokens):
             info = get_type_length(tokens, count)
             break
         elif (t == POINTER_CLAUSE):
-            info = [POINTER_DATATYPE, 10, 0, EMPTY_STRING]
+            info = [POINTER_DATATYPE, 0, 0, EMPTY_STRING]
         count = count + 1
 
     return info

@@ -1221,6 +1221,9 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
             t = value.split(COMMA)
             value = t[2]
 
+    if value.startswith(MAIN_ARG_VARIABLE_PREFIX):
+        suffix = ",0, self.calling_module"
+
     append_file(name + PYTHON_EXT, do_indent + SELF_REFERENCE + name + MEMORY + " = " + set_func_name + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "'" + suffix + ")[1]" + NEWLINE)
 
     if len(tokens) > 1 + target_offset and tokens[1 + target_offset] != PERIOD and tokens[1 + target_offset] != NEG_ONE and tokens[1 + target_offset] not in COBOL_END_BLOCK_VERBS and tokens[1 + target_offset] not in COBOL_VERB_LIST:
