@@ -332,7 +332,7 @@ if __name__ == "__main__":
     #parse_cobol_file("work/cabbsmbd-work.cbl", "converted/")
     #parse_cobol_file("dependencies/GETDSNS.cbl", "converted/")
     #parse_cobol_file("dependencies/CEE3AB2.cbl", "converted/")
-    parse_cobol_file("examples/hellow12_sequential_file_access.cbl", "converted/")
+    parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/hellow75_indexed_file_access.cbl", "converted/")  
     #parse_cobol_file("examples/hellowo6_array.cbl", "converted/")
     #parse_cobol_file("examples/hellow76_indexed_file_write.cbl", "converted/")

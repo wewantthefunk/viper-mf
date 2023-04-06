@@ -50,6 +50,7 @@ ONE = 1
 OPEN_PARENS = "("
 PERIOD = "."
 PLUS_SIGN = "+"
+POINTER_DATATYPE = "P"
 POSITIVE_SIGN = "+"
 POSITIVE_SIGNED_HEX_FLAG = "C"
 SET_COMMAND = "set"
@@ -639,7 +640,10 @@ def Set_Variable_Address(caller_module, main_variable_memory, variable_lists, na
 
             if var2 != None:
                 var.value = ADDRESS_INDICATOR
-                var.address_module = AddressModule(caller_module, var2.name)
+                if var2.data_type == POINTER_DATATYPE:
+                    var.address_module = var2.address_module
+                else:
+                    var.address_module = AddressModule(caller_module, var2.name)
 
     return [True, main_variable_memory]
 
