@@ -639,7 +639,7 @@ def Set_Variable_Address(caller_module, main_variable_memory, variable_lists, na
 
             if var2 != None:
                 var.value = ADDRESS_INDICATOR
-                var.address_module = AddressModule(caller_module, var2.array_pos)
+                var.address_module = AddressModule(caller_module, var2.name)
 
     return [True, main_variable_memory]
 
@@ -852,7 +852,7 @@ def Get_Variable_Address(caller_module, main_variable_memory, variable_lists, na
     elif var != None:
         result = AddressModule(caller_module, var.name)
     else:
-        result = AddressModule(caller_module, str(len(main_variable_memory) + 1))
+        result = AddressModule(caller_module, 'not found')
 
     return result
 
@@ -915,7 +915,9 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 count = len(var_list)
                 found_count = 1
             elif var_list[count].value == ADDRESS_INDICATOR:
-                x = 0
+                result = var_list[count].address_module.module.retrieve_pointer(var_list[count].address_module.position)
+                found_count = 1
+                count = 1
             else:
                 var = var_list[count]
                 length = var.length
