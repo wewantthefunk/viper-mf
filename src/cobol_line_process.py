@@ -138,8 +138,10 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
         #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + "_DataDivisionVars)" + NEWLINE)
     else:
         tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
-        if line.startswith(FD_KEYWORD):
+        if line.startswith(FD_KEYWORD) or line.startswith(SD_KEYWORD):
             data_division_file_record = tokens[1]
+            if line.startswith(SD_KEYWORD):
+                data_division_file_record = data_division_file_record + SORT_IDENTIFIER
         elif line.startswith(COPYBOOK_KEYWORD):
             insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
         else:

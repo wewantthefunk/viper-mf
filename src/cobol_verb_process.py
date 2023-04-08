@@ -204,12 +204,17 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == COBOL_VERB_STRING:
         process_string_verb(tokens, level, name, current_line)
+    elif verb == COBOL_VERB_SORT:
+        process_sort_verb(tokens, level, name, current_line)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_sort_verb(tokens, level: str, name: str, current_line: LexicalInfo):
+    x = 0
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
@@ -620,16 +625,7 @@ def process_cics_link(tokens, name, indent, level, args, current_line):
             new_tokens[3] = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
         elif token.startswith(LENGTH_KEYWORD):
             s = token.split(OPEN_PARENS)
-            # does the length of the passed data really matter?
-            '''if s[1] == LENGTH_KEYWORD and tokens[count + 1] == OF_KEYWORD:
-                new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON 
-                new_tokens[3] = new_tokens[3] + "Get_Variable_Length(" + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[count + 2] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS
-            else:
-                if s[1].isnumeric() == False:
-                    new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON + "Get_Variable_Value(" + SELF_REFERENCE + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME \
-                        + COMMA + SINGLE_QUOTE + s[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS
-                else:
-                    new_tokens[3] = new_tokens[3] + OPEN_PARENS + ZERO + COLON + s[1] + CLOSE_PARENS'''
+
         count = count + 1
     
     process_call_verb(new_tokens, name, indent, level, args, current_line)
@@ -973,19 +969,6 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         if need_closed_bracket:
             line = line + CLOSE_BRACKET + SPACE
             inside_of_bracket = False
-
-    #if tokens[len(tokens) - 1].endswith(CLOSE_PARENS):
-    #    keep_going = True
-    #    count = 1
-    #    rev = tokens[len(tokens) - 1][::-1]
-    #    while keep_going:
-    #        if rev[count: count + 1] == CLOSE_PARENS:
-    #            line = line + CLOSE_PARENS + SPACE
-    #        else:
-    #            break
-    #        count = count + 1
-    #        if count > len(tokens[len(tokens) - 1]):
-    #            break
 
     line = line + COLON + NEWLINE
 
