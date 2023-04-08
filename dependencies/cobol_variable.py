@@ -493,13 +493,35 @@ def Append_Data_To_File(var_list, name: str, data: str):
 
     return success
 
-def Sort_File(var_list, name: str):
+def Sort_File(var_list, variables_list, name: str, key_fields):
     success = False
+    start_positions = []
+    sort_key_len = 0
+    for key_field in key_fields:
+        for var_list_name in variables_list:
+            key_var = _find_variable(var_list_name, key_field)
+            if key_var != None:
+                parent_var = _find_variable(var_list_name, key_var.parent)
+                if parent_var != None:
+                    start_pos = key_var.main_memory_position - parent_var.main_memory_position
+                    start_positions.append([start_pos, start_pos + key_var.length])
+                    sort_key_len = sort_key_len + key_var.length
+                    x = 0
 
     for var in var_list:
         if var.name == name:
             if var.is_in_memory:
+                for x in range(0,len(var.in_memory_array)):
+                    data = var.in_memory_array[x]
+                    sort_key = EMPTY_STRING
+                    for sp in start_positions:
+                        sort_key = sort_key + data[sp[0]: sp[1]]
+                    var.in_memory_array[x] = sort_key + var.in_memory_array[x]
                 var.in_memory_array.sort()
+                for x in range(0,len(var.in_memory_array)):
+                    var.in_memory_array[x] = var.in_memory_array[x][sort_key_len:]
+                
+                success = True
                 break
 
     return success

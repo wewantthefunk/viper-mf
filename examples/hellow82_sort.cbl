@@ -14,13 +14,14 @@
        FILE SECTION. 
 
        SD  SORT-WORK-1
-           RECORD 18.
+           RECORD 22.
 
        01  SORT-RECORD-1. 
            05 SORT-KEY   PIC X(4).
            05 SORT-DATA  PIC X(11).
            05 FILLER     PIC X(1).
            05 SORT-DATA-CNT PIC X(2).
+           05 SORT-SUB-KEY PIC X(4).
 
        WORKING-STORAGE SECTION.
 
@@ -34,7 +35,7 @@
        PROCEDURE DIVISION.
 
            SORT SORT-WORK-1 ASCENDING SORT-KEY
-
+                                      SORT-SUB-KEY 
               INPUT PROCEDURE IS 100-SORT-INPUT THRU 100-EXIT
               OUTPUT PROCEDURE IS 200-SORT-OUTPUT THRU 200-EXIT
 
@@ -53,6 +54,10 @@
               CALL 'RANDSTR' USING KEY-LEN, NEW-KEY
 
               MOVE NEW-KEY TO SORT-KEY
+
+              CALL 'RANDSTR' USING KEY-LEN, NEW-KEY
+
+              MOVE NEW-KEY TO SORT-SUB-KEY 
 
               MOVE 'test record' TO SORT-DATA
 

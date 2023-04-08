@@ -222,12 +222,20 @@ def process_release_verb(tokens, level: int, name: str, current_line: LexicalInf
 def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
     input_index = 0
     output_index = 0
+    end_of_key_index = 0
     thru_tokens = []
+
+    ascending = True
+
+    if tokens[2] == DESCENDING_KEYWORD:
+        ascending = False
+
     if OUTPUT_KEYWORD in tokens:
         output_index = tokens.index(OUTPUT_KEYWORD)
 
     if INPUT_KEYWORD in tokens:
         input_index = tokens.index(INPUT_KEYWORD)
+        end_of_key_index = input_index
         if tokens[input_index + 1] == PROCEDURE_KEYWORD:
             input_index = input_index + 1
         if tokens[input_index + 1] == IS_KEYWORD:
@@ -248,7 +256,14 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
         process_perform_verb(perform_tokens, name, level, current_line)
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,'" + tokens[1] + "')\n")
+    key_fields = OPEN_BRACKET
+    for x in range(3,end_of_key_index):
+        if x > 3:
+            key_fields = key_fields + COMMA
+        key_fields = key_fields + SINGLE_QUOTE + tokens[x] + SINGLE_QUOTE
+    key_fields = key_fields + CLOSE_BRACKET
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "key_fields = " + key_fields + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + ",'" + tokens[1] + SINGLE_QUOTE + COMMA + "key_fields)\n")
 
 
     if OUTPUT_KEYWORD in tokens:
