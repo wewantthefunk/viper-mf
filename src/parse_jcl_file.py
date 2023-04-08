@@ -49,6 +49,7 @@ def write_out_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "start_time = datetime.now()\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "highest_return_code = 0\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("JES2/OUTPUT/").mkdir(parents=True, exist_ok=True)\n')
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "jes_result_file = 'JES2/OUTPUT/" + job_name + "_' + datetime.strftime(start_time, '%d-%b-%Y-%H-%M-%S')" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")    
@@ -59,9 +60,10 @@ def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "end_time = datetime.now()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Job Complete' + NEWLINE)\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '   Start: {}'.format(start_time) + NEWLINE)\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '     End: {}'.format(end_time) + NEWLINE)\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Duration: {}'.format(end_time - start_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '              Start: {}'.format(start_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '                End: {}'.format(end_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '           Duration: {}'.format(end_time - start_time) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Highest Return Code: ' + str(highest_return_code) + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "cat_file(jes_result_file)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Job Results stored in file: ' + jes_result_file)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "if __name__ == '__main__':\n")
@@ -96,6 +98,12 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
             environment_vars.append(a[0])
 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self)\n")
+    # write the RETURN-CODE from the called program to the output 
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "rc = step.get_return_code()\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc > highest_return_code:\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "highest_return_code = step.get_return_code()\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '      Return Code: ' + str(highest_return_code) + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + NEWLINE)
 
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
@@ -117,7 +125,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
                 if path != EMPTY_STRING:
                     if path.endswith(FORWARD_SLASH) == False:
                         path = path + FORWARD_SLASH
-                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          SYSOUT messages are stored in: " + path + filename + "' + NEWLINE)\n")
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '===> SYSOUT messages are stored in: " + path + filename + "' + NEWLINE + NEWLINE)\n\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + filename + "', string_io.getvalue())\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
 
@@ -139,8 +147,8 @@ if __name__ == "__main__":
         parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
     else:
         parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
-        parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
-        parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
-        parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
+        #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
+        #parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
+        #parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
         #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
         #parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   

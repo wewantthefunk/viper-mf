@@ -53,6 +53,7 @@
 
               CALL 'RANDSTR' USING KEY-LEN, NEW-KEY
 
+              MOVE '1234' TO NEW-KEY
               MOVE NEW-KEY TO SORT-KEY
 
               CALL 'RANDSTR' USING KEY-LEN, NEW-KEY
@@ -83,6 +84,8 @@
        200-SORT-OUTPUT.
 
            DISPLAY 'sort output'.
+
+
 
       * AFTER THE DATA IS SORTED DO SOMETHING WITH IT
 

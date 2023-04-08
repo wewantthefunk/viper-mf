@@ -17,5 +17,7 @@ goto END
 :BLANK
 
 echo you need to specify the folder to clear out!
+echo valid values are:
+echo                  jes == JES2\OUTPUT
 
 :END
