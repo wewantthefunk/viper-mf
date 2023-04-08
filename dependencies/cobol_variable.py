@@ -151,6 +151,8 @@ class COBOLFileVariable:
         self.redefines = EMPTY_STRING
         self.filename = EMPTY_STRING
         self.method = EMPTY_STRING
+        self.in_memory_array = []
+        self.is_in_memory = False
 
     def open_file(self, main_variable_memory, variables_list, method: str):
         filename = os.getenv(self.assign)
@@ -178,7 +180,17 @@ class COBOLFileVariable:
         if self.file_pointer != None:
             self.file_pointer.close()
             self.file_pointer = None
-        
+
+        return
+
+    def append_data(self, data: str):
+        if self.is_in_memory:
+            self.in_memory_array.append(data)
+        else:
+            self._write_sequential(data)
+
+        return 
+    
     def _read_sequential(self):
         line = self.file_pointer.readline().decode('latin-1').replace(NEWLINE, EMPTY_STRING).replace("\r", EMPTY_STRING)
 
@@ -230,7 +242,6 @@ class COBOLFileVariable:
     def _write_indexed(self, data: str, key_value: str):
         if self.file_pointer == None:
             return
-
         
         data_filename = self.filename[0:len(self.filename) - len(INDEX_FILE_EXT)] + DATA_FILE_EXT
 
@@ -472,6 +483,27 @@ def Close_File(var_list, name: str):
 
     return success
 
+def Append_Data_To_File(var_list, name: str, data: str):
+    success = False
+    for var in var_list:
+        if var.record == name:
+            var.append_data(data)
+            success = True
+            break
+
+    return success
+
+def Sort_File(var_list, name: str):
+    success = False
+
+    for var in var_list:
+        if var.name == name:
+            if var.is_in_memory:
+                var.in_memory_array.sort()
+                break
+
+    return success
+
 def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, into_rec = "", at_end_clause = ""):
     read_result = [False, main_variable_memory]
     for var in var_list:
@@ -500,9 +532,15 @@ def Write_File(var_list, variables_list, main_variable_memory: str, name: str):
             break
 
 def Set_File_Record(var_list, name: str, record: str):
+    is_in_memory_array = False
+    if name.endswith(SORT_IDENTIFIER):
+        name = name.replace(SORT_IDENTIFIER, EMPTY_STRING)
+        is_in_memory_array = True
+
     for var in var_list:
         if var.name == name:
             var.record = record
+            var.is_in_memory = is_in_memory_array
             break
 
     return var_list

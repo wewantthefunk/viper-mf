@@ -206,6 +206,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_string_verb(tokens, level, name, current_line)
     elif verb == COBOL_VERB_SORT:
         process_sort_verb(tokens, level, name, current_line)
+    elif verb == COBOL_VERB_RELEASE:
+        process_release_verb(tokens, level, name, current_line)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
@@ -213,8 +215,60 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     
     return level
 
-def process_sort_verb(tokens, level: str, name: str, current_line: LexicalInfo):
-    x = 0
+def process_release_verb(tokens, level: int, name: str, current_line: LexicalInfo):
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Append_Data_To_File(self._FILE_CONTROLVars, '" + tokens[1] + "', Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
+    return
+
+def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
+    input_index = 0
+    output_index = 0
+    thru_tokens = []
+    if OUTPUT_KEYWORD in tokens:
+        output_index = tokens.index(OUTPUT_KEYWORD)
+
+    if INPUT_KEYWORD in tokens:
+        input_index = tokens.index(INPUT_KEYWORD)
+        if tokens[input_index + 1] == PROCEDURE_KEYWORD:
+            input_index = input_index + 1
+        if tokens[input_index + 1] == IS_KEYWORD:
+            input_index = input_index + 1
+
+        if THRU_KEYWORD in tokens:
+            end_index = output_index
+            if output_index < input_index:
+                end_index = len(tokens)
+            thru_index = tokens.index(THRU_KEYWORD, input_index, end_index)
+            thru_tokens.append(THRU_KEYWORD)
+            thru_tokens.append(tokens[thru_index + 1])
+
+        perform_tokens = [COBOL_VERB_PERFORM, tokens[input_index + 1]]
+
+        perform_tokens.extend(thru_tokens)
+
+        process_perform_verb(perform_tokens, name, level, current_line)
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,'" + tokens[1] + "')\n")
+
+
+    if OUTPUT_KEYWORD in tokens:
+        thru_tokens = []
+        output_index = tokens.index(OUTPUT_KEYWORD)
+        if tokens[output_index + 1] == PROCEDURE_KEYWORD:
+            output_index = output_index + 1
+        if tokens[output_index + 1] == IS_KEYWORD:
+            output_index = output_index + 1
+
+        if THRU_KEYWORD in tokens:
+            thru_index = tokens.index(THRU_KEYWORD, output_index)
+            thru_tokens.append(THRU_KEYWORD)
+            thru_tokens.append(tokens[thru_index + 1])
+
+        perform_tokens = [COBOL_VERB_PERFORM, tokens[output_index + 1]]
+
+        perform_tokens.extend(thru_tokens)
+
+        process_perform_verb(perform_tokens, name, level, current_line)
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
@@ -277,6 +331,9 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
     current_line.needs_except_block = False
+
+    return
+
 def process_send_map(tokens, level: int, name: str):
     map_name = EMPTY_STRING
     map_only = 'False'
@@ -339,7 +396,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
             continue
         elif t == FUNCTION_KEYWORD:
             skip_next = True
-            temp_tokens.append("Exec_Function('" + name +  "',\"" + tokens[count + 1] + "\")")
+            temp_tokens.append("Exec_Function(\"" + name +  "\",\"" + tokens[count + 1] + "\")")
         elif t == LENGTH_KEYWORD:
             offset = 1
             if tokens[count + 1] == OF_KEYWORD:
@@ -382,7 +439,7 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         if token in COBOL_ARITHMATIC_OPERATORS or token == EMPTY_STRING:
             count = count + 1
             continue
-        elif token.startswith("Exec_Function('" + name +  "',"):
+        elif token.startswith("Exec_Function(\"" + name +  "\","):
             x = 0
         else:
             if token.startswith(OPEN_PARENS):

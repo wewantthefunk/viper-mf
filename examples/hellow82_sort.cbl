@@ -14,13 +14,22 @@
        FILE SECTION. 
 
        SD  SORT-WORK-1
-           RECORD 14.
+           RECORD 18.
 
        01  SORT-RECORD-1. 
            05 SORT-KEY   PIC X(4).
-           05 SORT-DATA  PIC X(10).
+           05 SORT-DATA  PIC X(11).
+           05 FILLER     PIC X(1).
+           05 SORT-DATA-CNT PIC X(2).
 
        WORKING-STORAGE SECTION.
+
+       01  KEY-INFO.
+
+           05 KEY-LEN  PIC 9(2).
+           05 NEW-KEY  PIC X(4).
+
+       01 COUNTER PIC 9(2).
 
        PROCEDURE DIVISION.
 
@@ -35,7 +44,25 @@
 
            DISPLAY 'sort input'.
 
+           MOVE 4 TO KEY-LEN.
+
       *  LOAD THE SORT ARRAY WITH RECORDS. THIS IS PROBABLY A LOOP
+
+           PERFORM VARYING COUNTER FROM 1 BY 1 UNTIL COUNTER = 11
+
+              CALL 'RANDSTR' USING KEY-LEN, NEW-KEY
+
+              MOVE NEW-KEY TO SORT-KEY
+
+              MOVE 'test record' TO SORT-DATA
+
+              MOVE COUNTER TO SORT-DATA-CNT 
+
+              DISPLAY SORT-RECORD-1 
+
+              RELEASE SORT-RECORD-1 
+
+           END-PERFORM.
 
       *  PROCESS THOSE RECORDS PRE-SORT (COUNTING, CHECKING, ETC.)
 
