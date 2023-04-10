@@ -10,7 +10,7 @@ is_evaluating = False
 is_first_when = True
 is_perform_looping = False
 
-def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, next_few_lines):
     global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
     level = close_out_evaluate(tokens[0], name, level)
     
@@ -90,9 +90,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_exit_verbs(level, name, tokens, current_line, args)
         
     elif verb == COBOL_VERB_PERFORM:
-        level = process_perform_verb(tokens, name, level, current_line)
+        level = process_perform_verb(tokens, name, level, current_line, next_few_lines)
     elif verb == COBOL_VERB_GO:
-        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line)
+        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines)
         process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == COBOL_VERB_IF:
         if current_line.in_else_block:
@@ -108,7 +108,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif len(tokens) == 2 and tokens[1] == PERIOD:
         x = get_last_line_of_file(name + PYTHON_EXT)
         if x.startswith(RETURN_KEYWORD) == False:
-            process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
+            process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args, True)
         current_line.nested_level = 0
         if current_line.needs_except_block:
             append_file(name + PYTHON_EXT, NEWLINE)
@@ -253,7 +253,7 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
         perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line)
+        process_perform_verb(perform_tokens, name, level, current_line, [])
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
     key_fields = OPEN_BRACKET
@@ -283,7 +283,7 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
         perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line)
+        process_perform_verb(perform_tokens, name, level, current_line, [])
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
@@ -317,7 +317,7 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     return
 
-def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args):
+def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args, skip_except_block = False):
     if tokens[0] == P2C_TERMINATE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "#inform calling module that termination has happened" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
@@ -343,9 +343,11 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
         append_file(name + PYTHON_EXT, CLOSE_BRACKET)
 
     append_file(name + PYTHON_EXT, NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
-    current_line.needs_except_block = False
+
+    if not skip_except_block:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+        current_line.needs_except_block = False
 
     return
 
@@ -1048,7 +1050,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
 
     return level + 1
 
-def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo):
+def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines):
     global is_perform_looping
     if VARYING_KEYWORD in tokens:
         is_perform_looping = True
@@ -1060,6 +1062,8 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         if THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
             func_name = UNDERSCORE + tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+    elif RETURN_KEYWORD.upper() in tokens:
+        x = 0
     else:
         if tokens[1] == UNTIL_KEYWORD:
             if len(tokens) > 4:

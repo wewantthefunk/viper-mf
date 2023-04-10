@@ -168,7 +168,7 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
-        level = process_verb(temp_tokens, name, True, level, args, current_line)
+        level = process_verb(temp_tokens, name, True, level, args, current_line, next_few_lines)
     else:
         for nl in next_few_lines:
             nll = nl.split("^^^")
@@ -186,7 +186,7 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
 
                 if temp_tokens[0] != COBOL_VERB_WHEN and current_line.is_evaluating == False:
                     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
-                level = process_verb(temp_tokens, name, True, level, args, current_line)
+                level = process_verb(temp_tokens, name, True, level, args, current_line, next_few_lines)
                 break
             else:
                 skip = skip + 1
@@ -497,7 +497,7 @@ def init_vars(name: str, args, current_line):
     level = current_line.level
     current_line.level = 2
     for vil in var_init_list:
-        process_verb(vil, name, True, 2, args, current_line)
+        process_verb(vil, name, True, 2, args, current_line, [])
     current_line.level = level
 
 def is_valid_verb(line: str, verb_list):
