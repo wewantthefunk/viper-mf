@@ -157,31 +157,38 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
     return [line, current_section, name, current_line]
 
 def process_procedure_division_line(line: str, name: str, current_line: LexicalInfo, next_few_lines, args):
+
+    if line == 'MOVE 1 TO COUNTER':
+        x = 0
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
     skip = 0
     level = current_line.level
 
     fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
 
-    if temp_tokens[0] == COBOL_VERB_SEARCH:
+    if temp_tokens[0] == COBOL_VERB_SEARCH or temp_tokens[0] == COBOL_RETURN_KEYWORD:
         current_line.end_of_search_criteria = True
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
         level = process_verb(temp_tokens, name, True, level, args, current_line, next_few_lines)
     else:
+        compare_verb = temp_tokens[0]
         for nl in next_few_lines:
             nll = nl.split("^^^")
             nllt = nll[0]
             nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) == 0:
-                continue
+                continue            
+            if nlt[0] == COBOL_RETURN_KEYWORD:
+                current_line.end_of_search_criteria = True
+                compare_verb = COBOL_RETURN_KEYWORD
 
-            if (check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) or nlt[len(nlt) - 1] == PERIOD):
+            if (check_valid_verb(nlt[0], compare_verb, current_line.end_of_search_criteria) or nlt[len(nlt) - 1] == PERIOD or (compare_verb == COBOL_RETURN_KEYWORD and (nlt[0] == NOT_KEYWORD and (nlt[1] == END_KEYWORD or nlt[2] == END_KEYWORD)))):
                 if nlt[len(nlt) - 1] == PERIOD:
                     for t in nlt:
                         temp_tokens.append(t)
-                    if check_valid_verb(nlt[0], temp_tokens[0], current_line.end_of_search_criteria) == False:
+                    if check_valid_verb(nlt[0], compare_verb, current_line.end_of_search_criteria) == False:
                         skip = skip + 1
 
                 if temp_tokens[0] != COBOL_VERB_WHEN and current_line.is_evaluating == False:

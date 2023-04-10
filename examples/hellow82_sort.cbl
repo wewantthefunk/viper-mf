@@ -32,9 +32,9 @@
 
        01 COUNTER PIC 9(2).
 
-       01 END-OF-SORT  PIC X.
+       01 IS-END-OF-SORT  PIC X.
            88 NOT-END-OF-SORT  VALue 'N'.
-           88 IS-END-OF-SORT   VALUE 'Y'.
+           88 END-OF-SORT   VALUE 'Y'.
 
        PROCEDURE DIVISION.
 
@@ -92,9 +92,10 @@
            PERFORM UNTIL END-OF-SORT
               RETURN SORT-WORK-1 
                     AT END
-                       SET IS-END-OF-SORT TO TRUE 
+                       SET END-OF-SORT TO TRUE 
                     NOT AT END
                        DISPLAY SORT-RECORD-1 
+                       MOVE 1 TO COUNTER
               END-RETURN
            END-PERFORM.
 

@@ -90,9 +90,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_exit_verbs(level, name, tokens, current_line, args)
         
     elif verb == COBOL_VERB_PERFORM:
-        level = process_perform_verb(tokens, name, level, current_line, next_few_lines)
+        level = process_perform_verb(tokens, name, level, current_line, next_few_lines, args)
     elif verb == COBOL_VERB_GO:
-        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines)
+        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines, args)
         process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == COBOL_VERB_IF:
         if current_line.in_else_block:
@@ -205,9 +205,11 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_STRING:
         process_string_verb(tokens, level, name, current_line)
     elif verb == COBOL_VERB_SORT:
-        process_sort_verb(tokens, level, name, current_line)
+        process_sort_verb(tokens, level, name, current_line, args)
     elif verb == COBOL_VERB_RELEASE:
         process_release_verb(tokens, level, name, current_line)
+    elif verb == END_RETURN_KEYWORD or verb == NOT_KEYWORD:
+        x = 0
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
@@ -219,7 +221,7 @@ def process_release_verb(tokens, level: int, name: str, current_line: LexicalInf
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Append_Data_To_File(self._FILE_CONTROLVars, '" + tokens[1] + "', Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
     return
 
-def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
+def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, args):
     input_index = 0
     output_index = 0
     end_of_key_index = 0
@@ -253,7 +255,7 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
         perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line, [])
+        process_perform_verb(perform_tokens, name, level, current_line, [], args)
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
     key_fields = OPEN_BRACKET
@@ -283,7 +285,7 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
         perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line, [])
+        process_perform_verb(perform_tokens, name, level, current_line, [], args)
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 
@@ -1050,7 +1052,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
 
     return level + 1
 
-def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines):
+def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines, args):
     global is_perform_looping
     if VARYING_KEYWORD in tokens:
         is_perform_looping = True
@@ -1062,8 +1064,22 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         if THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
             func_name = UNDERSCORE + tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
             append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
-    elif RETURN_KEYWORD.upper() in tokens:
-        x = 0
+    elif COBOL_RETURN_KEYWORD in tokens:
+        if tokens[len(tokens) - 1] != PERIOD:
+            tokens.append(PERIOD)
+        return_index = tokens.index(COBOL_RETURN_KEYWORD)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_array = Get_Sort_Array(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "rec_name = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_counter = 0\n")
+        level = build_perform_while_statement(level, name, tokens, return_index - 1)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(self." + name + MEMORY + ",self." + VARIABLES_LIST_NAME + ",rec_name,work_array[work_counter],rec_name)[1]" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_counter = work_counter + 1\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if work_counter >= len(work_array):\n")
+        end_index = tokens.index("END")
+        end_index_2 = len(tokens)
+        if NOT_KEYWORD in tokens[end_index:]:
+            end_index_2 = tokens.index(NOT_KEYWORD, end_index)
+        process_verb(tokens[end_index + 1: end_index_2], name, True, level + 1, args, current_line, [])
     else:
         if tokens[1] == UNTIL_KEYWORD:
             if len(tokens) > 4:
@@ -1103,6 +1119,48 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                     + COLON + NEWLINE)
                 level = level + 1
                 
+
+    return level
+
+def build_perform_while_statement(level: int, name: str, tokens, operand2_location: int):
+    if len(tokens) > operand2_location and operand2_location > 2:
+        operand2 = tokens[operand2_location]
+        if tokens[operand2_location].startswith(PLUS_SIGN):
+            operand2 = tokens[operand2_location].replace(PLUS_SIGN, EMPTY_STRING)
+        elif tokens[operand2_location].startswith(SINGLE_QUOTE) == False and tokens[operand2_location] != ZERO_KEYWORD:
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if tokens[operand2_location] in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            elif tokens[operand2_location] in SPECIAL_REGISTERS_VARIABLES:
+                memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+            operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[operand2_location] + "','" + tokens[operand2_location] + "')"
+        elif tokens[operand2_location] == ZERO_KEYWORD:
+            operand2 = ZERO
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if tokens[2] in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        elif tokens[2] in SPECIAL_REGISTERS_VARIABLES:
+            memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
+            + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
+        level = level + 1
+    else:
+        not_op = EMPTY_STRING
+        if tokens[2] == NOT_KEYWORD:
+            operand2 = tokens[3]
+            not_op = " not "
+        else:
+            operand2 = tokens[2]
+        if tokens[operand2_location + 1] == COBOL_RETURN_KEYWORD:
+            not_op = " not " 
+        memory_area = SELF_REFERENCE + name + MEMORY
+        if operand2 in EIB_VARIABLES:
+            memory_area = SELF_REFERENCE + EIB_MEMORY
+        elif operand2 in SPECIAL_REGISTERS_VARIABLES:
+            memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
+            + COLON + NEWLINE)
+        level = level + 1
 
     return level
 
@@ -1402,6 +1460,8 @@ def check_valid_verb(v: str, compare_verb: str, include_search_multi_verb):
     if include_search_multi_verb == True:
         for multi_verb in COBOL_VERB_MULTI_LIST:
             if multi_verb[0] == compare_verb and multi_verb[1] == v:
+                return False
+            elif multi_verb[0] == compare_verb and multi_verb[1].startswith('!') and v != multi_verb[1:]:
                 return False
 
     if v in COBOL_VERB_LIST or v in PYTHON_TO_COBOL_VERBS:

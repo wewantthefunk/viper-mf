@@ -483,6 +483,20 @@ def Close_File(var_list, name: str):
 
     return success
 
+def Get_Sort_Array(var_list, name: str):
+    for var in var_list:
+        if var.name == name:
+            return var.in_memory_array
+        
+    return []
+
+def Get_Sort_Record_Name(var_list, name: str):
+    for var in var_list:
+        if var.name == name:
+            return var.record
+        
+    return EMPTY_STRING
+
 def Append_Data_To_File(var_list, name: str, data: str):
     success = False
     for var in var_list:
