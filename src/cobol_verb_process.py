@@ -257,35 +257,61 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, 
 
         process_perform_verb(perform_tokens, name, level, current_line, [], args)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
-    key_fields = OPEN_BRACKET
-    for x in range(3,end_of_key_index):
-        if x > 3:
-            key_fields = key_fields + COMMA
-        key_fields = key_fields + SINGLE_QUOTE + tokens[x] + SINGLE_QUOTE
-    key_fields = key_fields + CLOSE_BRACKET
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "key_fields = " + key_fields + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + ",'" + tokens[1] + SINGLE_QUOTE + COMMA + "key_fields)\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
+        key_fields = OPEN_BRACKET
+        for x in range(3,end_of_key_index):
+            if x > 3:
+                key_fields = key_fields + COMMA
+            key_fields = key_fields + SINGLE_QUOTE + tokens[x] + SINGLE_QUOTE
+        key_fields = key_fields + CLOSE_BRACKET
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "key_fields = " + key_fields + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + ",'" + tokens[1] + SINGLE_QUOTE + COMMA + "key_fields)\n")
 
 
-    if OUTPUT_KEYWORD in tokens:
-        thru_tokens = []
-        output_index = tokens.index(OUTPUT_KEYWORD)
-        if tokens[output_index + 1] == PROCEDURE_KEYWORD:
-            output_index = output_index + 1
-        if tokens[output_index + 1] == IS_KEYWORD:
-            output_index = output_index + 1
+        if OUTPUT_KEYWORD in tokens:
+            thru_tokens = []
+            output_index = tokens.index(OUTPUT_KEYWORD)
+            if tokens[output_index + 1] == PROCEDURE_KEYWORD:
+                output_index = output_index + 1
+            if tokens[output_index + 1] == IS_KEYWORD:
+                output_index = output_index + 1
 
-        if THRU_KEYWORD in tokens:
-            thru_index = tokens.index(THRU_KEYWORD, output_index)
-            thru_tokens.append(THRU_KEYWORD)
-            thru_tokens.append(tokens[thru_index + 1])
+            if THRU_KEYWORD in tokens:
+                thru_index = tokens.index(THRU_KEYWORD, output_index)
+                thru_tokens.append(THRU_KEYWORD)
+                thru_tokens.append(tokens[thru_index + 1])
 
-        perform_tokens = [COBOL_VERB_PERFORM, tokens[output_index + 1]]
+            perform_tokens = [COBOL_VERB_PERFORM, tokens[output_index + 1]]
 
-        perform_tokens.extend(thru_tokens)
+            perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line, [], args)
+            process_perform_verb(perform_tokens, name, level, current_line, [], args)
+    elif USING_KEYWORD in tokens:
+        using_index = tokens.index(USING_KEYWORD)
+        giving_index = tokens.index(GIVING_KEYWORD)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "','INPUT')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "','OUTPUT')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[using_index + 1] + "')\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "out_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sort_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[1] + "')\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "seof = False\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while not seof:" + NEWLINE) 
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "r_res = Read_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars" + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[using_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "seof = r_res[0]\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "if seof:\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "break\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self." + name + MEMORY + "= r_res[1]\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Append_Data_To_File(self._FILE_CONTROLVars,sort_rec,Get_Variable_Value(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",work_rec,work_rec))\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[3] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sort_array = Get_Sort_Array(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "for rec in sort_array:\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self." + name + MEMORY + " = Set_Variable(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ", out_rec, rec, out_rec)[1]\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Write_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY  + ",out_rec)\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "')" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')" + NEWLINE)
+
+
+    return 
 
 def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
 

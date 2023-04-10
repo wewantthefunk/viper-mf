@@ -139,6 +139,8 @@ class AddressModule:
 
 class COBOLFileVariable:
     def __init__(self, name: str, assign: str, organization: str, access: str, record_key: str, file_status: str):
+        if organization.strip() == EMPTY_STRING:
+            organization = "SEQUENTIAL"
         self.name = name
         self.assign = assign
         self.organization = organization
@@ -235,7 +237,9 @@ class COBOLFileVariable:
     
     def _write_sequential(self, data: str):
         if self.file_pointer != None:
-            self.file_pointer.write(data)
+            if not data.endswith(NEWLINE):
+                data = data + NEWLINE
+            self.file_pointer.write(bytes(data, 'utf-8'))
     
         return
 

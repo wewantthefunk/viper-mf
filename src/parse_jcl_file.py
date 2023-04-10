@@ -87,12 +87,16 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
         
-        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.dd_name_list.append(['" + a[0] + "','" + a[1].split(EQUALS)[1] + "'])\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.dd_name_list.append(['" + a[0] + "','" + a[1].split(EQUALS)[1].split(COMMA)[0] + "'])\n")
         if a[0] not in IGNORED_DD_STATEMENTS:
             split = a[1].split(EQUALS)
             split1 = split[1].split(COMMA)
             file_info = split1[0].split(OPEN_PARENS)
-            filename = file_info[0]
+            if len(file_info) > 1:
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("' + file_info[0].replace(PERIOD, FORWARD_SLASH) + FORWARD_SLASH + '").mkdir(parents=True, exist_ok=True)\n')
+                filename = file_info[0].replace(PERIOD, FORWARD_SLASH) + FORWARD_SLASH + file_info[1].replace(")", EMPTY_STRING)
+            else:
+                filename = file_info[0].replace(")", EMPTY_STRING)
             path = EMPTY_STRING
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + "'\n")
             environment_vars.append(a[0])
@@ -146,7 +150,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
     else:
-        parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
+        parse_jcl_file("examples/hellow83_sort_2.jcl", "converted/")
+        #parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
         #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
         #parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
         #parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
