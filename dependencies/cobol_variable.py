@@ -974,9 +974,13 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     result = EMPTY_STRING
     var_name = name
     type_result = EMPTY_STRING
+    sub_string = EMPTY_STRING
     array_lookup = False
     
-    if OPEN_PARENS in name:
+    if COLON in name:
+        x = 0
+
+    if OPEN_PARENS in name and COLON not in name:
         array_lookup = True
         s = name.split(OPEN_PARENS)
         var_name = s[0]
@@ -988,6 +992,11 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 occurrence = int(offset_val)
             else:
                 occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
+    elif OPEN_PARENS in name and COLON in name:
+        s = var_name.split(OPEN_PARENS)
+        var_name = s[0]
+        temp_sub_string = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
+        sub_string = temp_sub_string[0] + COLON + str(int(temp_sub_string[0]) + int(temp_sub_string[1]))
 
     var = _find_variable(var_list, var_name)
 
@@ -1032,6 +1041,10 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                 start = var_list[count].main_memory_position
                 start = _calc_start_pos(var_list, var_parent, start, occurrence)
                 result = main_variable_memory[start:start + length]
+
+                if sub_string != EMPTY_STRING:
+                    ss = sub_string.split(COLON)
+                    result = result[int(ss[0]):int(ss[1])]
 
                 if var.data_type in NUMERIC_DATA_TYPES:
                     if var.comp_indicator == COMP_3_INDICATOR:

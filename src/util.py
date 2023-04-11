@@ -202,3 +202,12 @@ def find(s: str, ch: str):
 
 def gen_rand(length: int):
     return ''.join(random.choices(string.ascii_lowercase, k=length))
+
+def count_chars(s: str, char: str):
+    count = 0
+
+    for c in s:
+        if c == char:
+            count += 1
+
+    return count

@@ -774,6 +774,7 @@ def process_evaluate_verb(tokens, name: str, level: int):
         tokens.insert(2, IN_KEYWORD)
         x = 0
 
+    temp_evaluate_compare = evaluate_compare
     reset_evaluate_compare = False
     operator = EQUALS
     operator_offset = 0
@@ -829,7 +830,7 @@ def process_evaluate_verb(tokens, name: str, level: int):
         elif operand2 in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
         operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
+    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD and operator not in COBOL_COMPARISON_OPERATORS:
         operand2 = 'True'
     elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
         operand2 = 'False'
@@ -861,6 +862,8 @@ def process_evaluate_verb(tokens, name: str, level: int):
                         operand2 = operand2 + convert_operator_opposite(et[4]) + SPACE + et[5]
 
                 operator = EMPTY_STRING
+            elif evaluate_compare == TRUE_KEYWORD:
+                evaluate_compare = tokens[1]
 
     prefix = "if "
     if is_first_when == False:
@@ -896,6 +899,8 @@ def process_evaluate_verb(tokens, name: str, level: int):
 
     append_file(name + PYTHON_EXT, pad(indent_len) + line)
 
+    evaluate_compare = temp_evaluate_compare
+
     if reset_evaluate_compare:
         evaluate_compare = EMPTY_STRING
 
@@ -928,6 +933,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             continue
         count = count + 1
         count_1 = count
+        open_parens_count = 0
         if count_1 > len(tokens) - 1:
             count_1 = count
         if token in COBOL_VERB_LIST or token == PERIOD or token == NUMERIC_KEYWORD or (token == NOT_KEYWORD and tokens[count_1] == NUMERIC_KEYWORD):
@@ -945,9 +951,11 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 line = line + "Check_Value_Numeric("
                 checking_function = True
         if OPEN_PARENS in token and CLOSE_PARENS in token and COLON in token:
-            s = token.split(OPEN_PARENS)
+            o_token = token
+            open_parens_count = count_chars(o_token, OPEN_PARENS) - 1
+            s = [t for t in token.split(OPEN_PARENS) if t]
             token = s[0]
-            positions = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
+            positions = s[len(s) - 1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
             slice_length = int(positions[0]) -1 + int(positions[1])
             slice_compare = OPEN_BRACKET + str(int(positions[0]) - 1) + COLON + str(slice_length) + CLOSE_BRACKET
         elif OPEN_PARENS in token and CLOSE_PARENS in token or (token == OPEN_PARENS or token == CLOSE_PARENS):
@@ -987,13 +995,24 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         elif token == NOT_KEYWORD:
             opposite_operator = True
         elif token == ALL_KEYWORD:
-            line = line + "pad_char(" + str(slice_length) + COMMA + tokens[count + 1] + CLOSE_PARENS
+            line = line + "pad_char(" + str(slice_length) + COMMA + tokens[count] + CLOSE_PARENS
             in_ALL_function = True
         elif token == ZERO_KEYWORD:
             temp_line = line[:current_line.last_known_index]
             work_line = line[current_line.last_known_index:]
             current_line.last_known_index = len(line)
-            work_line = work_line.replace("Get_V", 'int(Get_V').replace("')", "'))")
+            pattern = "Get_V"
+            last_index = work_line.rfind(pattern)
+
+            if last_index != -1:
+                work_line = work_line[:last_index] + work_line[last_index:].replace(pattern, "int(Get_V", 1)
+
+            pattern = ")"
+            last_index = work_line.rfind(pattern)
+
+            if last_index != -1:
+                work_line = work_line[:last_index] + work_line[last_index:].replace(pattern, "))", 1)
+
             line = temp_line + work_line
             line = line + ZERO
         elif is_comparison_operator(token):
@@ -1006,6 +1025,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             opposite_operator = False
         elif is_boolean_keyword(token):            
             line = line + SPACE + token.lower() + SPACE
+            for x in range (0,open_parens_count):
+                line = line + OPEN_PARENS
             not_offset = 0
             if tokens[count] == NOT_KEYWORD and is_comparison_operator(tokens[count + 1]):
                 not_offset = 1
@@ -1260,8 +1281,9 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
         else:
             line = line + SPACE + tokens[or_index + 2] + SPACE
         line = line + convert_operator(tokens[or_index + offset + 1])
-        if tokens[or_index + offset + 2] not in COBOL_VERB_LIST and tokens[or_index + offset + 2] != PERIOD:
-            line = line + tokens[or_index + offset + 2]
+        if (or_index + offset + 2) < len(tokens):
+            if tokens[or_index + offset + 2] not in COBOL_VERB_LIST and tokens[or_index + offset + 2] != PERIOD:
+                line = line + tokens[or_index + offset + 2]
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + line)
     append_file(name + PYTHON_EXT, COLON + NEWLINE)
     current_line.loop_modifier.append(SELF_REFERENCE + name + "Memory = Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
