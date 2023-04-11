@@ -15,3 +15,5 @@ if __name__ == "__main__":
     parse_cobol_file(prefix + "dependencies/RANDSTR.cbl", prefix + "converted/",  prefix)
     print("Converting: " + prefix + "dependencies/GETDSNS.cbl --> " + prefix + "converted/")
     parse_cobol_file(prefix + "dependencies/GETDSNS.cbl", prefix + "converted/",  prefix)
+    print("Converting: " + prefix + "dependencies/FILESTAT.cbl --> " + prefix + "converted/")
+    parse_cobol_file(prefix + "dependencies/FILESTAT.cbl", prefix + "converted/",  prefix)
