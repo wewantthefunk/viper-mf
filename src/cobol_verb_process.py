@@ -1007,11 +1007,14 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             if last_index != -1:
                 work_line = work_line[:last_index] + work_line[last_index:].replace(pattern, "int(Get_V", 1)
 
-            pattern = ")"
+            if CLOSE_BRACKET in work_line:
+                pattern = CLOSE_BRACKET
+            else:
+                pattern = ")"
             last_index = work_line.rfind(pattern)
 
             if last_index != -1:
-                work_line = work_line[:last_index] + work_line[last_index:].replace(pattern, "))", 1)
+                work_line = work_line[:last_index] + work_line[last_index:].replace(pattern, pattern + ")", 1)
 
             line = temp_line + work_line
             line = line + ZERO

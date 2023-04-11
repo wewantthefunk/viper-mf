@@ -996,7 +996,7 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         s = var_name.split(OPEN_PARENS)
         var_name = s[0]
         temp_sub_string = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
-        sub_string = temp_sub_string[0] + COLON + str(int(temp_sub_string[0]) + int(temp_sub_string[1]))
+        sub_string = str(int(temp_sub_string[0]) - 1) + COLON + str(int(temp_sub_string[0]) + int(temp_sub_string[1]) - 1)
 
     var = _find_variable(var_list, var_name)
 
@@ -1068,6 +1068,11 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         if var.data_type in NUMERIC_DATA_TYPES and result != EMPTY_STRING:
             if result.endswith(PERIOD):
                 result = result[0:len(result) - 1]
+
+            result = result.strip()
+            if result == EMPTY_STRING:
+                result = ZERO_STRING
+                
             type_result = int(result)
         else:
             type_result = result
