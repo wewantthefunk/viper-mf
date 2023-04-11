@@ -11,9 +11,11 @@ The purpose of this utility is to transform COBOL code into Python code and emul
 
 * JCL is a type of scripting language. It is no more powerful than Bash or DOS batch commands. It can be leveraged to setup dependencies for the code to be executed and keep the results of the execution in a file structure.
 
+* This project has a single, "North Star" goal: SEAMLESSLY EXECUTE MAINFRAME CODE ON A PC.
+
 ## Hypothesis
 
-If we can make COBOL programs easier and faster to test, we will promote good programming habits and create a foundation for converting legacy code to a modern language that has more tools, resources, and developers to support it. Good programming habits, in this case, are:
+If we can make COBOL programs easier and faster to test, we will promote good programming habits and create a foundation for converting legacy code to modern tech stacks that have more tools, resources, and developers to support it. Good programming habits, in this case, are:
 
 * Small modules that have a single responsibility. These modules call, and are called by, other modules for logic and data collaboration.
 * Code organized into PARAGRAPHs to reduce cognitive load.
