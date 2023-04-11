@@ -165,7 +165,7 @@ class COBOLFileVariable:
         if filename == None:
             result = Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
             return result[1]
-        elif exists(filename) == False:
+        elif exists(filename) == False and self.method == "INPUT":
             result = Set_Variable(main_variable_memory, variables_list, self.file_status, '35', self.file_status)
             return result[1]
 

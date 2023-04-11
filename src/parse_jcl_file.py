@@ -12,9 +12,11 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     step_name = EMPTY_STRING
     program_name = EMPTY_STRING
     args = []
+    is_getting_inline = False
+    inline_args = EMPTY_STRING
 
     for rl in r_lines:
-        if not rl.startswith(JCL_LINE_START):
+        if not rl.startswith(JCL_LINE_START) and not is_getting_inline:
             continue
         index = rl.find(SPACE)
         temp = rl[2:index]
@@ -23,7 +25,9 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
             write_out_job_info(job_name, target_dir)
         else:
             if JCL_EXEC_INDICATOR in rl:
-                if step_name != EMPTY_STRING:
+                if program_name == "IDCAMS":
+                    process_idcams_cmd(job_name, step_name, inline_args.strip(), target_dir, program_name)
+                elif step_name != EMPTY_STRING:
                     write_out_step_info(job_name, step_name, program_name, args, target_dir)
                 step_name = EMPTY_STRING
                 program_name = EMPTY_STRING
@@ -33,14 +37,23 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                     s = rl.split(JCL_PGM_NAME)
                     p = s[1].split(COMMA)
                     program_name = p[0].replace(NEWLINE, EMPTY_STRING)
+            elif rl.startswith("/*"):
+                is_getting_inline = False
+            elif is_getting_inline:
+                inline_args = inline_args + rl.strip() + SPACE
             elif JCL_DD_INDICATOR in rl:
                 t = rl.split(JCL_DD_INDICATOR)
-                args.append(t[0].replace(JCL_LINE_START, EMPTY_STRING).strip() + DD_ARG_DELIMITER + t[1].replace(NEWLINE, EMPTY_STRING).strip())
+                dd_target = t[1].replace(NEWLINE, EMPTY_STRING).strip()
+                if dd_target == "*":
+                    is_getting_inline = True
+                    inline_args = EMPTY_STRING
+                args.append(t[0].replace(JCL_LINE_START, EMPTY_STRING).strip() + DD_ARG_DELIMITER + dd_target)
 
         count = count + 1
 
     write_out_step_info(job_name, step_name, program_name, args, target_dir)
     write_out_final_job_info(job_name, target_dir)
+
     return
 
 def write_out_job_info(job_name, target_dir):
@@ -54,6 +67,8 @@ def write_out_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "jes_result_file = 'JES2/OUTPUT/" + job_name + "_' + datetime.strftime(start_time, '%d-%b-%Y-%H-%M-%S')" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")    
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing Job: " + job_name + "' + NEWLINE)\n")
+
+    return
 
 def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
@@ -69,6 +84,8 @@ def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "if __name__ == '__main__':\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj = " + job_name + "JCLClass()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj.main()\n")
+
+    return
 
 def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     insert_beginning_of_file(target_dir + job_name + CONVERTED_JCL_EXT, "from " + program_name + " import *\n")
@@ -138,6 +155,39 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
 
     for e in environment_vars:
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")
+
+    return
+
+def process_idcams_cmd(job_name: str, step_name: str, inline_args: str, target_dir: str, program_name: str):
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, NEWLINE + "# STEP: " + step_name + NEWLINE + "#  PGM: " + program_name + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing    Step: " + step_name + "' + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          Program: " + program_name + "' + NEWLINE)" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
+
+    args = inline_args.split(SPACE)
+
+    if args[0] == "DELETE":
+        path_info = args[1].split("(")
+        path = path_info[0].replace(PERIOD, FORWARD_SLASH)
+        temp = path.split(FORWARD_SLASH)
+        filename = temp[len(temp) - 1]
+        if len(path_info) > 1:
+            filename = path_info[1].replace(")", EMPTY_STRING)
+
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if os.path.exists('" + path + FORWARD_SLASH + filename + "'):\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "os.remove('" + path + FORWARD_SLASH + filename + "')\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "rc = 0\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "else:\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "rc = 8\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "append_file_data(jes_result_file, 'IDC3009I ** VSAM CATALOG RETURN CODE IS 8 - REASON CODE IS IGG0CLEG-42' + NEWLINE)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "append_file_data(jes_result_file, 'IDC0551I ** ENTRY " + args[1] + "' + NEWLINE)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "append_file_data(jes_result_file, 'IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 8' + NEWLINE)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '      Return Code: ' + str(rc) + NEWLINE)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc > highest_return_code:\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "highest_return_code = rc\n")
+
+    return
 
 if __name__ == "__main__":
     prefix = "../"
