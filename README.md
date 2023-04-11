@@ -96,17 +96,28 @@ This is a line I was trying to parse from legacy source code
          TABLE-NAME                 
               (INDEX-1 + +1 INDEX-2)
 
-Not only am I contending with the line break and multiple spaces, but the math on INDEX-1 made it almost impossible (read: not worth the parsing logic effort) to determine index 1 and index 2. Putting a comma in made it manageable. 
+Not only am I contending with the line break and whitespace between the command tokens, but the math on INDEX-1 made it almost impossible (read: not worth the parsing logic effort) to determine index 1 and index 2. Putting a comma in made it manageable. 
+
+         TABLE-NAME                 
+              (INDEX-1 + +1, INDEX-2)
 
 In addition, the lack of a comma between indexes increases the cognitive load for developers. Again, this is clean code we're striving for. While it may be seen as a limitation of the converter (which it is), it's actually enforcing coding standards that should be there, anyway.
 
 ## Boa JCL Converter
 
-It became clear over time that some sort of JCL would be needed. The setup of files for input and output is an integral part of mainframe processing. So, the JCL converter was created. This will interpret DD statements to set environment variables to the appropriate path/filename for use in the converted COBOL program.
+It became clear over time that some sort of JCL functionality would be needed. The setup of files for input and output is an integral part of mainframe processing. So, the Boa JCL converter was created. This will interpret DD statements to set environment variables to the appropriate path/filename for use in the converted COBOL program.
 
 A JES2-like system for tracking the results of programs was included. The output of the execution of a JCL "job" is stored in a simple text file in the JES2/OUTPUT path from where the JCL job is executed.
 
 As with all things in this project, as functionality is discovered through the conversion of real world legacy code, the product will evolve and become more robust.
+
+Basic utility functions from IDCAMS and IEBGENER are being added over time. So far:
+
+* IDCAMS
+  * DELETE
+
+* IEBGENER
+  * none
 
 ## Krait CICS Emulator
 

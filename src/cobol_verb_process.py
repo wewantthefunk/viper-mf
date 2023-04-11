@@ -1056,7 +1056,6 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             checking_function = False
             line = line + CLOSE_PARENS + SPACE
         if need_closed_parens:
-            #line = line + CLOSE_PARENS + SPACE
             keep_going = True
             c = 0
             rev = tokens[count - 1][::-1]
