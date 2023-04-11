@@ -1,2 +1,2 @@
 @echo off
-python3 converted\kix.py
+python3 converted\krait.py
