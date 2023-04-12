@@ -7,7 +7,7 @@ def main(prefix: str):
     cobol_file_extensions = [".cbl", ".cob"]
     for x in range(0, len(cobol_file_extensions)):
         for file in glob.glob(input_dir + "*" + cobol_file_extensions[x]):
-            print("Converting: " + file + " --> " + output_dir)
+            print("Converting COBOL: " + file + " --> " + output_dir)
             parse_cobol_file(file, output_dir, prefix)
 
     print('')
@@ -22,7 +22,7 @@ if __name__ == "__main__":
                 prefix = ""
                 break
     if len(sys.argv) > 1:
-        print("Converting: " + prefix + sys.argv[1] + " --> " + prefix + sys.argv[2])
+        print("Converting COBOL: " + prefix + sys.argv[1] + " --> " + prefix + sys.argv[2])
         parse_cobol_file(sys.argv[1], sys.argv[2], prefix)
     else:
         main(prefix)

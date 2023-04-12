@@ -5,6 +5,9 @@ import sys
 job_name = EMPTY_STRING
 
 def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
+
+    print("Converting JCL: " + file + " --> " + prefix + sys.argv[2])
+
     r_lines = read_raw_file_lines(file, 0)
 
     count = 0
