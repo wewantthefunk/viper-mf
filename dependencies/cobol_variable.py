@@ -349,7 +349,7 @@ def Allocate_Memory(list, memory: str):
                 child_length_stack[len(child_length_stack) - 1] = child_length
 
             var.child_length_divisor = divisor
-            if int(var.level) >= lowest_level:
+            if int(var.level) >= lowest_level and int(var.level) > 1:
                 var.child_length = child_length
             elif int(var.level) < lowest_level:
                 var.child_length = child_length_stack[len(child_length_stack) - 1]
@@ -372,7 +372,10 @@ def Allocate_Memory(list, memory: str):
 
         if int(var.level) == 1 or count == len(list) - 1:
             if child_length == ZERO:
-                child_length_stack.append(var.length)
+                if int(var.level) == 1:
+                    child_length_stack.append(0)
+                else:
+                    child_length_stack.append(var.length)
             else:
                 child_length = ZERO
                 var.child_length = child_length_stack[len(child_length_stack) - 1]
