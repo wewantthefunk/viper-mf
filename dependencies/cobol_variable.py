@@ -389,7 +389,10 @@ def Allocate_Memory(list, memory: str):
         count = count + 1
 
     ch = SPACE
-    for i in child_length_stack:
+    for var in list:
+        i = var.length
+        if i == ZERO:
+            i = var.child_length
         memory_temp = memory_temp + pad_char(i, ch)
 
     memory_temp = memory + memory_temp
