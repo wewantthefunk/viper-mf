@@ -333,17 +333,18 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     return [list, main_variable_memory]
 
 def Allocate_Memory(list, memory: str):
+    RESET_LEVEL_NUMBER = 100
     memory_temp = EMPTY_STRING
     child_length = 0
     child_length_stack = [0]
     last_known_parent = EMPTY_STRING
-    last_known_level = 100
-    lowest_level = 100
+    last_known_level = RESET_LEVEL_NUMBER
+    lowest_level = RESET_LEVEL_NUMBER
     divisor = 1
     count = 0
     for var in reversed(list):
         if var.parent == var.name or var.parent == EMPTY_STRING or var.name == last_known_parent:
-            if var.occurs_length > 0:
+            if var.occurs_length > ZERO:
                 child_length = child_length * var.occurs_length
                 divisor = var.occurs_length
                 child_length_stack[len(child_length_stack) - 1] = child_length
@@ -373,14 +374,14 @@ def Allocate_Memory(list, memory: str):
         if int(var.level) == 1 or count == len(list) - 1:
             if child_length == ZERO:
                 if int(var.level) == 1:
-                    child_length_stack.append(0)
+                    child_length_stack.append(ZERO)
                 else:
                     child_length_stack.append(var.length)
             else:
                 child_length = ZERO
                 var.child_length = child_length_stack[len(child_length_stack) - 1]
-                child_length_stack.append(0)
-            lowest_level = 100
+                child_length_stack.append(ZERO)
+            lowest_level = RESET_LEVEL_NUMBER
 
         if int(var.level) < last_known_level:
             child_length = ZERO
@@ -389,17 +390,12 @@ def Allocate_Memory(list, memory: str):
         count = count + 1
 
     ch = SPACE
-    for var in list:
-        i = var.length
-        if i == ZERO:
-            i = var.child_length
+    for i in child_length_stack:
         memory_temp = memory_temp + pad_char(i, ch)
 
     memory_temp = memory + memory_temp
     position = len(memory)
     for var in list:
-        if var.name == "DDNAME":
-            x = 0
         var.main_memory_position = position
         var_parent = _find_variable(list, var.parent)
         length = var.length
@@ -413,7 +409,7 @@ def Allocate_Memory(list, memory: str):
     return [list, memory_temp]
 
 def Display_Memory(mem_len, list):
-    main_variable_memory = ""
+    main_variable_memory = EMPTY_STRING
     count = 0
     for x in range(0,mem_len):
         main_variable_memory = main_variable_memory + str(count)
@@ -425,6 +421,8 @@ def Display_Memory(mem_len, list):
         if length == 0:
             length = var.child_length
         print(var.name + "," + str(var.main_memory_position) + "," + str(length) + "," + main_variable_memory[var.main_memory_position:var.main_memory_position + length])
+
+    return
 
 def _update_parent_child_length(main_variable_memory, list, name: str, length: int, sub_occurs_length: int):
     skip_add = False
@@ -576,6 +574,8 @@ def Write_File(var_list, variables_list, main_variable_memory: str, name: str):
             # write the value from the variable indicated in 'name' parameter
             var.write(data, key_value)
             break
+
+    return
 
 def Set_File_Record(var_list, name: str, record: str):
     is_in_memory_array = False
@@ -934,7 +934,7 @@ def Get_Variable_Length(variable_lists, name: str):
                 return var.child_length
 
             return var.length
-    return 0
+    return ZERO
 
 def Get_Variable_Address(caller_module, main_variable_memory, variable_lists, name: str, parent: str, force_str = False):
     var = None
@@ -981,13 +981,8 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     var_name = name
     type_result = EMPTY_STRING
     sub_string = EMPTY_STRING
-    array_lookup = False
-    
-    if COLON in name:
-        x = 0
 
     if OPEN_PARENS in name and COLON not in name:
-        array_lookup = True
         s = name.split(OPEN_PARENS)
         var_name = s[0]
         if COMMA in s[1]:
@@ -1245,6 +1240,8 @@ def Display_Variable(main_variable_memory, variable_lists, name: str, parent: st
 
     print_value(dv)
 
+    return
+
 def Translate_Arguments(sig_args, args):
     if len(args) == ZERO or sig_args == "()":
         return EMPTY_STRING
@@ -1266,8 +1263,7 @@ def Build_Comm_Area(module_name: str, data, variable_lists,eib_memory: str, term
 
     _write_binary_file(module_name + EIB_EXT, bytes(eib_memory, 'utf-8'))
 
-    return eib_memory
-    
+    return eib_memory    
 
 def Retrieve_Comm_Area(main_variable_memory, variable_lists, variables, module_name: str):
     data = _read_file(module_name + COMM_AREA_EXT)
@@ -1281,26 +1277,33 @@ def Retrieve_EIB_Area(module_name: str):
 
 def append_file_data(file: str, data: str):
     _append_file(file, data)
+    return
 
 def _append_file(file: str, data: str):
     _append_binary_file(file,bytes(data, 'utf-8'))
+    return
 
 def _append_binary_file(file: str, data):
     _write_file_data(file,data,"ab")
+    return
 
 def write_file_data(file: str, data: str):
     _write_file(file, data)
+    return
 
 def _write_file(file: str, data: str):
     _write_binary_file(file,bytes(data, 'utf-8'))
+    return
 
 def _write_binary_file(file: str, data):
     _write_file_data(file,data,"wb")
+    return
 
 def _write_file_data(file: str, data, method: str):
     f = open(file,method)
     f.write(data)
     f.close()
+    return
 
 def _read_file(file: str, remove_line_breaks = True):
     if exists(file) == False:
@@ -1317,6 +1320,7 @@ def _read_file(file: str, remove_line_breaks = True):
 def cat_file(file: str):
     with open(file, 'r') as f:
         print(f.read())
+    return
 
 def format_date_cyyddd():
     now = datetime.now()
@@ -1345,6 +1349,7 @@ def print_value(l: str):
     if l == EMPTY_STRING:
         end_l = NEWLINE
     print(l, end=end_l)
+    return
 
 def gen_rand(length: int):
     return ''.join(random.choices(string.ascii_lowercase + string.ascii_uppercase + string.digits, k=length))
@@ -1375,6 +1380,8 @@ def convert_open_method(method: str):
         return "ab"
     elif method == "INPUT-OUTPUT" or method == "I-O":
         return "ab+"
+    
+    return "ab+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
     result = HEX_DISPLAY_PREFIX + input
@@ -1511,6 +1518,8 @@ def Cleanup():
     for item in test:
         if item.endswith(EIB_EXT):
             os.remove(os.path.join(dir_name, item))
+
+    return
 
 def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('00', '\x00', '\x00'))
@@ -1770,12 +1779,15 @@ def initialize():
     EBCDIC_ASCII_CHART.append(EBCDICASCII('FE', '\xFE', '\xFE'))
     EBCDIC_ASCII_CHART.append(EBCDICASCII('FF', '\xFF', '\xFF'))
 
+    return
+
 def print_out():
     print('Decimal,Hex,EBCDIC,ASCII,EBCDIC Char, ASCII Char')
     for eac in EBCDIC_ASCII_CHART:
         print(str(eac.decimal_value).rjust(3,ZERO_STRING) + COMMA + eac.hex_value.upper() + COMMA + HEX_DISPLAY_PREFIX \
             + hex(ord(eac.EBCDIC_value))[2:].rjust(2,ZERO_STRING).upper() + COMMA + HEX_DISPLAY_PREFIX \
             + hex(ord(eac.ASCII_value))[2:].rjust(2,ZERO_STRING).upper() + COMMA + chr(ord(eac.EBCDIC_value)) + COMMA + chr(ord(eac.ASCII_value)))
+    return
         
 if __name__ == "__main__":
     initialize()
