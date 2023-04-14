@@ -154,12 +154,12 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + into_rec + "','" + at_end_clause + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
-        if len(tokens) > 3:
+        if len(tokens) > 3 + into_index:
             if tokens[into_index + 2] == AT_KEYWORD and tokens[into_index + 3] == END_KEYWORD:
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
                 process_move_verb(tokens[into_index + 4:], name, True, level + 1)
     elif verb == COBOL_VERB_WRITE:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
+        process_write_verb(name, level, tokens)
     elif verb == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
     elif verb == COBOL_VERB_SEARCH:
@@ -216,6 +216,14 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_write_verb(name, level, tokens):
+    if FROM_KEYWORD not in tokens:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
+    else:
+        idx = tokens.index(FROM_KEYWORD)
+        process_move_verb([COBOL_VERB_MOVE, tokens[idx + 1], TO_KEYWORD, tokens[1]], name, True, level)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
 
 def process_release_verb(tokens, level: int, name: str, current_line: LexicalInfo):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Append_Data_To_File(self._FILE_CONTROLVars, '" + tokens[1] + "', Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
@@ -309,7 +317,6 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Write_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY  + ",out_rec)\n")
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "')" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')" + NEWLINE)
-
 
     return 
 
@@ -645,8 +652,10 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
                     comm_area_args = comm_area_args + COMMA
                 param_count = param_count + 1
                 if tokens[3] == CONTENT_KEYWORD:
+                    if param.startswith("X'"):
+                        param = param.replace("X'", "'" + HEX_PREFIX)
                     using_args = using_args + param
-                    comm_area_args = comm_area_args + param
+                    comm_area_args = OPEN_BRACKET
                 else:
                     memory_area = SELF_REFERENCE + name + MEMORY
                     if param in EIB_VARIABLES:
@@ -769,8 +778,9 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
     
 def process_evaluate_verb(tokens, name: str, level: int):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
-
-    if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD:
+    if "INPUT-STATUS-END-OF-FILE" in tokens:
+        x = 0
+    if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD and tokens[2] != NUMERIC_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
         x = 0
 
@@ -830,10 +840,12 @@ def process_evaluate_verb(tokens, name: str, level: int):
         elif operand2 in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
         operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD and operator not in COBOL_COMPARISON_OPERATORS:
+    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD and operator != NUMERIC_KEYWORD and operator not in COBOL_COMPARISON_OPERATORS:
         operand2 = 'True'
     elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
         operand2 = 'False'
+    elif operator == NUMERIC_KEYWORD:
+        operand2 = NUMERIC_KEYWORD
     else:
         if len(evaluate_compare_stack) > 0:
             if evaluate_compare_stack[len(evaluate_compare_stack) - 1][1] != EMPTY_STRING:
@@ -888,14 +900,23 @@ def process_evaluate_verb(tokens, name: str, level: int):
         memory_area = SELF_REFERENCE + EIB_MEMORY
     elif operand1_name in SPECIAL_REGISTERS_VARIABLES:
         memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-    operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
+    if operand1_name == NOT_KEYWORD:
+        operand1 = "not"
+        operator = EMPTY_STRING
+    else:
+        operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
     if operand2 == NUMERIC_KEYWORD:
         operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
         if evaluate_compare == TRUE_KEYWORD:
             operand2 = 'True'
         elif evaluate_compare == FALSE_KEYWORD:
             operand2 = "False"
-    line = prefix + operand1 + convert_operator(operator) + SPACE + operand2 + SPACE
+    if operand1_name == operand2:
+        line = prefix + operand1
+    elif operator == NUMERIC_KEYWORD:
+        line = prefix + operand1
+    else:
+        line = prefix + operand1 + convert_operator(operator) + SPACE + operand2 + SPACE
 
     append_file(name + PYTHON_EXT, pad(indent_len) + line)
 
@@ -907,9 +928,8 @@ def process_evaluate_verb(tokens, name: str, level: int):
     return level
 
 def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: LexicalInfo):
-    if len(tokens) > 2:
-        if tokens[2] == "GREATER":
-            x = 0
+    if "INPUT-STATUS-SUCCESS" in tokens:
+        x = 0
     line = "if "
     if is_elif:
         line = "elif "
@@ -974,6 +994,9 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             slice_length = int(positions[0]) -1 + int(positions[1])
             slice_compare = OPEN_BRACKET + str(int(positions[0]) - 1) + COLON + str(slice_length) + CLOSE_BRACKET
             last_known_slice_compare = slice_compare
+            if count < len(tokens):
+                if tokens[count] not in COBOL_COMPARISON_OPERATORS and tokens[count] != IN_KEYWORD and tokens[count] != IS_KEYWORD and tokens[count] != NOT_KEYWORD and tokens[count] != NUMERIC_KEYWORD:
+                    tokens.insert(count, IN_KEYWORD + UNDERSCORE)
         elif OPEN_PARENS in token and CLOSE_PARENS in token or (token == OPEN_PARENS or token == CLOSE_PARENS):
             i = 0
         elif OPEN_PARENS in token and token.startswith(OPEN_PARENS) == False:
@@ -1009,7 +1032,10 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         elif token.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() or token.replace(MINUS_SIGN, EMPTY_STRING).isnumeric():
             line = line + token + SPACE
         elif token == NOT_KEYWORD:
-            opposite_operator = True
+            if count == 2 and len(tokens) == 3:
+                line = line + " not "
+            else:
+                opposite_operator = True
         elif token == ALL_KEYWORD:
             line = line + "pad_char(" + str(slice_length) + COMMA + tokens[count] + CLOSE_PARENS
             in_ALL_function = True
@@ -1070,6 +1096,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
         elif token == IN_KEYWORD:
             line = line + SPACE + IN_KEYWORD + SPACE + OPEN_BRACKET
             inside_of_bracket = True
+        elif token == IN_KEYWORD + UNDERSCORE:
+            line = line + SPACE + IN_KEYWORD + SPACE
         else:
             var = token
             if count < len(tokens):
@@ -1174,7 +1202,7 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                 not_op = EMPTY_STRING
                 if tokens[2] == NOT_KEYWORD:
                     operand2 = tokens[3]
-                    not_op = " not "
+                    #not_op = " not "
                 else:
                     operand2 = tokens[2]
                 memory_area = SELF_REFERENCE + name + MEMORY

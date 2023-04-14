@@ -75,17 +75,18 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
 
 def create_file_variable(tokens, name: str, next_few_lines, current_section: str):
     done_file_line = False
-    for next_line in next_few_lines:
-        nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
-        for nl_token in nl_tokens:
-            if nl_token != PERIOD:
-                tokens.append(nl_token)
-            else:
-                done_file_line = True
-                break
+    if tokens[len(tokens) - 1] != PERIOD:
+        for next_line in next_few_lines:
+            nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
+            for nl_token in nl_tokens:
+                if nl_token != PERIOD:
+                    tokens.append(nl_token)
+                else:
+                    done_file_line = True
+                    break
 
-        if done_file_line:
-            break
+            if done_file_line:
+                break
 
     count = 0
     assign = EMPTY_STRING
@@ -114,10 +115,14 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
             record_key = tokens[count + 2]
             if tokens[count + 2] == IS_KEYWORD:
                 record_key = tokens[count + 3]
-        elif token == FILE_KEYWORD and tokens[count + 1] == STATUS_KEYWORD:
+        elif (token == FILE_KEYWORD and tokens[count + 1] == STATUS_KEYWORD): 
             file_status = tokens[count + 2]
             if tokens[count + 2] == IS_KEYWORD:
                 file_status = tokens[count + 3]
+        elif token == STATUS_KEYWORD:
+            file_status = tokens[count + 1]
+            if tokens[count + 1] == IS_KEYWORD:
+                file_status = tokens[count + 2]
         count = count + 1
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_File_Variable(" + SELF_REFERENCE + "_FILE_CONTROLVars, '" + tokens[1] + "','" + assign \
@@ -226,7 +231,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
-
+    if 'END-OF-SORT' in tokens:
+        x = 0
     if tokens[0].isnumeric() == False:
         return
 
@@ -450,6 +456,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
+        current_line.highest_var_name = v_name
+        data_division_var_stack[len(data_division_var_stack) - 1] = v_name
+    
     memory_name = SELF_REFERENCE + name + MEMORY 
     variable_list = "_DataDivisionVars"
     if is_eib:

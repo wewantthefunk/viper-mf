@@ -25,6 +25,7 @@ DIVISION_OPERATOR = "/"
 DOUBLE_EQUALS = "=="
 EIB_EXT = "eib.txt"
 EMPTY_STRING = ""
+END_OF_FILE_STATUS = "10"
 GET_COMMAND = "get"
 GREATER_THAN = ">"
 GREATER_THAN_EQUAL = ">="
@@ -390,10 +391,7 @@ def Allocate_Memory(list, memory: str):
         count = count + 1
 
     ch = SPACE
-    for i in child_length_stack:
-        memory_temp = memory_temp + pad_char(i, ch)
 
-    memory_temp = memory + memory_temp
     position = len(memory)
     for var in list:
         var.main_memory_position = position
@@ -405,6 +403,13 @@ def Allocate_Memory(list, memory: str):
             if var_parent.occurs_length > 0:
                 length = length * var_parent.occurs_length
         position = position + length
+
+    l = list[len(list) - 1].length
+
+    if l == 0:
+        l = list[len(list) - 1].child_length
+
+    memory_temp = memory + pad(list[len(list) - 1].main_memory_position + l)
 
     return [list, memory_temp]
 
@@ -554,6 +559,7 @@ def Read_File(main_variable_memory, var_list, file_rec_var_list, name: str, into
         if var.name == name:
             read_result = var.read(main_variable_memory, file_rec_var_list)
             if read_result[1]:
+                main_variable_memory = Set_Variable(main_variable_memory,file_rec_var_list,var.file_status,END_OF_FILE_STATUS,var.file_status)[1]
                 read_result = [True, main_variable_memory]
                 break
             # set the variable from the read
@@ -793,6 +799,19 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 if value == 'True':
                     main_variable_memory = Set_Variable(main_variable_memory, orig_var_list, var.parent, var.level88value, var.parent)[1]
                 else:
+                    vp = _find_variable(var_list, var.parent)
+                    l = ZERO
+                    if vp != None:
+                        l = vp.length
+                        if l == ZERO:
+                            l = vp.child_length
+                    t = EMPTY_STRING
+                    ch = SPACE
+                    if value.isnumeric():
+                        ch = ZERO_STRING
+                    t = pad_char(l, ch)
+                    t1 = t + value
+                    value = t1[len(t1) - l:]
                     var.level88value.append(value)
                 return [True, main_variable_memory]
             elif var.data_type == POINTER_DATATYPE or var.value.startswith(ADDRESS_INDICATOR):
