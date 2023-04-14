@@ -9,4 +9,4 @@ fi
 cd "$(dirname "$0")"
 
 # Call the module
-python3 converted/"$1"
+python3 converted/"$1".py

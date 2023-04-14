@@ -180,6 +180,8 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
     copy_file(dep_dir + "dependencies/cobol_variable.py", target_dir + "cobol_variable.py")
 
+    print("completed conversion of " + file + " to --> " + target_dir + name + PYTHON_EXT)
+
 def insert(originalfile,imports):
     for imp in imports:
         insert_beginning_of_file(originalfile, "from " + imp + " import *" + NEWLINE)        

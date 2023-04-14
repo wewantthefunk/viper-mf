@@ -2,7 +2,7 @@
 if "%~1"=="" goto BLANK
 
 cd /D "%~dp0"
-python3 converted\%1
+python3 converted\%1.py
 
 goto END
 
