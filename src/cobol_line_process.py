@@ -150,14 +150,18 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
         elif line.startswith(COPYBOOK_KEYWORD):
             insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
         else:
-            if data_division_file_record != EMPTY_STRING and tokens[0].isnumeric():
-                append_file(name + PYTHON_EXT, "# this is where we will associate the record " + tokens[1] + " to the file " + data_division_file_record + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self._FILE_CONTROLVars = Set_File_Record(self._FILE_CONTROLVars, '" + data_division_file_record + "','" + tokens[1] + "')" + NEWLINE)
-                data_division_file_record = EMPTY_STRING
             if line[0:2].isnumeric() == False:
                 return [line, current_section, name, current_line]
 
             create_variable(line, current_line, name, current_section, next_few_lines, args)
+
+            if data_division_file_record != EMPTY_STRING and tokens[0].isnumeric():
+                fr = tokens[1]
+                if len(data_division_var_stack) > 0:
+                    fr = data_division_var_stack[0]
+                append_file(name + PYTHON_EXT, "# this is where we will associate the record " + tokens[1] + " to the file " + data_division_file_record + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self._FILE_CONTROLVars = Set_File_Record(self._FILE_CONTROLVars, '" + data_division_file_record + "','" + fr + "')" + NEWLINE)
+                data_division_file_record = EMPTY_STRING
     
     return [line, current_section, name, current_line]
 
