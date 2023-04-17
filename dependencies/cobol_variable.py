@@ -362,7 +362,10 @@ def Allocate_Memory(list, memory: str):
         if var_parent != None:
             length = var.length
             if var.length == ZERO:
-                length = var_parent.child_length
+                length = var.child_length
+                if var.redefines != EMPTY_STRING:
+                    count = count + 1
+                    continue
 
             var_parent.child_length = var_parent.child_length + length
 
@@ -371,8 +374,7 @@ def Allocate_Memory(list, memory: str):
     position = len(memory)
     for var in list:
         if var.redefines != EMPTY_STRING:
-            rv = _find_variable(list, var.redefines)
-            var.main_memory_position = rv.main_memory_position
+            continue
         else:
             var.main_memory_position = position
             var_parent = _find_variable(list, var.parent)
@@ -385,6 +387,24 @@ def Allocate_Memory(list, memory: str):
                 if var_parent.occurs_length > 0:
                     length = length * var_parent.occurs_length
             position = position + length
+
+    last_known_redefines = EMPTY_STRING
+    redefines_position = 0
+    for var in reversed(list):
+        if var.redefines !=  EMPTY_STRING:
+            rv = _find_variable(list, var.redefines)
+            if var.redefines != last_known_redefines:
+                last_known_redefines = var.redefines
+                l = rv.length
+                if l == ZERO:
+                    l = rv.child_length
+                redefines_position = rv.main_memory_position + l
+
+            l = var.length
+
+            redefines_position = redefines_position - l
+
+            var.main_memory_position = redefines_position
 
     l = list[len(list) - 1].length
 
