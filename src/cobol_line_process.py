@@ -140,7 +140,6 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
         data_division_cascade_stack = []
         current_line.skip_the_next_lines = 0
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
-        #append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + "_DataDivisionVars)" + NEWLINE)
     else:
         tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
         if line.startswith(FD_KEYWORD) or line.startswith(SD_KEYWORD):
@@ -235,7 +234,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
-    if 'END-OF-SORT' in tokens:
+    if 'DISPLAY-MONTH' in tokens:
         x = 0
     if tokens[0].isnumeric() == False:
         return
@@ -395,6 +394,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
                     current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
+                    #current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
                     
                     if hard_cascade_type:
                         current_line.cascade_data_type = cascade_data_type
@@ -430,6 +430,14 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if len(data_info) < 4:
         data_info.append(EMPTY_STRING)
 
+    display_mask = EMPTY_STRING
+    if "Z" in data_info[0] or COMMA in data_info[0]:
+        display_mask = data_info[0]
+        if data_info[0].startswith(DASH) or data_info[0].endswith(DASH):
+            data_info[0] = NUMERIC_SIGNED_DATATYPE
+        else:
+            data_info[0] = NUMERIC_DATATYPE
+
     if cascade_data_type == COMP_KEYWORD and data_info[0] != ALPHANUMERIC_DATA_TYPE:
         data_info[3] = COMP_KEYWORD
     elif (data_info[3] == COMP_1_KEYWORD or cascade_data_type == COMP_1_KEYWORD) and data_info[0] != ALPHANUMERIC_DATA_TYPE:
@@ -457,11 +465,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             occurs_length = int(tokens[i + 3])
 
     v_name = tokens[1]
+    pic_clause_override = False
     if v_name == PIC_CLAUSE:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
-        current_line.highest_var_name = v_name
-        data_division_var_stack[len(data_division_var_stack) - 1] = v_name
+        pic_clause_override = True
     
     memory_name = SELF_REFERENCE + name + MEMORY 
     variable_list = "_DataDivisionVars"
@@ -470,7 +478,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         variable_list = EIB_VARIABLE_LIST
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + variable_list + " = Add_Variable(" + memory_name + "," + SELF_REFERENCE + variable_list + ",'" + v_name + "', " \
          + str(data_info[1]) + ", '" + data_info[0] + "','" + current_line.highest_var_name + "','" + current_line.redefines + "'," + str(occurs_length) + "," \
-            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines + ")[0]" + NEWLINE)
+            + str(data_info[2]) + ",'" + data_info[3] + "','" + tokens[0] + "','" + index_var + "'," + is_top_redefines \
+            + ",'" + display_mask + "')[0]" + NEWLINE)
+    
+    if pic_clause_override:
+        current_line.highest_var_name = v_name
+        data_division_var_stack[len(data_division_var_stack) - 1] = v_name
+
     if VALUE_CLAUSE in tokens:
         value_index = tokens.index(VALUE_CLAUSE) + 1
         if tokens[value_index] == IS_KEYWORD:

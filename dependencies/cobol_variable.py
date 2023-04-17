@@ -18,6 +18,7 @@ COMM_AREA_EXT = "comm.txt"
 COMP_INDICATOR = "COMP"
 COMP_3_INDICATOR = "COMP-3"
 COMP_5_INDICATOR = "COMP-5"
+DASH = "-"
 DATA_FILE_EXT = ".dat"
 DFHCOMMAREA_NAME = "DFHCOMMAREA"
 DISP_COMMAND = "display"
@@ -104,7 +105,7 @@ class EBCDICASCII:
             self.ASCII_hex = ascii_hex
 
 class COBOLVariable:
-    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int, index: str, array_pos: int, is_top_redefines: bool):
+    def __init__(self, name: str, length: int, data_type: str, parent: str, redefines: str, occurs_length: int, decimal_length: int, level: str, comp_indicator: str, pos: int, unpacked_length: int, index: str, array_pos: int, is_top_redefines: bool, display_mask = EMPTY_STRING):
         self.name = name
         self.length = length
         self.data_type = data_type
@@ -132,6 +133,7 @@ class COBOLVariable:
         self.index_variable = index
         self.array_pos = array_pos
         self.is_top_redefines = is_top_redefines
+        self.display_mask = display_mask
 
 class AddressModule:
     def __init__(self, module, pos) -> None:
@@ -281,7 +283,7 @@ class COBOLFileVariable:
 
         return
 
-def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING, is_top_redefines = False):
+def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: str, parent: str, redefines = EMPTY_STRING, occurs_length = 0, decimal_len = 0, comp_indicator = EMPTY_STRING, level = "01", index = EMPTY_STRING, is_top_redefines = False, display_mask = EMPTY_STRING):
     for l in list:
         if l.name == name:
             return [list, main_variable_memory]
@@ -329,7 +331,7 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     if level == LEVEL_88:
         redefines = EMPTY_STRING
 
-    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines))
+    list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines, display_mask))
 
     return [list, main_variable_memory]
 
@@ -346,63 +348,43 @@ def Allocate_Memory(list, memory: str):
     for var in reversed(list):
         if var.parent == var.name or var.parent == EMPTY_STRING or var.name == last_known_parent:
             if var.occurs_length > ZERO:
-                child_length = child_length * var.occurs_length
                 divisor = var.occurs_length
-                child_length_stack[len(child_length_stack) - 1] = child_length
 
             var.child_length_divisor = divisor
-            if int(var.level) >= lowest_level and int(var.level) > 1:
-                var.child_length = child_length
-            elif int(var.level) < lowest_level:
-                var.child_length = child_length_stack[len(child_length_stack) - 1]
             
             divisor = 1
              
         else:
             if var.occurs_length > 0:
-                child_length = child_length + (var.length * var.occurs_length)
-                child_length_stack[len(child_length_stack) - 1] = child_length_stack[len(child_length_stack) - 1] + (var.length * var.occurs_length)
                 divisor = var.occurs_length
-            else:
-                child_length = child_length + var.length
-                child_length_stack[len(child_length_stack) - 1] = child_length_stack[len(child_length_stack) - 1] + var.length
         
-        if int(var.level) < lowest_level:
-            lowest_level = int(var.level)
+        var_parent = _find_variable(list, var.parent)
+        if var_parent != None:
+            length = var.length
+            if var.length == ZERO:
+                length = var_parent.child_length
 
-        last_known_parent = var.parent
+            var_parent.child_length = var_parent.child_length + length
 
-        if int(var.level) == 1 or count == len(list) - 1:
-            if child_length == ZERO:
-                if int(var.level) == 1:
-                    child_length_stack.append(ZERO)
-                else:
-                    child_length_stack.append(var.length)
-            else:
-                child_length = ZERO
-                var.child_length = child_length_stack[len(child_length_stack) - 1]
-                child_length_stack.append(ZERO)
-            lowest_level = RESET_LEVEL_NUMBER
-
-        if int(var.level) < last_known_level:
-            child_length = ZERO
-
-        last_known_level = int(var.level)
         count = count + 1
-
-    ch = SPACE
 
     position = len(memory)
     for var in list:
-        var.main_memory_position = position
-        var_parent = _find_variable(list, var.parent)
-        length = var.length
-        if var.occurs_length > 0:
-            length = var.length * var.occurs_length
-        if var_parent != None:
-            if var_parent.occurs_length > 0:
-                length = length * var_parent.occurs_length
-        position = position + length
+        if var.redefines != EMPTY_STRING:
+            rv = _find_variable(list, var.redefines)
+            var.main_memory_position = rv.main_memory_position
+        else:
+            var.main_memory_position = position
+            var_parent = _find_variable(list, var.parent)
+            length = var.length
+            if var.occurs_length > 0:
+                length = var.length * var.occurs_length
+                if length == ZERO and var.redefines != EMPTY_STRING:
+                    length = var.child_length * var.occurs_length
+            if var_parent != None:
+                if var_parent.occurs_length > 0:
+                    length = length * var_parent.occurs_length
+            position = position + length
 
     l = list[len(list) - 1].length
 
@@ -1254,7 +1236,14 @@ def Display_Variable(main_variable_memory, variable_lists, name: str, parent: st
                         dv = str(r[4].length)
                     else:
                         dv = r[2]
-                if r[1] > 0:
+                    if r[4] != None:
+                        var = r[4]
+                        if var.display_mask != EMPTY_STRING:
+                            if var.display_mask.endswith(DASH):
+                                if (int(dv) < 0):
+                                    dv = dv + DASH
+                                else:
+                                    dv = dv + SPACE 
                     break
 
     print_value(dv)
