@@ -1026,8 +1026,6 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
     var = _find_variable(var_list, var_name)
 
     if var != None:
-        if var_name == "VALUE-ONE":
-            x = 0
         if var.name == var_name or var.parent in parent:
             if var.name == DFHCOMMAREA_NAME:
                 result = result + _read_file(orig_var_list[0][0].value + COMM_AREA_EXT)
