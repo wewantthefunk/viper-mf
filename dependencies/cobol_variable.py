@@ -395,7 +395,9 @@ def Allocate_Memory(var_list, memory: str):
             else:
                 position = position + var.length
         else:
-            position = position + var.length       
+            position = position + var.length 
+
+    memory_temp = memory + pad(var_list[len(var_list) - 1].main_memory_position + var_list[len(var_list) - 1].length)
 
     return [var_list, memory_temp]
 
