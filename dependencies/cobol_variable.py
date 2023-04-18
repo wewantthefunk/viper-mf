@@ -134,6 +134,7 @@ class COBOLVariable:
         self.array_pos = array_pos
         self.is_top_redefines = is_top_redefines
         self.display_mask = display_mask
+        self.children = []
 
 class AddressModule:
     def __init__(self, module, pos) -> None:
@@ -335,90 +336,77 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     return [list, main_variable_memory]
 
+def _find_all_variables(var_list, name: str):
+    result = []
+
+    for var in var_list:
+        if var.name == name:
+            result.append(var)
+
+    return result
+
+def _find_all_sibling_variables(var_list, name: str):
+    result = []
+
+    for var in var_list:
+        if var.parent == name:
+            result.append(var)
+
+    return result
+
 def Allocate_Memory(var_list, memory: str):
-    RESET_LEVEL_NUMBER = 100
     memory_temp = EMPTY_STRING
-    divisor = 1
-    count = 0
+
     for var in reversed(var_list):
-        if var.name == "DDNAME":
-            x = 0
-        if var.parent == var.name or var.parent == EMPTY_STRING:
-            if var.occurs_length > ZERO:
-                divisor = var.occurs_length
+        children = _find_all_children(var_list, var.name)
 
-            var.child_length_divisor = divisor
-            
-            divisor = 1
-             
-        else:
-            if var.occurs_length > 0:
-                divisor = var.occurs_length
-        
-        var_parent = _find_variable(var_list, var.parent)
-        if var_parent != None:
-            length = var.length
-            if var.length == ZERO:
-                length = var.child_length
-                if var.redefines != EMPTY_STRING:
-                    count = count + 1
-                    continue
-            #if var.occurs_length > 0:
-            #    length = var.occurs_length * length
+        for child in children:
+            var.children.append(child)
 
-            var_parent.child_length = var_parent.child_length + length
-            if var.occurs_length > 0:
-                var_parent.child_length = int((var_parent.child_length + length) / divisor)
-                var_parent.child_length_divisor = divisor
-
-        count = count + 1
-
+    array_length = []
+    array_vars = []
+    redefine_length = []
+    redefine_vars = []
     position = len(memory)
     for var in var_list:
+        var.main_memory_position = position
+        child_length = _get_length_of_children(var) 
+        var.child_length = child_length
         if var.redefines != EMPTY_STRING:
-            continue
-        else:
-            var.main_memory_position = position
-            var_parent = _find_variable(var_list, var.parent)
-            length = var.length
-            if var.occurs_length > 0:
-                length = var.length * var.occurs_length
-                if length == ZERO and var.redefines != EMPTY_STRING:
-                    length = var.child_length * var.occurs_length
-            if var_parent != None:
-                if var_parent.occurs_length > 0:
-                    length = length * var_parent.occurs_length
-            position = position + length
-
-    last_known_redefines = EMPTY_STRING
-    redefines_position = 0
-    for var in reversed(var_list):
-        if var.redefines !=  EMPTY_STRING:
             rv = _find_variable(var_list, var.redefines)
-            if var.redefines != last_known_redefines:
-                last_known_redefines = var.redefines
-                l = rv.length
-                if l == ZERO:
-                    l = rv.child_length
-                redefines_position = rv.main_memory_position + l
-
-            l = var.length
-
-            redefines_position = redefines_position - l
-
-            var.main_memory_position = redefines_position
-
-    for var in var_list:
-        var.child_length = var.child_length * var.child_length_divisor
-
-    l = var_list[len(var_list) - 1].length
-
-    if l == 0:
-        l = var_list[len(var_list) - 1].child_length
-
-    memory_temp = memory + pad(var_list[len(var_list) - 1].main_memory_position + l)
+            if var.redefines not in redefine_vars:
+                var.main_memory_position = rv.main_memory_position
+                redefine_vars.append(rv.name)
+                redefine_length.append(rv.main_memory_position + var.length)
+            else:
+                var.main_memory_position = redefine_length[len(redefine_length) - 1]
+                redefine_length[len(redefine_length) - 1] = redefine_length[len(redefine_length) - 1] + var.length
+        elif var.occurs_length > ZERO:
+            var.child_length = var.child_length * var.occurs_length
+            var.child_length_divisor = var.occurs_length
+            array_length.append(var.child_length)
+            array_vars.append(_find_all_children(var_list, var.name))
+        elif len(array_vars) > 0:
+            if var not in array_vars[len(array_vars) - 1]:
+                var.main_memory_position = position + array_length[len(array_length) - 1]
+                position = position + var.length
+                array_length.pop()
+                array_vars.pop()
+            else:
+                position = position + var.length
+        else:
+            position = position + var.length       
 
     return [var_list, memory_temp]
+
+def _get_length_of_children(var: COBOLVariable):
+    result = ZERO
+
+    for child in var.children:
+        result = result + child.length
+        result = result + _get_length_of_children(child)
+
+    return result
 
 def Display_Memory(mem_len, list):
     main_variable_memory = EMPTY_STRING
