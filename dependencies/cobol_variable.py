@@ -406,6 +406,9 @@ def Allocate_Memory(list, memory: str):
 
             var.main_memory_position = redefines_position
 
+    for var in list:
+        var.child_length = var.child_length * var.child_length_divisor
+
     l = list[len(list) - 1].length
 
     if l == 0:
@@ -1022,29 +1025,30 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
 
     var = _find_variable(var_list, var_name)
 
-    for x in range(0, len(var_list)):
-        if var_list[count].name == var_name or var_list[count].parent in parent:
-            if var_list[count].name == DFHCOMMAREA_NAME:
+    if var != None:
+        if var_name == "VALUE-ONE":
+            x = 0
+        if var.name == var_name or var.parent in parent:
+            if var.name == DFHCOMMAREA_NAME:
                 result = result + _read_file(orig_var_list[0][0].value + COMM_AREA_EXT)
                 count = len(var_list)
                 found_count = 1
-            elif var_list[count].level == LEVEL_88:
-                var_parent = _find_variable(var_list, var_list[count].parent)
+            elif var.level == LEVEL_88:
+                var_parent = _find_variable(var_list, var.parent)
                 if var_parent != None:
-                    result = str(Get_Variable_Value(main_variable_memory, orig_var_list, var_parent.name, var_parent.name)) in var_list[count].level88value
+                    result = str(Get_Variable_Value(main_variable_memory, orig_var_list, var_parent.name, var_parent.name)) in var.level88value
                 else:
                     result = False
                 count = len(var_list)
                 found_count = 1
-            elif var_list[count].value == ADDRESS_INDICATOR:
-                if var_list[count].data_type == POINTER_DATATYPE:
-                    result = ADDRESS_INDICATOR + var_list[count].address_module.position
+            elif var.value == ADDRESS_INDICATOR:
+                if var.data_type == POINTER_DATATYPE:
+                    result = ADDRESS_INDICATOR + var.address_module.position
                 else:
-                    result = var_list[count].address_module.module.retrieve_pointer(var_list[count].address_module.position)
+                    result = var.address_module.module.retrieve_pointer(var.address_module.position)
                 found_count = 1
                 count = 1
             else:
-                var = var_list[count]
                 length = var.length
                 if length == ZERO:
                     length = var.child_length
@@ -1053,14 +1057,15 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                     length = rvar.length
                     if length == ZERO:
                         length = rvar.child_length
-                var_parent = _find_variable(var_list, var_list[count].parent)
+                var_parent = _find_variable(var_list, var.parent)
                 if occurrence > 0 and var_parent != None:
                     if var_parent.occurs_length > 0:
                         if occurrence > var_parent.occurs_length:
                             result = EMPTY_STRING
                             found_count = 1
-                            break
-                start = var_list[count].main_memory_position
+                            return [result, found_count, result, 1, var]
+                        
+                start = var.main_memory_position
                 start = _calc_start_pos(var_list, var_parent, start, occurrence)
                 result = main_variable_memory[start:start + length]
 
@@ -1080,11 +1085,6 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
                     result = result in var.level88value
                 count = len(var_list)
                 found_count = 1
-        else:
-            count = count + 1
-
-        if count >= len(var_list):
-            break
     
     if var != None:
         if var.data_type in NUMERIC_DATA_TYPES and result != EMPTY_STRING:
