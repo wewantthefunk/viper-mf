@@ -133,6 +133,15 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + SELF_REFERENCE + "terminate = True" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def get_dd_value(self, value: str):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "result = 'UNKNOWN'" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "for dd in self.dd_name_list:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL))     + "if len(dd) > 1:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "if dd[0].strip() == value.strip():" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 2)) + "result = dd[1].strip()" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 2)) + "break" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return result" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if " + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER  + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
@@ -325,5 +334,6 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    #parse_cobol_file("examples/hellowo5_redefines.cbl", "converted/")
-    parse_cobol_file("work/CABBSMBD.cbl", "converted/")
+    parse_cobol_file("examples/hellow84_array_2.cbl", "converted/")
+    #parse_cobol_file("work/CABBSMBD.cbl", "converted/")
+    #parse_cobol_file("dependencies/GETDSNS.cbl", "converted/")

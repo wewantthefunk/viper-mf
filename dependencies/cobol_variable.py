@@ -335,18 +335,15 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
 
     return [list, main_variable_memory]
 
-def Allocate_Memory(list, memory: str):
+def Allocate_Memory(var_list, memory: str):
     RESET_LEVEL_NUMBER = 100
     memory_temp = EMPTY_STRING
-    child_length = 0
-    child_length_stack = [0]
-    last_known_parent = EMPTY_STRING
-    last_known_level = RESET_LEVEL_NUMBER
-    lowest_level = RESET_LEVEL_NUMBER
     divisor = 1
     count = 0
-    for var in reversed(list):
-        if var.parent == var.name or var.parent == EMPTY_STRING or var.name == last_known_parent:
+    for var in reversed(var_list):
+        if var.name == "DDNAME":
+            x = 0
+        if var.parent == var.name or var.parent == EMPTY_STRING:
             if var.occurs_length > ZERO:
                 divisor = var.occurs_length
 
@@ -358,7 +355,7 @@ def Allocate_Memory(list, memory: str):
             if var.occurs_length > 0:
                 divisor = var.occurs_length
         
-        var_parent = _find_variable(list, var.parent)
+        var_parent = _find_variable(var_list, var.parent)
         if var_parent != None:
             length = var.length
             if var.length == ZERO:
@@ -366,18 +363,23 @@ def Allocate_Memory(list, memory: str):
                 if var.redefines != EMPTY_STRING:
                     count = count + 1
                     continue
+            #if var.occurs_length > 0:
+            #    length = var.occurs_length * length
 
             var_parent.child_length = var_parent.child_length + length
+            if var.occurs_length > 0:
+                var_parent.child_length = int((var_parent.child_length + length) / divisor)
+                var_parent.child_length_divisor = divisor
 
         count = count + 1
 
     position = len(memory)
-    for var in list:
+    for var in var_list:
         if var.redefines != EMPTY_STRING:
             continue
         else:
             var.main_memory_position = position
-            var_parent = _find_variable(list, var.parent)
+            var_parent = _find_variable(var_list, var.parent)
             length = var.length
             if var.occurs_length > 0:
                 length = var.length * var.occurs_length
@@ -390,9 +392,9 @@ def Allocate_Memory(list, memory: str):
 
     last_known_redefines = EMPTY_STRING
     redefines_position = 0
-    for var in reversed(list):
+    for var in reversed(var_list):
         if var.redefines !=  EMPTY_STRING:
-            rv = _find_variable(list, var.redefines)
+            rv = _find_variable(var_list, var.redefines)
             if var.redefines != last_known_redefines:
                 last_known_redefines = var.redefines
                 l = rv.length
@@ -406,17 +408,17 @@ def Allocate_Memory(list, memory: str):
 
             var.main_memory_position = redefines_position
 
-    for var in list:
+    for var in var_list:
         var.child_length = var.child_length * var.child_length_divisor
 
-    l = list[len(list) - 1].length
+    l = var_list[len(var_list) - 1].length
 
     if l == 0:
-        l = list[len(list) - 1].child_length
+        l = var_list[len(var_list) - 1].child_length
 
-    memory_temp = memory + pad(list[len(list) - 1].main_memory_position + l)
+    memory_temp = memory + pad(var_list[len(var_list) - 1].main_memory_position + l)
 
-    return [list, memory_temp]
+    return [var_list, memory_temp]
 
 def Display_Memory(mem_len, list):
     main_variable_memory = EMPTY_STRING

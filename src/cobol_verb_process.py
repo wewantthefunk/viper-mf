@@ -210,12 +210,22 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_release_verb(tokens, level, name, current_line)
     elif verb == END_RETURN_KEYWORD or verb == NOT_KEYWORD:
         x = 0
+    elif verb == ASSEMBLER_FAKE_VERB_GET_DD:
+        process_get_dd(tokens, level, name, current_line)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
     
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_get_dd(tokens, level: int, name: str, current_line: LexicalInfo):
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "result = caller.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)
+    process_move_verb([COBOL_VERB_MOVE, '1', TO_KEYWORD, tokens[3]], name, True, level)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + "Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA \
+                + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[2] + OPEN_PARENS + tokens[3] + CLOSE_PARENS + SINGLE_QUOTE + COMMA + "result" \
+                + COMMA + SINGLE_QUOTE + tokens[2] + OPEN_PARENS + tokens[3] + CLOSE_PARENS  + SINGLE_QUOTE + CLOSE_PARENS + OPEN_BRACKET + '1' + CLOSE_BRACKET + NEWLINE) 
+    return
 
 def process_write_verb(name, level, tokens):
     if FROM_KEYWORD not in tokens:

@@ -4,6 +4,8 @@
 
        DATA DIVISION. 
 
+       WORKING-STORAGE SECTION. 
+
        LINKAGE SECTION. 
 
        05  GETDSNS-PARAMETERS.
@@ -25,16 +27,6 @@
 
        PROCEDURE DIVISION USING GETDSNS-PARAMETERS.
 
-           IF GP-DDNAME = 'INPUT   '
-              MOVE 'DSN1' TO GP-DATA-SET-NAME(1)
-              MOVE 'DSN2' TO GP-DATA-SET-NAME(2)
-              MOVE 2 TO GP-CURRENT-DATA-SETS 
-           END-IF.
-
-           IF GP-DDNAME = 'OUTPUT  '
-              MOVE 'O-DSN1' TO GP-DATA-SET-NAME(1)
-              MOVE 'O-DSN2' TO GP-DATA-SET-NAME(2)
-              MOVE 2 TO GP-CURRENT-DATA-SETS
-           END-IF.
+           GET_DD_VALUE GP-DDNAME GP-DATA-SET-NAME GP-CURRENT-DATA-SETS.
 
            GOBACK.

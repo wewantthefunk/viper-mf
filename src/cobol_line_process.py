@@ -237,8 +237,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
-    if 'DISPLAY-COUNT' in tokens:
-        x = 0
+
     if tokens[0].isnumeric() == False:
         return
 
