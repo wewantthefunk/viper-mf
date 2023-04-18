@@ -917,7 +917,9 @@ def Update_Variable(main_variable_memory, variable_lists, value: str, name: str,
     else:
         curr_val = (int(value) * int(modifier)) + curr_val
 
-    return Set_Variable(main_variable_memory, variable_lists, giving, str(curr_val), giving)
+    result = Set_Variable(main_variable_memory, variable_lists, giving, str(curr_val), giving)
+
+    return result
 
 def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig: str, rep: str):
     result = Get_Variable_Value(main_variable_memory, variable_lists, name, name, False)

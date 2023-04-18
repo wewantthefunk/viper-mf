@@ -125,6 +125,9 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
                 file_status = tokens[count + 2]
         count = count + 1
 
+    if assign.startswith("S-"):
+        assign = assign[len("S-"):]
+
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Add_File_Variable(" + SELF_REFERENCE + "_FILE_CONTROLVars, '" + tokens[1] + "','" + assign \
         + "','" + organization + "','" + access + "','" + record_key + "','" + file_status + "')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_FILE_CONTROLVars = result" + NEWLINE)
@@ -234,7 +237,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
-    if 'DISPLAY-MONTH' in tokens:
+    if 'DISPLAY-COUNT' in tokens:
         x = 0
     if tokens[0].isnumeric() == False:
         return
@@ -394,7 +397,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
                     current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
-                    #current_line.highest_ws_level = int(data_division_level_stack[len(data_division_level_stack) - 1])
                     
                     if hard_cascade_type:
                         current_line.cascade_data_type = cascade_data_type
@@ -566,6 +568,8 @@ def get_type_length(tokens, count: int):
             decimal_length = len(t[1])
 
         length = int(final_length)
+    else:
+        length = len(type_length[0])
 
     comp_indicator = EMPTY_STRING
 

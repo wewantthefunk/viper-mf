@@ -128,7 +128,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "rc = step.get_return_code()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc > highest_return_code:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "highest_return_code = step.get_return_code()\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '      Return Code: ' + str(highest_return_code) + NEWLINE + '--------------------' + NEWLINE + NEWLINE)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '      Return Code: ' + str(rc) + NEWLINE + '--------------------' + NEWLINE + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + NEWLINE)
 
     for arg in args:
