@@ -467,10 +467,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     v_name = tokens[1]
     pic_clause_override = False
-    if v_name == PIC_CLAUSE:
+    if v_name == PIC_CLAUSE or v_name == "SYNC" or v_name in COMP_FIELD_TYPES:
         current_line.highest_var_name_subs = current_line.highest_var_name_subs + 1
         v_name = current_line.highest_var_name + "-SUB-" + str(current_line.highest_var_name_subs)
         pic_clause_override = True
+        #current_line.highest_var_name = v_name
     
     memory_name = SELF_REFERENCE + name + MEMORY 
     variable_list = "_DataDivisionVars"

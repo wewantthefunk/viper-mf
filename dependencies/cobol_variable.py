@@ -63,6 +63,7 @@ SYSIN_ENV_VARIABLE = "SYSIN"
 UNSIGNED_HEX_FLAG = "F"
 UPD_COMMAND = "update"
 ZERO = 0
+ZERO_MASK = "0"
 ZERO_STRING = "0"
 
 BINARY_COMP_LIST = [
@@ -363,39 +364,56 @@ def Allocate_Memory(var_list, memory: str):
         for child in children:
             var.children.append(child)
 
+        if var.occurs_length > 0:
+            pv = _find_variable(var_list, var.parent)
+            pv.child_length_divisor = var.occurs_length
+
+    for var in reversed(var_list):
+        if len(var.children) > 0 and var.child_length == 0:
+            length = _get_length_of_children(var)
+            if var.occurs_length > 0:
+                length = length * var.occurs_length
+                var.child_length_divisor = var.occurs_length
+            var.child_length = length
+
     array_length = []
     array_vars = []
     redefine_length = []
     redefine_vars = []
     position = len(memory)
+    highest_level = 0
     for var in var_list:
-        var.main_memory_position = position
-        child_length = _get_length_of_children(var) 
-        var.child_length = child_length
         if var.redefines != EMPTY_STRING:
-            rv = _find_variable(var_list, var.redefines)
-            if var.redefines not in redefine_vars:
-                var.main_memory_position = rv.main_memory_position
-                redefine_vars.append(rv.name)
-                redefine_length.append(rv.main_memory_position + var.length)
-            else:
-                var.main_memory_position = redefine_length[len(redefine_length) - 1]
-                redefine_length[len(redefine_length) - 1] = redefine_length[len(redefine_length) - 1] + var.length
-        elif var.occurs_length > ZERO:
-            var.child_length = var.child_length * var.occurs_length
-            var.child_length_divisor = var.occurs_length
-            array_length.append(var.child_length)
-            array_vars.append(_find_all_children(var_list, var.name))
-        elif len(array_vars) > 0:
-            if var not in array_vars[len(array_vars) - 1]:
-                var.main_memory_position = position + array_length[len(array_length) - 1]
-                position = position + var.length
-                array_length.pop()
-                array_vars.pop()
-            else:
-                position = position + var.length
+            continue
+        var.main_memory_position = position   
+        length = var.length
+        if var.occurs_length > 0:
+            length = var.length * var.occurs_length
+
+        if int(var.level) < highest_level:
+            position = var.main_memory_position + length
+            highest_level = int(var.level)
         else:
-            position = position + var.length 
+            position = position + length
+            highest_level = int(var.level)
+        
+    last_known_redefine = EMPTY_STRING
+    for var in var_list:
+        if var.redefines == EMPTY_STRING:
+            continue
+        
+        if var.redefines != last_known_redefine:
+            last_known_redefine = var.redefines
+            rv = _find_variable(var_list, last_known_redefine)
+            position = rv.main_memory_position
+
+        var.main_memory_position = position        
+        if int(var.level) < highest_level:
+            position = var.main_memory_position + var.length
+            highest_level = int(var.level)
+        else:
+            position = position + var.length
+            highest_level = int(var.level)
 
     memory_temp = memory + pad(var_list[len(var_list) - 1].main_memory_position + var_list[len(var_list) - 1].length)
 
@@ -405,8 +423,14 @@ def _get_length_of_children(var: COBOLVariable):
     result = ZERO
 
     for child in var.children:
-        result = result + child.length
-        result = result + _get_length_of_children(child)
+        if child.length == 0:
+            result = result + child.child_length
+        else:
+            occurs = 1
+            if child.occurs_length > 0:
+                occurs = child.occurs_length
+            result = result + (child.length * occurs)
+            result = result + _get_length_of_children(child)
 
     return result
 
@@ -1256,6 +1280,28 @@ def Display_Variable(main_variable_memory, variable_lists, name: str, parent: st
                                     dv = dv + DASH
                                 else:
                                     dv = dv + SPACE 
+
+                                dv = dv[1:]
+
+                            if COMMA in var.display_mask:
+                                indices = _find_indices(COMMA, var.display_mask)
+                                dv = dv[len(indices):]
+                                for i in indices:
+                                    dv = dv[0:i] + COMMA + dv[i:]
+
+                            if ZERO_MASK in var.display_mask:
+                                pos = 0
+                                for c in var.display_mask:
+                                    if c == ZERO_MASK and dv[pos:pos + 1] == ZERO_STRING:
+                                        dv = dv[0:pos] + SPACE + dv[pos + 1:]
+                                    pos = pos + 1
+
+                            pos = 0
+                            for c in dv:
+                                if c == COMMA and dv[pos + 1:pos + 2] == SPACE:
+                                    dv = dv[0:pos] + SPACE + dv[pos + 1:]
+                                pos = pos + 1
+                                        
                     break
 
     print_value(dv)
@@ -1392,6 +1438,17 @@ def pad_char(l: int, ch: str):
         result = result + ch
 
     return result
+
+def _find_indices(ch: str, string: str):
+    indexes = []
+    index = -1
+    while True:
+        index = string.find(ch, index+1)
+        if index == -1:
+            break
+        indexes.append(index)
+
+    return indexes
 
 def convert_open_method(method: str):
     if method == "INPUT":

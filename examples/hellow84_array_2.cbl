@@ -10,6 +10,7 @@
            10  TESTNAME  OCCURS 2 TIMES
                           INDEXED DD-INDEX
                           PIC  X(04).
+       01 NEXT-VAR  PIC X(4) VALUE 'NEXT'.
 
        PROCEDURE DIVISION.
 
