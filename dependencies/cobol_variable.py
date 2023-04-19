@@ -63,7 +63,7 @@ SYSIN_ENV_VARIABLE = "SYSIN"
 UNSIGNED_HEX_FLAG = "F"
 UPD_COMMAND = "update"
 ZERO = 0
-ZERO_MASK = "0"
+ZERO_MASK = "Z"
 ZERO_STRING = "0"
 
 BINARY_COMP_LIST = [
@@ -356,6 +356,9 @@ def _find_all_sibling_variables(var_list, name: str):
     return result
 
 def Allocate_Memory(var_list, memory: str):
+    if len(var_list) == ZERO:
+        return [var_list, memory]
+    
     memory_temp = EMPTY_STRING
 
     for var in reversed(var_list):
@@ -366,7 +369,8 @@ def Allocate_Memory(var_list, memory: str):
 
         if var.occurs_length > 0:
             pv = _find_variable(var_list, var.parent)
-            pv.child_length_divisor = var.occurs_length
+            if pv != None:
+                pv.child_length_divisor = var.occurs_length
 
     for var in reversed(var_list):
         if len(var.children) > 0 and var.child_length == 0:

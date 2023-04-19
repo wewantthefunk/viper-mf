@@ -6,9 +6,9 @@ wait
 
 cd ../src/
 
-python3 main.py '../dependencies/RANDSTR.cbl' '../converted/' &
+python3 cobra_main.py '../dependencies/RANDSTR.cbl' '../converted/' &
 python3 parse_jcl_file.py '../examples/hellowo1_basic.jcl' '../converted/' &
-python3 main.py &
+python3 cobra_main.py &
 
 wait
 
