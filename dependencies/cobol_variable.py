@@ -371,6 +371,7 @@ def Allocate_Memory(var_list, memory: str):
             pv = _find_variable(var_list, var.parent)
             if pv != None:
                 pv.child_length_divisor = var.occurs_length
+            var.child_length_divisor = var.occurs_length
 
     for var in reversed(var_list):
         if len(var.children) > 0 and var.child_length == 0:
@@ -380,19 +381,26 @@ def Allocate_Memory(var_list, memory: str):
                 var.child_length_divisor = var.occurs_length
             var.child_length = length
 
-    array_length = []
-    array_vars = []
-    redefine_length = []
-    redefine_vars = []
     position = len(memory)
     highest_level = 0
+    array_length_padding = 0
+    array_start_position = 0
     for var in var_list:
         if var.redefines != EMPTY_STRING:
             continue
+
+        if array_length_padding > ZERO and int(var.level) < highest_level:
+            position = array_start_position + array_length_padding
+            array_length_padding = ZERO
+            array_start_position = ZERO
+
         var.main_memory_position = position   
         length = var.length
         if var.occurs_length > 0:
             length = var.length * var.occurs_length
+            if length == ZERO:
+                array_start_position = position
+                array_length_padding = var.child_length
 
         if int(var.level) < highest_level:
             position = var.main_memory_position + length
