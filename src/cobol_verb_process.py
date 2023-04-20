@@ -1020,6 +1020,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 token = IN_KEYWORD
                 tokens[count] = COMMA
                 tokens.insert(count, s[1])
+                if line[len(line) - 4:] == " == ":
+                    line = line[0:len(line) - 4]
         elif token.startswith(OPEN_PARENS):
             s = token.split(OPEN_PARENS)
             if is_boolean_keyword(s[0]):
@@ -1029,7 +1031,10 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 token = IN_KEYWORD
                 tokens[count] = COMMA
                 tokens.insert(count, s[1])
-            token = OPEN_PARENS + token
+                if line[len(line) - 4:] == " == ":
+                    line = line[0:len(line) - 4]
+            if token.startswith(OPEN_PARENS) == False:
+                token = OPEN_PARENS + token
         elif token == OR_KEYWORD and inside_of_bracket:
             token = COMMA            
         else:
