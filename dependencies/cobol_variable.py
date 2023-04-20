@@ -1473,7 +1473,7 @@ def convert_open_method(method: str):
     return "ab+"
 
 def convert_EBCDIC_hex_to_string(input: str, var: COBOLVariable):
-    result = HEX_DISPLAY_PREFIX + input
+    result = find_hex_value(input).EBCDIC_value
     return result
 
 def convert_string_to_EBCDIC_value(input: str, var: COBOLVariable):

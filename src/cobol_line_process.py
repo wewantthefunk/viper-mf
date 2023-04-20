@@ -169,25 +169,29 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
 
 def process_procedure_division_line(line: str, name: str, current_line: LexicalInfo, next_few_lines, args):
 
-    if line == 'MOVE 1 TO COUNTER':
+    if current_line.current_line_number == "374":
         x = 0
+
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
+
     skip = 0
     level = current_line.level
 
-    fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
+    #fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
 
     if temp_tokens[0] == COBOL_VERB_SEARCH or temp_tokens[0] == COBOL_RETURN_KEYWORD:
         current_line.end_of_search_criteria = True
 
     if temp_tokens[len(temp_tokens) - 1] == PERIOD:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "debug_line = '" + current_line.current_line_number + "'" + NEWLINE)
+        fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
         level = process_verb(temp_tokens, name, True, level, args, current_line, next_few_lines)
     else:
         compare_verb = temp_tokens[0]
         for nl in next_few_lines:
             nll = nl.split("^^^")
             nllt = nll[0]
+            
             nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
             if len(nlt) == 0:
                 continue            
@@ -217,15 +221,26 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     return [skip, level]
 
 def fix_parens(temp_tokens, value: str, value2: str):
-    if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("):
+    return
+    """if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("): # or value.startswith("WHEN("):
         s = value.split(OPEN_PARENS)
         temp_tokens[0] = s[0]
         temp_tokens.insert(1,  OPEN_PARENS)
         temp_tokens.insert(2, s[1])
-        if value2.endswith(CLOSE_PARENS):
+        if COLON in s[len(s) - 1]:
+            for x in range(2,len(s)):
+                t = s[x]
+                if t.endswith(CLOSE_PARENS) and COLON in t and not t.startswith(OPEN_PARENS):
+                    t = OPEN_PARENS + t
+                temp_tokens.insert(x + 1, t)
+            temp_tokens.append(CLOSE_PARENS)
+        elif value2.endswith(CLOSE_PARENS):
             s = value.split(CLOSE_PARENS)
             value = s[0]
             temp_tokens.append(CLOSE_PARENS)
+    elif value.startswith("WHEN("):
+        temp_tokens.insert(0, COBOL_VERB_WHEN)
+        temp_tokens[1] = temp_tokens[1].replace("WHEN(", "(") """
 
 def check_ignore_verbs(ignore_verbs, v: str):
     if len(ignore_verbs) == 0:
