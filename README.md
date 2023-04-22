@@ -2,7 +2,7 @@
 
 ## Author: Christian Strama
 
-## Purpose:
+## Purpose
 The purpose of this utility is to transform COBOL code into Python code and emulate mainframe execution. The problem statement is as follows:
 
 * Executing COBOL code on a mainframe is slow, disjointed, and expensive. Using JCL jobs requires the execute and feedback be accessed from different areas, while the jobs are queued and executed serially. By using Python, we can execute the code and get immediate feedback within our same terminal window. This will speed up testing and development efforts.
