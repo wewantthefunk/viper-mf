@@ -70,7 +70,7 @@ wait
 
 echo
 echo HELLOW12 - sequential file access
-export TESTFILE=test-records.txt
+export TESTFILE=../DATA/INPUT/FILES/SEQRTEST
 python3 HELLOW12.py &
 wait
 
