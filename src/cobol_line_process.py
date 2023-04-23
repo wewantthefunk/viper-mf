@@ -169,7 +169,7 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
 
 def process_procedure_division_line(line: str, name: str, current_line: LexicalInfo, next_few_lines, args):
 
-    if current_line.current_line_number == "374":
+    if current_line.current_line_number == "391":
         x = 0
 
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)

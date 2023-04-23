@@ -163,7 +163,9 @@ def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: 
         elif in_literal:
             literal = literal + " " + t
         elif count + 1 < len(t_elements):
-            if t_elements[count + 1].startswith("(") and t_elements[count + 1].endswith(")") and ":" in t_elements[count + 1]:
+            if count == 0:
+                x = 0
+            elif t_elements[count + 1].startswith("(") and t_elements[count + 1].endswith(")") and ":" in t_elements[count + 1]:
                 skip_next = True
                 t = t + t_elements[count + 1]
             elif t_elements[count + 1].startswith("("):

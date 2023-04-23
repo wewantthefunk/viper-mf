@@ -949,14 +949,18 @@ def Update_Variable(main_variable_memory, variable_lists, value: str, name: str,
 
     return result
 
-def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig: str, rep: str):
+def Replace_Variable_Value(main_variable_memory, variable_lists, name: str, orig: str, rep: str, only_first = False):
     result = Get_Variable_Value(main_variable_memory, variable_lists, name, name, False)
     if result != EMPTY_STRING:
         orig_array = list(orig)
         rep_array = list(rep)
         count = 0
+        num = -1
+        if only_first:
+            num = 1
         for o in orig_array:
-            result = result.replace(o, rep_array[count])
+            new_val = rep_array[count]
+            result = result.replace(o, new_val, num)
             count = count + 1
 
         main_variable_memory = Set_Variable(main_variable_memory, variable_lists, name, result, name)[1]

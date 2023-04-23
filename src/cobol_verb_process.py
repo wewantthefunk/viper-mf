@@ -757,6 +757,14 @@ def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:
         func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
+    elif tokens[2] == REPLACING_KEYWORD:
+        only_first = "False"
+        offset = 0
+        if tokens[3] == FIRST_KEYWORD:
+            only_first = "True"
+            offset = 1
+        func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3 + offset] + COMMA + tokens[5 + offset] + COMMA + only_first + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
 
     return
 
@@ -789,8 +797,13 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
+    if current_line.current_line_number == "378":
+        x = 0
+
     if AND_KEYWORD in tokens:
-        return process_if_verb(tokens, name, level, False, current_line)
+        is_elif = not is_first_when
+        is_first_when = False
+        return process_if_verb(tokens, name, level, is_elif, current_line)
 
     if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD and tokens[2] != NUMERIC_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
