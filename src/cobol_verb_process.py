@@ -134,7 +134,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
         else:
             level = level - 1
-            process_evaluate_verb(tokens, name, level)  
+            process_evaluate_verb(tokens, name, level, current_line)  
             level = level + 1
     elif verb == COBOL_VERB_INSPECT:
         process_inspect_verb(tokens, name, level) 
@@ -757,6 +757,14 @@ def process_inspect_verb(tokens, name: str, level: int):
     if tokens[2] == CONVERTING_KEYWORD:
         func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
+    elif tokens[2] == REPLACING_KEYWORD:
+        only_first = "False"
+        offset = 0
+        if tokens[3] == FIRST_KEYWORD:
+            only_first = "True"
+            offset = 1
+        func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3 + offset] + COMMA + tokens[5 + offset] + COMMA + only_first + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
 
     return
 
@@ -786,13 +794,19 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 
     return level - 1
     
-def process_evaluate_verb(tokens, name: str, level: int):
+def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
-    if "INPUT-STATUS-END-OF-FILE" in tokens:
+
+    if current_line.current_line_number == "378":
         x = 0
+
+    if AND_KEYWORD in tokens:
+        is_elif = not is_first_when
+        is_first_when = False
+        return process_if_verb(tokens, name, level, is_elif, current_line)
+
     if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD and tokens[2] != NUMERIC_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
-        x = 0
 
     temp_evaluate_compare = evaluate_compare
     reset_evaluate_compare = False
@@ -938,8 +952,6 @@ def process_evaluate_verb(tokens, name: str, level: int):
     return level
 
 def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: LexicalInfo):
-    if "INPUT-STATUS-SUCCESS" in tokens:
-        x = 0
     line = "if "
     if is_elif:
         line = "elif "
@@ -1007,6 +1019,9 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             if count < len(tokens):
                 if tokens[count] not in COBOL_COMPARISON_OPERATORS and tokens[count] != IN_KEYWORD and tokens[count] != IS_KEYWORD and tokens[count] != NOT_KEYWORD and tokens[count] != NUMERIC_KEYWORD:
                     tokens.insert(count, IN_KEYWORD + UNDERSCORE)
+
+            if o_token.startswith(OPEN_PARENS):
+                token = OPEN_PARENS + token
         elif OPEN_PARENS in token and CLOSE_PARENS in token or (token == OPEN_PARENS or token == CLOSE_PARENS):
             i = 0
         elif OPEN_PARENS in token and token.startswith(OPEN_PARENS) == False:
@@ -1017,7 +1032,22 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             elif tokens[count] == OR_KEYWORD:
                 token = IN_KEYWORD
                 tokens[count] = COMMA
-                tokens.insert(count, s[1])    
+                tokens.insert(count, s[1])
+                if line[len(line) - 4:] == " == ":
+                    line = line[0:len(line) - 4]
+        elif token.startswith(OPEN_PARENS):
+            s = token.split(OPEN_PARENS)
+            if is_boolean_keyword(s[0]):
+                tokens.insert(count, OPEN_PARENS + s[1])
+                token = s[0]
+            elif tokens[count] == OR_KEYWORD:
+                token = IN_KEYWORD
+                tokens[count] = COMMA
+                tokens.insert(count, s[1])
+                if line[len(line) - 4:] == " == ":
+                    line = line[0:len(line) - 4]
+            if token.startswith(OPEN_PARENS) == False:
+                token = OPEN_PARENS + token
         elif token == OR_KEYWORD and inside_of_bracket:
             token = COMMA            
         else:
@@ -1038,7 +1068,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                 in_ALL_function = False
             else:
                 line = line + token + SPACE
-
+        elif token.startswith("X'"):
+            line = line + "convert_EBCDIC_hex_to_string('" + token.replace("X", EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING) + "', None)"
         elif token.replace(PLUS_SIGN, EMPTY_STRING).isnumeric() or token.replace(MINUS_SIGN, EMPTY_STRING).isnumeric():
             line = line + token + SPACE
         elif token == NOT_KEYWORD:
@@ -1110,6 +1141,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             line = line + SPACE + IN_KEYWORD + SPACE
         else:
             var = token
+            if var.startswith(OPEN_PARENS) and var.endswith(CLOSE_PARENS) == False:
+                var = var[1:]
             if count < len(tokens):
                 if tokens[count].startswith(OPEN_PARENS) and tokens[count].endswith(CLOSE_PARENS):
                     var = var + tokens[count]
@@ -1120,6 +1153,8 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
             elif var in SPECIAL_REGISTERS_VARIABLES:
                 memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
             last_known_operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + var + "','" + var + SINGLE_QUOTE + CLOSE_PARENS + SPACE
+            if token.startswith(OPEN_PARENS):
+                line = line + OPEN_PARENS
             line = line + last_known_operand1
 
         if count < len(tokens):
@@ -1570,7 +1605,7 @@ def check_valid_verb(v: str, compare_verb: str, include_search_multi_verb):
             elif multi_verb[0] == compare_verb and multi_verb[1].startswith('!') and v != multi_verb[1:]:
                 return False
 
-    if v in COBOL_VERB_LIST or v in PYTHON_TO_COBOL_VERBS:
+    if v in COBOL_VERB_LIST or v in PYTHON_TO_COBOL_VERBS or v.startswith(COBOL_VERB_WHEN + OPEN_PARENS):
         return True
     
     return False
