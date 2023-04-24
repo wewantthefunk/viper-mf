@@ -4,7 +4,7 @@
 
        PROCEDURE DIVISION.
        
-           DISPLAY 'hello world'.
+           DISPLAY 'hello world'.                                       ignored
 
            STOP RUN.
 

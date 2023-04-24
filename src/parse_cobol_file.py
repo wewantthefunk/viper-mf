@@ -29,9 +29,9 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 start_tracking_line_number = True
 
             if rl[6:7] == "-":
-                line = rl[6:]
+                line = rl[6:72]
             else:
-                line = rl[7:]
+                line = rl[7:72]
             t_line = line.split(SPACE, 1)
             l = pad(7) + t_line[0] + SPACE
             if len(t_line) > 1:
@@ -338,6 +338,6 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
-    parse_cobol_file("work/CABBSMBD.cbl", "converted/")
+    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    #parse_cobol_file("work/CABBSMBD.cbl", "converted/")
     #parse_cobol_file("examples/hellow85_complicated_evaluate.cbl", "converted/")
