@@ -146,6 +146,11 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 2)) + "break" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return result" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def process_key(keycode: int):\n")
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if keycode == 27 or keycode == 13 or (keycode >= 110 and keycode <= 123):\n")
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 0)) + "return True\n")
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return False\n")
+    append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def _error_handler(self, e):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if " + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER  + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
@@ -338,6 +343,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("work/CABBSMBD.cbl", "converted/")
     #parse_cobol_file("examples/hellow85_complicated_evaluate.cbl", "converted/")

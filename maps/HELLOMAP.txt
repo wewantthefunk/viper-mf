@@ -1,0 +1,11 @@
+HELLOMAP   DFHMSD TYPE=MAP,                                            X
+                  MODE=INOUT
+*
+HELLOMAP   DFHMDI SIZE=(24,80),                                        X
+                  LINE=1
+*
+LBL1       DFHMDF                                                      X
+            POS=(10,24),                                               X
+            LENGTH=11,                                                 X
+            INITIAL='hello world'                                      X
+            ATTRB=(NORM,ASKIP)

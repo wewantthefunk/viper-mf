@@ -54,17 +54,50 @@ STANDARD_FONT_SIZE = 14
 STANDARD_TEXT_COLOR = "white"
 STANDARD_INFO_TEXT_COLOR = "light green"
 START_COMMAND = "start"
-SYSOUT_TITLE = "KIX SYSOUT Display"
+SYSOUT_TITLE = "KRAIT SYSOUT Display"
 SYSOUT_WINDOW_SIZE = '300x300+30+30'
 TERMINAL_CONFIG = "terminal.config"
 TRANSACTION_CONFIG_FILE = "trans.config"
 UP_ARROW = 38
-WINDOW_TITLE = "KIX CICS Emulator"
+WINDOW_TITLE = "KRAIT CICS Emulator"
 WINDOW_SIZE = '1520x768+2+2'
 WINDOWS_OS = "nt"
 ZERO = 0
 
-class KIXEntry:
+ENTER_KEY = 13
+ESCAPE_KEY = 27
+F1_KEY = 112
+F2_KEY = 113
+F3_KEY = 114
+F4_KEY = 115
+F5_KEY = 116
+F6_KEY = 117
+F7_KEY = 118
+F8_KEY = 119
+F9_KEY = 120
+F10_KEY = 121
+F11_KEY = 122
+F12_KEY = 123
+
+
+ATTENTION_KEYS = [
+    ENTER_KEY,
+    ESCAPE_KEY,
+    F1_KEY,
+    F2_KEY,
+    F3_KEY,
+    F4_KEY,
+    F5_KEY,
+    F6_KEY,
+    F7_KEY,
+    F8_KEY,
+    F9_KEY,
+    F10_KEY,
+    F11_KEY,
+    F12_KEY
+]
+
+class KRAITEntry:
     def __init__(self, name: str, length: int) -> None:
         self.name = name
         self.length = length
@@ -73,7 +106,7 @@ class KIXEntry:
 
         return
     
-class KIXQueue:
+class KRAITQueue:
     def __init__(self, name: str) -> None:
         self.name = name
         self.items = []
@@ -90,12 +123,12 @@ class KIXQueue:
             return self.items.pop(pos)
         return EMPTY_STRING
 
-class KIX:     
+class KRAIT:     
     def __init__(self):
         self.queues = []
 
         self.window = Tk()
-
+        self.window.bind("<Key>", self.main_on_keypress)
         self.window.title(WINDOW_TITLE)
         self.window.geometry(WINDOW_SIZE)
         self.window.configure(bg=STANDARD_BACKGROUND_COLOR)
@@ -104,10 +137,14 @@ class KIX:
         self.message_label = None
         self.sysout_label = None
         self.main_frame = None
+        self.transaction_module = None
         self.character_height = STANDARD_FONT_SIZE
         self.character_width = 10
         self.map_entry_fields = []
         self.last_known_trans_id = GENERIC_TRANS_ID
+
+        self.is_in_transaction = False
+        self.map_key_pressed = BooleanVar()
 
         self.command_list = []
         self.current_command_entry = len(self.command_list)
@@ -157,6 +194,10 @@ class KIX:
         self.eib_variables = result[0]
         self.EIBMemory = result[1]
         result = cobol_variable.Add_Variable(self.EIBMemory,self.eib_variables,'EIBTRNID', 4, 'X','EIB-FIELDS','',0,0,'','05')
+        self.eib_variables = result[0]
+        self.EIBMemory = result[1]
+
+        result = cobol_variable.Allocate_Memory(self.eib_variables, self.EIBMemory)
         self.eib_variables = result[0]
         self.EIBMemory = result[1]
 
@@ -248,8 +289,20 @@ class KIX:
                 break
 
         return
+    
+    def main_on_keypress(self, event):
+        if self.is_in_transaction:
+            if event.keycode in ATTENTION_KEYS:
+                should_return_control = self.transaction_module.process_key(event.keycode)
+                self.map_key_pressed.set(True)
+        else:
+            #print(event)
+            pass
 
     def on_keypress(self, event):
+        if self.is_in_transaction:
+            return
+        
         if os.name == WINDOWS_OS:
             if event.char == ENTER_KEY:
                 self.cmd_click()
@@ -394,6 +447,8 @@ class KIX:
         trans = trans.lower().strip()
         current_transactions = cobol_variable._read_file(TRANSACTION_CONFIG_FILE, False).split(NEWLINE)
         for ct in current_transactions:
+            if ct == EMPTY_STRING:
+                continue
             s = ct.split(COLON)
             if len(s) < 2 or s[0] == EMPTY_STRING:
                 return EMPTY_STRING
@@ -416,13 +471,17 @@ class KIX:
             module_instance = module_class()
             module_instance.calling_module = self
 
+            self.transaction_module = module_instance
+
             self.EIBMemory = cobol_variable.Build_Comm_Area(module_name, EMPTY_STRING, self.variables_list, self.EIBMemory, self.terminal_id, self.last_known_trans_id)
 
             # redirect stdout to the StringIO object
             sys.stdout = string_io
 
             # call the module
-            module_instance.main()        
+            self.is_in_transaction = True
+            module_instance.main(self)  
+     
         except Exception as e:
             self.show_error_message("unable to start, module not found: " + module_name)
         except SystemExit as e:
@@ -432,18 +491,25 @@ class KIX:
             return
 
     def handle_sysout_messages(self, string_io: StringIO):
-            # get the contents of the StringIO object
-            output = string_io.getvalue()
+        # get the contents of the StringIO object
+        output = string_io.getvalue()
 
-            # reset stdout to the original stream
-            sys.stdout = sys.__stdout__
+        # reset stdout to the original stream
+        sys.stdout = sys.__stdout__
 
-            self.write_to_sysout(output)
+        self.write_to_sysout(output)
 
-            return
+        return
 
-    def receive_control(self):
-        print("returned control")
+    def receive_control(self, final_control = False):
+        self.transaction_label.config(text=EMPTY_STRING)
+        self.is_in_transaction = not final_control
+        if self.is_in_transaction and not final_control:
+            # Wait for a key to be pressed
+            self.window.wait_variable(self.map_key_pressed)
+        elif final_control:
+            self.is_in_transaction = False
+        return
 
     def write_to_sysout(self, output: str):
         t = self.sysout_label.cget("text")
@@ -473,7 +539,10 @@ class KIX:
         for widget in frame.winfo_children():
             widget.destroy()
 
+        return
+
     def build_map(self, map_name: str, data: str, map_only: bool, data_only: bool):
+        map_name = map_name.strip()
         self.clear_frame(self.main_frame)
         map = cobol_variable._read_file(map_name + ".txt", False)
         if map == EMPTY_STRING:
@@ -566,7 +635,7 @@ class KIX:
         if field_type == "lbl":
             self.create_label(self.main_frame, field_text, var_name, field_x, field_y, LINE_SPACING)
         elif field_type == "entry":
-            t = KIXEntry(name=var_name,length=field_length)
+            t = KRAITEntry(name=var_name,length=field_length)
             t.field.trace('w', self.validate)
             self.map_entry_fields.append(t)
             self.create_map_entry(self.main_frame, field_text, var_name, field_x, field_y, field_length, has_focus)
@@ -593,7 +662,7 @@ class KIX:
                 break
 
         if index < 0:
-            self.queues.append(KIXQueue(name))
+            self.queues.append(KRAITQueue(name))
             index = len(self.queues) - 1
 
         self.queues[index].append(item)
@@ -615,6 +684,6 @@ class KIX:
         return EMPTY_STRING
 
 if __name__ == '__main__':
-    Kix_obj = KIX()
+    Krait_obj = KRAIT()
 
-    Kix_obj.Launch()
+    Krait_obj.Launch()

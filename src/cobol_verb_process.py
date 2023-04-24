@@ -197,6 +197,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
     elif verb == CICS_VERB_SEND:
         process_send_map(tokens, level, name)
+    elif verb == CICS_VERB_RECEIVE:
+        process_send_map(tokens, level, name)
     elif verb == COBOL_VERB_NEXT:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
@@ -432,6 +434,9 @@ def process_send_map(tokens, level: int, name: str):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
     
+    if tokens[2] == "RECEIVE":
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".receive_control()" + NEWLINE)
+
     return
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):

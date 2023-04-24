@@ -10,13 +10,11 @@
 
        PROCEDURE DIVISION.
 
-           EXEC CICS SEND MAP('TESTMAP')
-           END-EXEC.
-
-           MOVE 'TESTMAP' TO TEST-DATA.
+           MOVE 'HELLOMAP' TO TEST-DATA.
 
            EXEC CICS SEND MAP(TEST-DATA)
            END-EXEC.
 
-           STOP RUN.
+           EXEC CICS RETURN
+           END-EXEC.
 

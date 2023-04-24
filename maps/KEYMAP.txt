@@ -1,0 +1,11 @@
+KEYMAP     DFHMSD TYPE=MAP,                                            X
+                  MODE=INOUT
+*
+KEYMAP     DFHMDI SIZE=(24,80),                                        X
+                  LINE=1
+*
+LBL1       DFHMDF                                                      X
+            POS=(10,24),                                               X
+            LENGTH=20,                                                 X
+            INITIAL='press any key to end'                             X
+            ATTRB=(NORM,ASKIP)

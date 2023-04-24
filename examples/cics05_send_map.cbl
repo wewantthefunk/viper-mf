@@ -9,10 +9,15 @@
 
 
        PROCEDURE DIVISION.
-           MOVE 'COMPMAP1' TO TEST-DATA.
+           MOVE 'KEYMAP' TO TEST-DATA.
 
-           EXEC CICS SEND MAP(TEST-DATA)
+           EXEC CICS RECEIVE MAP(TEST-DATA)
            END-EXEC.
 
-           STOP RUN.
+           EXEC CICS SEND MAP('HELLOMAP')
+           END-EXEC.
+
+                      EXEC CICS
+                          RETURN
+                      END-EXEC.
 

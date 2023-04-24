@@ -177,8 +177,6 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     skip = 0
     level = current_line.level
 
-    #fix_parens(temp_tokens, temp_tokens[0], temp_tokens[len(temp_tokens) - 1])
-
     if temp_tokens[0] == COBOL_VERB_SEARCH or temp_tokens[0] == COBOL_RETURN_KEYWORD:
         current_line.end_of_search_criteria = True
 
@@ -715,5 +713,10 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
     delete_file("temp_cpybook.txt")
+
+    if is_eib:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(self.EIBList,self.EIBMemory)\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self.EIBList = result[0]\n")
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self.EIBMemory = result[1]\n")
 
     return
