@@ -6,7 +6,7 @@ job_name = EMPTY_STRING
 
 def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
-    print("Converting JCL: " + file + " --> " + prefix + sys.argv[2])
+    print("Converting JCL: " + file + " --> " + prefix + target_dir)
 
     r_lines = read_raw_file_lines(file, 0)
 
@@ -16,6 +16,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     program_name = EMPTY_STRING
     args = []
     is_getting_inline = False
+    is_getting_dd_info = False
     inline_args = EMPTY_STRING
 
     for rl in r_lines:
@@ -28,6 +29,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
             write_out_job_info(job_name, target_dir)
         else:
             if JCL_EXEC_INDICATOR in rl:
+                is_getting_dd_info = False
                 if program_name == "IDCAMS":
                     process_idcams_cmd(job_name, step_name, inline_args.strip(), target_dir, program_name)
                 elif step_name != EMPTY_STRING:
@@ -41,16 +43,20 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                     p = s[1].split(COMMA)
                     program_name = p[0].replace(NEWLINE, EMPTY_STRING)
             elif rl.startswith("/*"):
+                is_getting_dd_info = False
                 is_getting_inline = False
             elif is_getting_inline:
                 inline_args = inline_args + rl.strip() + SPACE
             elif JCL_DD_INDICATOR in rl:
+                is_getting_dd_info = True
                 t = rl.split(JCL_DD_INDICATOR)
                 dd_target = t[1].replace(NEWLINE, EMPTY_STRING).strip()
                 if dd_target == "*":
                     is_getting_inline = True
                     inline_args = EMPTY_STRING
                 args.append(t[0].replace(JCL_LINE_START, EMPTY_STRING).strip() + DD_ARG_DELIMITER + dd_target)
+            elif is_getting_dd_info:
+                args[len(args) - 1] = args[len(args) - 1] + rl.replace(JCL_LINE_START, EMPTY_STRING).strip()
 
         count = count + 1
 
@@ -132,13 +138,18 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '      Return Code: ' + str(rc) + NEWLINE + '--------------------' + NEWLINE + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + NEWLINE)
 
+    cleanup_normal = []
+    cleanup_abnormal = []
     for arg in args:
-        a = arg.split(DD_ARG_DELIMITER)
-        if a[1] == "SYSOUT=*":
+        a1 = arg.split(DD_ARG_DELIMITER)
+        a = a1[1].split(COMMA)
+        dsn_index = check_for_dsn(a)
+        disp_index = check_for_disp(a)
+        if "SYSOUT=*" in a:
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, string_io.getvalue() + NEWLINE)\n")
-        elif a[1].startswith("DSN") or a[1].startswith("DSNAME"):
-            split = a[1].split(EQUALS)
+        if dsn_index > -1:
+            split = a[dsn_index].split(EQUALS)
             split1 = split[1].split(COMMA)
             file_info = split1[0].split(OPEN_PARENS)
             filename = file_info[0]
@@ -146,21 +157,55 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
             if len(file_info) > 1:
                 filename = file_info[1].replace(CLOSE_PARENS, EMPTY_STRING)
                 path = file_info[0].replace(PERIOD, FORWARD_SLASH)
+                if not path.endswith(FORWARD_SLASH):
+                    path = path + FORWARD_SLASH
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("' + path + '").mkdir(parents=True, exist_ok=True)\n')
 
-            if a[0] == "SYSOUT":
+            if a1[0] == "SYSOUT":
                 if path != EMPTY_STRING:
                     if path.endswith(FORWARD_SLASH) == False:
                         path = path + FORWARD_SLASH
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '===> SYSOUT messages are stored in: " + path + filename + "' + NEWLINE + NEWLINE)\n\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + filename + "', string_io.getvalue())\n")
                 append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
+        if disp_index > -1:
+            disp_clause = a[disp_index].replace("DISP=", EMPTY_STRING)
+            if OPEN_PARENS in a[disp_index]:
+                disp_clause = disp_clause.replace(OPEN_PARENS, EMPTY_STRING)
+                for x in range (disp_index, len(a)):
+                    if x != disp_index:
+                        disp_clause = disp_clause + COMMA + a[x]
+                    if CLOSE_PARENS in a[x]:
+                        disp_clause = disp_clause.replace(CLOSE_PARENS, EMPTY_STRING)
+                        break 
+
+            disp = disp_clause.split(COMMA)
+            for x in range(0,len(disp)):
+                if x == 1:
+                    if disp[x] == "DELETE":
+                        cleanup_normal.append(path + filename)
+                elif x == 2:
+                    if disp[x] == "DELETE":
+                        cleanup_abnormal.append(path + filename)
+
 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.truncate(0)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.seek(0)\n")
 
     for e in environment_vars:
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")
+
+    if len(cleanup_normal) > 0:
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc == 0:\n")
+        for a in cleanup_normal:
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "if os.path.exists('" + a + "'):\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 4) + "os.remove('" + a + "')\n")
+
+    if len(cleanup_abnormal) > 0:
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc > 0:\n")
+        for a in cleanup_abnormal:
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "if os.path.exists('" + a + "'):\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 4) + "os.remove('" + a + "')\n")
 
     return
 
@@ -195,6 +240,25 @@ def process_idcams_cmd(job_name: str, step_name: str, inline_args: str, target_d
 
     return
 
+def check_for_disp(dd_list: list):
+    return check_for_value(dd_list, "DISP")
+
+def check_for_dsn(dd_list: list):
+    result = check_for_value(dd_list, "DSNAME")
+    if result == -1:
+        result = check_for_value(dd_list, "DSN")
+
+    return result
+
+def check_for_value(l: list, value: str):
+    count = 0
+    for x in l:
+        if x.startswith(value):
+            return count
+        count = count + 1
+    
+    return -1
+
 if __name__ == "__main__":
     prefix = "../"
     for file in os.listdir("./"):
@@ -206,8 +270,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
     else:
-        parse_jcl_file("examples/hellow83_sort_2.jcl", "converted/")
-        #parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
+        #parse_jcl_file("examples/hellow83_sort_2.jcl", "converted/")
+        parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
         #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
         #parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
         #parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
