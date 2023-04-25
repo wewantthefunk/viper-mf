@@ -7,6 +7,7 @@ COBOL_COMMENT = "*"
 COLON = ":"
 COMMA = ","
 COMMAND_PROMPT_PREFIX = "> "
+CREATE_REGION = "create region"
 CYCLE_DOWN = 1
 CYCLE_UP = -1
 DD_CONFIG_FILE = "dd.config"
@@ -20,6 +21,7 @@ EQUALS = "="
 ERROR_TEXT_COLOR = "red"
 ESCAPE = 27
 GENERIC_TRANS_ID = "XXXX"
+HELP = "help"
 HIDE_SYSOUT = "hide sysout"
 INVALID_COMMAND_MSG = "INVALID COMMAND:"
 LINE_SPACING = 6
@@ -35,6 +37,7 @@ NEWLINE = "\n"
 OPEN_PARENS = "("
 OS_LABEL = "OS: "
 PIPE_FLAG = "<"
+REGION_FILE_EXT = ".region"
 SET_DD = "set dd"
 SET_TRANSACTION = "set tran"
 SHOW_SYSOUT = "show sysout"
@@ -47,6 +50,7 @@ STANDARD_FONT_SIZE = 14
 STANDARD_TEXT_COLOR = "white"
 STANDARD_INFO_TEXT_COLOR = "light green"
 START_COMMAND = "start"
+SWITCH_REGION = "switch region"
 SYSOUT_TITLE = "KRAIT SYSOUT Display"
 SYSOUT_WINDOW_SIZE = '300x300+30+30'
 TERMINAL_CONFIG = "terminal.config"
@@ -88,4 +92,15 @@ ATTENTION_KEYS = [
     F10_KEY,
     F11_KEY,
     F12_KEY
+]
+
+COMMAND_LIST = [
+    [HELP, "Show Help Info"]
+    , [SHOW_SYSOUT, "Open the SYSOUT Window"]
+    , [HIDE_SYSOUT, "Close the SYSOUT Window"]
+    , [LIST_TRANSACTIONS, "List transactions and corresponding programs"]
+    , [SET_TRANSACTION, "Associate a transaction with a program"]
+    , [SET_DD, "Associate a file with a DD entry"]
+    , [CREATE_REGION, "Create a CICS Region"]
+    , [SWITCH_REGION, "Switch to a CICS Region"]
 ]

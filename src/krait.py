@@ -45,6 +45,7 @@ class KRAIT:
         self.terminal_id = cobol_variable._read_file(krait_util.TERMINAL_CONFIG, True)
         self.transaction_id = krait_util.EMPTY_STRING
         self.transaction_label = None
+        self.region_label = None
 
         self.set_dd_values()
 
@@ -113,14 +114,21 @@ class KRAIT:
         term_lbl1 = Label(self.window, text="TERM ID:", font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="terminal_id_lbl",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_TEXT_COLOR)
         term_lbl1.place(x=1,y=30)
 
+        region_lbl1 = Label(self.window, text="REGION:", font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="region_id_lbl",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_TEXT_COLOR)
+        region_lbl1.place(x=150,y=30)
+
+        region_lbl = Label(self.window, text=krait_util.EMPTY_STRING, font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="region_id",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_INFO_TEXT_COLOR)
+        region_lbl.place(x=230,y=30)
+        self.region_label = region_lbl
+
         tran_lbl1 = Label(self.window, text="TRAN ID:", font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="transaction_id_lbl",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_TEXT_COLOR)
-        tran_lbl1.place(x=150,y=30)
+        tran_lbl1.place(x=370,y=30)
 
         term_lbl = Label(self.window, text=self.terminal_id, font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="terminal_id",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_INFO_TEXT_COLOR)
         term_lbl.place(x=95,y=30)
 
         tran_lbl = Label(self.window, text=krait_util.EMPTY_STRING, font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),name="transaction_id",background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_INFO_TEXT_COLOR)
-        tran_lbl.place(x=245,y=30)
+        tran_lbl.place(x=460,y=30)
         self.transaction_label = tran_lbl
 
         self.sysout_label = self.create_label(self.sysout, krait_util.EMPTY_STRING, "sysout_label", 5, 5)
@@ -188,7 +196,7 @@ class KRAIT:
             return
         
         if os.name == krait_util.WINDOWS_OS:
-            if event.char == krait_util.ENTER_KEY:
+            if event.keycode == krait_util.ENTER_KEY:
                 self.cmd_click()
             elif event.keycode == krait_util.UP_ARROW:
                 self.cycle_commands(krait_util.CYCLE_UP)
@@ -264,6 +272,12 @@ class KRAIT:
             self.list_transactions()
         elif text.lower().startswith(krait_util.SET_DD):
             self.set_dd(text)
+        elif text.lower().startswith(krait_util.CREATE_REGION):
+            self.create_region(text)
+        elif text.lower().startswith(krait_util.SWITCH_REGION):
+            self.switch_region(text)
+        elif text.lower().startswith(krait_util.HELP):
+            self.show_help()
         else:
             trans = self.check_for_transaction(text)
             if trans != krait_util.EMPTY_STRING:
@@ -299,7 +313,23 @@ class KRAIT:
         cobol_variable._write_file(krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
         return
 
+    def show_help(self):
+        self.show_sysout_window()
+        
+        string_io = StringIO()
+        sys.stdout = string_io
+
+        for c in krait_util.COMMAND_LIST:
+            print(c[0] + krait_util.COLON + krait_util.SPACE + c[1])
+
+        self.handle_sysout_messages(string_io)
+
+        return
+
     def set_dd(self, text: str):
+        if not self.check_region():
+            return
+
         tokens = text.split(krait_util.SPACE)
         current_dd = cobol_variable._read_file(krait_util.DD_CONFIG_FILE)
         value = krait_util.EMPTY_STRING
@@ -325,6 +355,24 @@ class KRAIT:
 
         self.set_dd_values()
         
+        return
+    
+    def create_region(self, text: str):
+        tokens = text.split(krait_util.SPACE)
+        value = cobol_variable._read_file(tokens[2] + krait_util.REGION_FILE_EXT)
+        if value == krait_util.EMPTY_STRING:
+            cobol_variable._write_file(tokens[2] + krait_util.REGION_FILE_EXT, krait_util.REGION_FILE_EXT)
+        
+        return
+    
+    def switch_region(self, text: str):
+        tokens = text.split(krait_util.SPACE)
+
+        if cobol_variable._file_exists(tokens[2] + krait_util.REGION_FILE_EXT):
+            self.region_label.config(text=tokens[2])
+        else:
+            self.show_error_message("Region '" + tokens[2] + "' does not exist")
+
         return
 
     def check_for_transaction(self, trans: str):
@@ -537,6 +585,19 @@ class KRAIT:
 
     def create_terminal_id(self):
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    
+    def check_region(self):
+        result = True
+        if self.region_label == None:
+            self.show_error_message("You must switch to a CICS Region")
+            result = False
+        else:
+            value = self.region_label.cget("text")
+            if value.strip() == krait_util.EMPTY_STRING:
+                self.show_error_message("You must switch to a CICS Region")
+                result = False
+
+        return result
     
     def writeq(self, name: str, item: str):
         index = -1

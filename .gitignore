@@ -2,6 +2,7 @@ converted/*.py
 __pycache__
 *.exe
 *.dll
+*.region
 examples/CICST001.cbl
 examples/CICST002.cbl
 examples/CICST003.cbl

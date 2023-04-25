@@ -1399,6 +1399,9 @@ def _read_file(file: str, remove_line_breaks = True):
             result = result + line
     return result
 
+def _file_exists(file: str):
+    return exists(file)
+
 def cat_file(file: str):
     with open(file, 'r') as f:
         print(f.read())
