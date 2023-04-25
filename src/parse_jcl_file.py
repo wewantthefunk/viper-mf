@@ -15,6 +15,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     step_name = EMPTY_STRING
     program_name = EMPTY_STRING
     args = []
+    parm = EMPTY_STRING
     is_getting_inline = False
     is_getting_dd_info = False
     inline_args = EMPTY_STRING
@@ -33,7 +34,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 if program_name == "IDCAMS":
                     process_idcams_cmd(job_name, step_name, inline_args.strip(), target_dir, program_name)
                 elif step_name != EMPTY_STRING:
-                    write_out_step_info(job_name, step_name, program_name, args, target_dir)
+                    write_out_step_info(job_name, step_name, program_name, args, target_dir, parm)
                 step_name = EMPTY_STRING
                 program_name = EMPTY_STRING
                 args = []
@@ -42,6 +43,16 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                     s = rl.split(JCL_PGM_NAME)
                     p = s[1].split(COMMA)
                     program_name = p[0].replace(NEWLINE, EMPTY_STRING)
+                if JCL_PARM_INDICATOR in rl:
+                    s = rl.split(JCL_PARM_INDICATOR)
+                    p = s[1].split(EQUALS)
+                    p[1] = p[1].replace(NEWLINE, EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING)
+                    parm = p[1]
+            elif JCL_PARM_INDICATOR in rl:
+                s = rl.split(JCL_PARM_INDICATOR)
+                p = s[1].split(EQUALS)
+                p[1] = p[1].replace(NEWLINE, EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING)
+                parm = p[1]
             elif rl.startswith("/*"):
                 is_getting_dd_info = False
                 is_getting_inline = False
@@ -60,7 +71,7 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
         count = count + 1
 
-    write_out_step_info(job_name, step_name, program_name, args, target_dir)
+    write_out_step_info(job_name, step_name, program_name, args, target_dir, parm)
     write_out_final_job_info(job_name, target_dir)
 
     print("completed conversion of " + file + " to --> " + target_dir + job_name + CONVERTED_JCL_EXT)
@@ -99,7 +110,7 @@ def write_out_final_job_info(job_name, target_dir):
 
     return
 
-def write_out_step_info(job_name, step_name, program_name, args, target_dir):
+def write_out_step_info(job_name, step_name, program_name, args, target_dir, parm=EMPTY_STRING):
     insert_beginning_of_file(target_dir + job_name + CONVERTED_JCL_EXT, "from " + program_name + " import *\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, NEWLINE + "# STEP: " + step_name + NEWLINE + "#  PGM: " + program_name + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
@@ -130,7 +141,13 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir):
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + "'\n")
             environment_vars.append(a[0])
 
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self)\n")
+    if parm == EMPTY_STRING:
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self)\n")
+    else:
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "var = COBOLVariable('parm-var', 2, 'S9', '', '', 0, 0, '01', 'COMP', 0, 4, '', 0, False)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "ls = str(" + str(len(parm)) + ").zfill(4)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "l = convert_to_comp(ls, var)\n")
+        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.main(self,str(l) + '" + parm + "')\n")
     # write the RETURN-CODE from the called program to the output 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "rc = step.get_return_code()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if rc > highest_return_code:\n")
@@ -271,7 +288,9 @@ if __name__ == "__main__":
         parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
     else:
         #parse_jcl_file("examples/hellow83_sort_2.jcl", "converted/")
-        parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
+        parse_jcl_file("examples/hellow86_parm_example.jcl", "converted/")
+        parse_jcl_file("examples/hellowo1_basic.jcl", "converted/")
+        #parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
         #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
         #parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
         #parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
