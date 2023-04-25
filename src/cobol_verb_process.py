@@ -202,8 +202,13 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_NEXT:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + NEWLINE)
+        func_params = "(True)"
+        if "TRANSID" in tokens:
+            func_params = "(False)"
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
         process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
+    elif verb == CICS_VERB_READQ:
+        process_readq_verb(level, name, tokens, current_line, args)
     elif verb == COBOL_VERB_STRING:
         process_string_verb(tokens, level, name, current_line)
     elif verb == COBOL_VERB_SORT:
@@ -220,6 +225,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_readq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
+    return
 
 def process_get_dd(tokens, level: int, name: str, current_line: LexicalInfo):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "result = caller.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)

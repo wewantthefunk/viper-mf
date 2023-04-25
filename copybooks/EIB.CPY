@@ -25,3 +25,9 @@
 
       *    Transaction Identifier
            05 EIBTRNID PIC X(4).
+
+      *    Response Code
+           05 EIBRESP PIC S9(8) COMP.
+
+      *    Response Code
+           05 EIBRESP2 PIC S9(8) COMP.
