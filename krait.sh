@@ -4,4 +4,4 @@
 cd "$(dirname "$0")"
 
 # Call the module
-python3 converted/kix.py
+python3 converted/krait.py
