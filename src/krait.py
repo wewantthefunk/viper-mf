@@ -622,6 +622,7 @@ class KRAIT:
         return [index, len(self.queues[index]) - 1]
     
     def readq(self, name: str):
+        response_code = krait_util.EIB_NOT_AUTH_RESP
         index = -1
         for q in self.queues:
             index = index + 1
@@ -631,9 +632,13 @@ class KRAIT:
         if index >= 0:
             queue = self.queues[index]
             if len(queue) > 0:
-                return queue.pop(0)
+                return [queue.pop(index), krait_util.EIB_NORMAL_RESP]
+            else:
+                response_code = krait_util.EIB_ITEM_ERR_RESP
+        else:
+            response_code = krait_util.EIB_QIDERR_RESP
             
-        return krait_util.EMPTY_STRING
+        return [krait_util.EMPTY_STRING, response_code]
 
 if __name__ == '__main__':
     Krait_obj = KRAIT()
