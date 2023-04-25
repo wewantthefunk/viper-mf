@@ -182,8 +182,10 @@ class KRAIT:
 
         return
     
-    def main_on_keypress(self, event):
-        if self.is_in_transaction:
+    def main_on_keypress(self, event):        
+        if event.state == 20 and event.keycode == krait_util.F1_KEY:
+            self.receive_control(True)
+        elif self.is_in_transaction:
             if event.keycode in krait_util.ATTENTION_KEYS:
                 should_return_control = self.transaction_module.process_key(event.keycode)
                 self.map_key_pressed.set(True)
@@ -391,6 +393,9 @@ class KRAIT:
         return krait_util.EMPTY_STRING
 
     def start_module(self, text: str):
+        if not self.check_region():
+            return
+        
         module_name = text
         try:
             # create a StringIO object
@@ -590,11 +595,13 @@ class KRAIT:
         result = True
         if self.region_label == None:
             self.show_error_message("You must switch to a CICS Region")
+            self.receive_control(True)
             result = False
         else:
             value = self.region_label.cget("text")
             if value.strip() == krait_util.EMPTY_STRING:
                 self.show_error_message("You must switch to a CICS Region")
+                self.receive_control(True)
                 result = False
 
         return result
