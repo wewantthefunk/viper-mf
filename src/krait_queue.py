@@ -17,4 +17,5 @@ class KRAITQueue:
             return self.items.pop(pos)
         return krait_util.EMPTY_STRING
     
-    
+    def length(self):
+        return len(self.items)    

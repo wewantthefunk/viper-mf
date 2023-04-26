@@ -209,6 +209,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
     elif verb == CICS_VERB_READQ:
         process_readq_verb(level, name, tokens, current_line, args)
+    elif verb == CICS_VERB_WRITEQ:
+        process_writeq_verb(level, name, tokens, current_line, args)
     elif verb == COBOL_VERB_STRING:
         process_string_verb(tokens, level, name, current_line)
     elif verb == COBOL_VERB_SORT:
@@ -226,11 +228,68 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     
     return level
 
+def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
+    queue = EMPTY_STRING
+    data = EMPTY_STRING
+    resp = EMPTY_STRING
+    for token in tokens:
+        if token.startswith(QUEUE_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            queue = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if not queue.startswith(SINGLE_QUOTE):
+                queue = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + queue + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + queue + SINGLE_QUOTE + CLOSE_PARENS
+        elif token.startswith(FROM_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            data = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if not data.startswith(SINGLE_QUOTE):
+                data = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + data + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + data + SINGLE_QUOTE + CLOSE_PARENS    
+        elif token.startswith(RESP_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            resp = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "r = self.calling_module.writeq(" + queue + COMMA + data + CLOSE_PARENS + NEWLINE)
+    
+    if resp != EMPTY_STRING:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+
+    return
+
 def process_readq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
+    queue = EMPTY_STRING
+    item = "1"
+    into = EMPTY_STRING
+    resp = EMPTY_STRING
+    for token in tokens:
+        if token.startswith(QUEUE_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            queue = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if not queue.startswith(SINGLE_QUOTE):
+                queue = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + queue + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + queue + SINGLE_QUOTE + CLOSE_PARENS
+        elif token.startswith(ITEM_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            item = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if not item.isnumeric():
+                item = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + item + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + item + SINGLE_QUOTE + CLOSE_PARENS
+            item = item + " - 1"
+        elif token.startswith(INTO_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            into = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+        elif token.startswith(RESP_KEYWORD):
+            t = token.split(OPEN_PARENS)
+            resp = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
+
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "r = self.calling_module.readq(" + queue + COMMA + item + CLOSE_PARENS + NEWLINE)
+
+    if into != EMPTY_STRING:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + into + SINGLE_QUOTE + COMMA + "r[0],'" + into + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+    
+    if resp != EMPTY_STRING:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+    
     return
 
 def process_get_dd(tokens, level: int, name: str, current_line: LexicalInfo):
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "result = caller.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "result = self.calling_module.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)
     process_move_verb([COBOL_VERB_MOVE, '1', TO_KEYWORD, tokens[3]], name, True, level)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + "Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA \
                 + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[2] + OPEN_PARENS + tokens[3] + CLOSE_PARENS + SINGLE_QUOTE + COMMA + "result" \

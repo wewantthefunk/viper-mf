@@ -5,7 +5,7 @@ from io import StringIO
 from os.path import exists
 import importlib, sys, os, random
 import cobol_variable, string
-import krait_region, krait_util
+import krait_region, krait_util, krait_queue
 
 class KRAIT:     
     def __init__(self):
@@ -167,6 +167,7 @@ class KRAIT:
 
         if found:
             self.map_entry_fields[len(self.map_entry_fields) - 1].entry_field = entry_field
+
         return entry_field
 
     def validate(self, name, index, mode):
@@ -188,10 +189,12 @@ class KRAIT:
         elif self.is_in_transaction:
             if event.keycode in krait_util.ATTENTION_KEYS:
                 should_return_control = self.transaction_module.process_key(event.keycode)
-                self.map_key_pressed.set(True)
+                self.receive_control(should_return_control)
         else:
             #print(event)
             pass
+
+        return
 
     def on_keypress(self, event):
         if self.is_in_transaction:
@@ -298,6 +301,8 @@ class KRAIT:
         if self.transaction_label != None:
             self.transaction_label.config(text=self.transaction_id)
 
+        return
+
     def show_error_message(self, text: str):
         self.message_label.config(foreground=krait_util.ERROR_TEXT_COLOR)
         self.message_label.config(text=krait_util.INVALID_COMMAND_MSG + krait_util.SPACE + text)
@@ -313,6 +318,7 @@ class KRAIT:
         current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE)
         current_transactions = current_transactions + krait_util.NEWLINE + tokens[2] + krait_util.COLON + tokens[3]
         cobol_variable._write_file(krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
+        
         return
 
     def show_help(self):
@@ -361,19 +367,19 @@ class KRAIT:
     
     def create_region(self, text: str):
         tokens = text.split(krait_util.SPACE)
-        value = cobol_variable._read_file(tokens[2] + krait_util.REGION_FILE_EXT)
+        value = cobol_variable._read_file(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT)
         if value == krait_util.EMPTY_STRING:
-            cobol_variable._write_file(tokens[2] + krait_util.REGION_FILE_EXT, krait_util.REGION_FILE_EXT)
+            cobol_variable._write_file(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT, krait_util.REGION_FILE_EXT)
         
         return
     
     def switch_region(self, text: str):
         tokens = text.split(krait_util.SPACE)
 
-        if cobol_variable._file_exists(tokens[2] + krait_util.REGION_FILE_EXT):
-            self.region_label.config(text=tokens[2])
+        if cobol_variable._file_exists(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT):
+            self.region_label.config(text=tokens[2].upper().strip())
         else:
-            self.show_error_message("Region '" + tokens[2] + "' does not exist")
+            self.show_error_message("Region '" + tokens[2].upper().strip() + "' does not exist")
 
         return
 
@@ -607,6 +613,7 @@ class KRAIT:
         return result
     
     def writeq(self, name: str, item: str):
+        response_code = krait_util.EIB_NORMAL_RESP
         index = -1
         for q in self.queues:
             index = index + 1
@@ -614,12 +621,12 @@ class KRAIT:
                 break
 
         if index < 0:
-            self.queues.append(krait_util.KRAITQueue(name))
+            self.queues.append(krait_queue.KRAITQueue(name))
             index = len(self.queues) - 1
 
-        self.queues[index].append(item)
+        self.queues[index].push(item)
 
-        return [index, len(self.queues[index]) - 1]
+        return [index, self.queues[index].length() - 1, response_code]
     
     def readq(self, name: str, item = 0):
         response_code = krait_util.EIB_NOT_AUTH_RESP
@@ -633,7 +640,7 @@ class KRAIT:
 
         if index >= 0:
             queue = self.queues[index]
-            if len(queue) > 0:
+            if queue.length() > 0:
                 return [queue.pop(item), krait_util.EIB_NORMAL_RESP]
             else:
                 response_code = krait_util.EIB_ITEM_ERR_RESP
