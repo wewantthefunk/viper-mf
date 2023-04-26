@@ -507,7 +507,7 @@ class KRAIT:
             if line.startswith(krait_util.COBOL_COMMENT):
                 continue
             
-            field_info = field_info + line +krait_util. SPACE
+            field_info = field_info + line + krait_util.SPACE
             if line.endswith(krait_util.MAP_CONTINUATION_CHARACTER) == False:
                 self.build_field(field_info, data, map_only, data_only)
                 field_info = krait_util.EMPTY_STRING

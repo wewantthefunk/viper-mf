@@ -11,14 +11,16 @@
 
        01 W-RESPONSE-CODE PIC S9(8) COMP.
 
+       01 TERM-ID       PIC X(4).
+
 
        PROCEDURE DIVISION.
-           MOVE 'KEYMAP' TO TEST-DATA.
+           MOVE EIBTRMID TO TERM-ID.
 
            EXEC CICS READQ TS
-              QUEUE   (WS-HITF-Q-NAME)
-                     INTO    (TS-HITF-SESSION)
-                     LENGTH  (LENGTH OF TS-HITF-SESSION)
+              QUEUE   ('CICS05Q')
+                     INTO    (TERM-ID)
+                     LENGTH  (LENGTH OF TERM-ID)
                      ITEM    (1)
                      RESP    (W-RESPONSE-CODE)
                      END-EXEC.
@@ -28,11 +30,16 @@
            END-IF.
 
            IF FIRST-TIME = 'Y'
-              EXEC CICS SEND MAP('HELLOMAP')
+              EXEC CICS SEND MAP('RECVMAP')
+              END-EXEC
+              EXEC CICS WRITEQ TS 
+                 QUEUE('CICS05Q')
+                 FROM(TERM-ID)
               END-EXEC
            ELSE
               MOVE 'N' TO FIRST-TIME
-              EXEC CICS RECEIVE MAP(TEST-DATA)
+              EXEC CICS RECEIVE MAP('HELLOMAP')
+                 
               END-EXEC
            END-IF.           
 
