@@ -5,7 +5,7 @@
 
        WORKING-STORAGE SECTION.
 
-       01 TEST-DATA PIC X(8).
+       01 TEST-DATA PIC X(10).
 
        01 FIRST-TIME  PIC X VALUE 'Y'.
 
@@ -14,6 +14,8 @@
        01 TERM-ID       PIC X(4).
 
        COPY RECVMAP.
+
+       COPY HELLOMAP.
 
        PROCEDURE DIVISION.
            MOVE EIBTRMID TO TERM-ID.
@@ -37,15 +39,28 @@
                  QUEUE('CICS05Q')
                  FROM(TERM-ID)
               END-EXEC
+
+              PERFORM RETURN-CONTROL
            ELSE
               MOVE 'N' TO FIRST-TIME
-              EXEC CICS RECEIVE MAP('HELLOMAP')
+              EXEC CICS RECEIVE MAP('RECVMAP')
                  
               END-EXEC
+              EXEC CICS SEND MAP('HELLOMAP')
+              END-EXEC
+
+              PERFORM RETURN-TO-CICS
            END-IF.           
 
+       RETURN-CONTROL.
            EXEC CICS
                RETURN
                TRANSID('CICS05')
+           END-EXEC.
+
+       RETURN-TO-CICS.
+
+           EXEC CICS
+             RETURN
            END-EXEC.
 

@@ -1,0 +1,10 @@
+       01 HELLOMAPI.
+          02 LBL1I PIC X(07) VALUE 'hello, '.
+          02 LBL1F PIC S9(4) COMP VALUE 07.
+          02 LBL2I PIC X(10) VALUE SPACES.
+          02 LBL2F PIC S9(4) COMP VALUE 10.
+       01 HELLOMAPO REDEFINES HELLOMAPI.
+          02 LBL1O PIC X(07).
+          02 FILLER PIC X(2).
+          02 LBL2O PIC X(10).
+          02 FILLER PIC X(2).

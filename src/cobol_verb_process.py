@@ -202,11 +202,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_NEXT:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
-        func_params = "(True)"
-        if "TRANSID" in tokens:
-            func_params = "(False)"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
-        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
+        process_cics_return(level, name, tokens, current_line)
     elif verb == CICS_VERB_READQ:
         process_readq_verb(level, name, tokens, current_line, args)
     elif verb == CICS_VERB_WRITEQ:
@@ -227,6 +223,19 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_cics_return(level: int, name: str, tokens: list, current_line: LexicalInfo):
+    func_params = "(True)"
+    trans_id = SINGLE_QUOTE + EMPTY_STRING + SINGLE_QUOTE
+    for t in tokens:
+        if t.startswith("TRANSID"):
+            t1 = t.split(OPEN_PARENS)
+            trans_id = t1[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            if not trans_id.startswith(SINGLE_QUOTE):
+                trans_id = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + t1[1] + COMMA + t1[1] + CLOSE_PARENS + NEWLINE
+            func_params = "(False, " + trans_id  + ")"
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
+    #process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
 
 def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
     queue = EMPTY_STRING
@@ -1289,6 +1298,9 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         if NOT_KEYWORD in tokens[end_index:]:
             end_index_2 = tokens.index(NOT_KEYWORD, end_index)
         process_verb(tokens[end_index + 1: end_index_2], name, True, level + 1, args, current_line, [])
+    elif len(tokens) == 2:
+        func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
     else:
         if tokens[1] == UNTIL_KEYWORD:
             if len(tokens) > 4:
@@ -1326,8 +1338,7 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
                     + COLON + NEWLINE)
-                level = level + 1
-                
+                level = level + 1                
 
     return level
 

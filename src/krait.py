@@ -576,7 +576,7 @@ class KRAIT:
                 field_type = "none"
 
         if field_text[0:1] == " " and len(field_text) > int(field_length):
-            field_text = field_text[:1]
+            field_text = field_text[1:]
 
         if field_type == "lbl":
             self.create_label(self.main_frame, field_text, var_name, field_x, field_y, krait_util.LINE_SPACING)
