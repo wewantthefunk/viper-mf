@@ -21,7 +21,7 @@
        FILE SECTION. 
 
        FD INPUTFILE 
-           RECORD CONTAINS 14 CHARACTERS.
+           RECORD CONTAINS 18 CHARACTERS.
 
        01  TEST-REC.
            02 TEST-REC-KEY    PIC X(4).
@@ -42,15 +42,13 @@
        01 KEY-LEN          PIC 9(2) VALUE 4.
 
        PROCEDURE DIVISION.
-
-           DISPLAY 'expected value 0001test record 1'
            
            OPEN I-O INPUTFILE.    
 
            IF FILE-STATUS = '00'
               MOVE 'N' TO NO-MORE-RECORDS
-              PERFORM 0000-READ-FILE THRU 0000-READ-FILE-EXIT
               PERFORM 1000-WRITE-FILE THRU 1000-WRITE-FILE-EXIT
+              PERFORM 0000-READ-FILE THRU 0000-READ-FILE-EXIT
            ELSE 
               DISPLAY 'error opening file - ' FILE-STATUS 
            END-IF.
@@ -60,8 +58,8 @@
            STOP RUN.
 
        0000-READ-FILE.
-           MOVE '0001' TO SEARCH-KEY.
-
+           DISPLAY 'expected value ' SEARCH-KEY 'test record ' 
+              TEST-REC-D-2
            READ INPUTFILE
               AT END MOVE 'Y' TO NO-MORE-RECORDS.
 
