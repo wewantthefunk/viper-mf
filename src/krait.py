@@ -5,7 +5,7 @@ from io import StringIO
 from os.path import exists
 import importlib, sys, os, random
 import cobol_variable, string
-import krait_region, krait_util, krait_queue
+import krait_region, krait_util, krait_queue, krait_ui
 
 class KRAIT:     
     def __init__(self):
@@ -560,7 +560,7 @@ class KRAIT:
                     temp_field_text = s[1]
                 else:
                     temp_field_text = s[0]
-                if temp_field_text.startswith(krait_util.SINGLE_QUOTE):
+                if temp_field_text.startswith(krait_util.SINGLE_QUOTE) and not in_literal:
                     temp_field_text = temp_field_text[1:]
                     in_literal = True
 
@@ -575,10 +575,13 @@ class KRAIT:
             elif 'DFHMSD' in token or 'DFHMDI' in token:
                 field_type = "none"
 
+        if field_text[0:1] == " " and len(field_text) > int(field_length):
+            field_text = field_text[:1]
+
         if field_type == "lbl":
             self.create_label(self.main_frame, field_text, var_name, field_x, field_y, krait_util.LINE_SPACING)
         elif field_type == "entry":
-            t = krait_util.KRAITEntry(name=var_name,length=field_length)
+            t = krait_ui.KRAITEntry(name=var_name,length=field_length)
             t.field.trace('w', self.validate)
             self.map_entry_fields.append(t)
             self.create_map_entry(self.main_frame, field_text, var_name, field_x, field_y, field_length, has_focus)

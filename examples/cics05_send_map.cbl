@@ -13,6 +13,7 @@
 
        01 TERM-ID       PIC X(4).
 
+       COPY RECVMAP.
 
        PROCEDURE DIVISION.
            MOVE EIBTRMID TO TERM-ID.
@@ -38,9 +39,9 @@
               END-EXEC
            ELSE
               MOVE 'N' TO FIRST-TIME
-              EXEC CICS RECEIVE MAP('HELLOMAP')
+      *        EXEC CICS RECEIVE MAP('HELLOMAP')
                  
-              END-EXEC
+      *        END-EXEC
            END-IF.           
 
            EXEC CICS
