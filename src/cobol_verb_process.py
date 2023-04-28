@@ -500,9 +500,6 @@ def process_send_map(tokens, level: int, name: str):
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
-    
-    if tokens[2] == "RECEIVE":
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".receive_control()" + NEWLINE)
 
     return
 
@@ -1670,6 +1667,8 @@ def process_math_verb(tokens, name: str, level: int):
     return
 
 def check_valid_verb(v: str, compare_verb: str, include_search_multi_verb):
+    if v.endswith(PERIOD):
+        v = v[0:len(v) - 1]
     if include_search_multi_verb == True:
         for multi_verb in COBOL_VERB_MULTI_LIST:
             if multi_verb[0] == compare_verb and multi_verb[1] == v:
