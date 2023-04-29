@@ -18,4 +18,4 @@
            DISPLAY ' REASON CODE: ' REASON-CODE.
            DISPLAY 'CLEANUP CODE: ' CLEANUP-CODE.
 
-           CALL 'P2C-TERMINATE'.
+           STOP RUN.
