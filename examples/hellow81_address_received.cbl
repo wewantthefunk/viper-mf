@@ -24,5 +24,5 @@
            DISPLAY 'expected value: updated 10'
            DISPLAY 'actual value:   ' TEST-VALUE.
 
-           STOP RUN.
+           GOBACK.
 
