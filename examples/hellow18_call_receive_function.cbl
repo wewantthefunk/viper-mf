@@ -6,5 +6,5 @@
 
            DISPLAY 'Called module HELLOW18'.
 
-           STOP RUN.
+           GOBACK.
 
