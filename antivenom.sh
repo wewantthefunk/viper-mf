@@ -11,8 +11,8 @@ fi
 if [ "$1" != "jes" ] && [ "$1" != "converted" ]; then
   echo you need to specify the folder to clear out!
   echo valid values are:
-  echo                        jes == JES2\\OUTPUT\\
-  echo                  converted == converted\\
+  echo                        jes == JES2/OUTPUT/
+  echo                  converted == converted/
   exit 1
 fi
 
