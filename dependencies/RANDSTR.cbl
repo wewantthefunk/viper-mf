@@ -8,8 +8,7 @@
        01 STRING-COUNTER          PIC 9(02) VALUE 1.
        01 RANDOM-NUMBER           PIC 9(09).
        01 CHARACTERS-LIST         PIC X(62)
-           VALUE 
-       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.
+       .
        01 CHARACTER-TEMP          PIC X.
 
        LINKAGE SECTION. 
@@ -18,7 +17,11 @@
        
        PROCEDURE DIVISION USING STRING-LENGTH, RANDOM-STRING.
            MOVE SPACES TO RANDOM-STRING 
-         
+
+           MOVE 
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+           TO CHARACTERS-LIST.
+
            PERFORM STRING-GENERATION.
            
            GOBACK
