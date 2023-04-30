@@ -576,8 +576,14 @@ def Sort_File(var_list, variables_list, name: str, key_fields):
                 for x in range(0,len(var.in_memory_array)):
                     data = var.in_memory_array[x]
                     sort_key = EMPTY_STRING
+                    sp_list = start_positions
+                    # no sort keys specified, so make the entire record the sort key
+                    if len(start_positions) == ZERO:
+                        sp_list.append([0,len(data)])
+                        sort_key_len = len(data)
+
                     # build the key based on the identified key fields
-                    for sp in start_positions:
+                    for sp in sp_list:
                         t = EMPTY_STRING
                         h = data[sp[0]:sp[1]]
                         # convert the key data to EBCDIC for emulated mainframe sorting order
