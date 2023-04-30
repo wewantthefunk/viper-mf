@@ -557,6 +557,7 @@ def Sort_File(var_list, variables_list, name: str, key_fields):
     success = False
     start_positions = []
     sort_key_len = 0
+    sort_key_len_mod = 1
     for key_field in key_fields:
         for var_list_name in variables_list:
             key_var = _find_variable(var_list_name, key_field)
@@ -571,15 +572,27 @@ def Sort_File(var_list, variables_list, name: str, key_fields):
     for var in var_list:
         if var.name == name:
             if var.is_in_memory:
+                # prepend the key to the record for sorting
                 for x in range(0,len(var.in_memory_array)):
                     data = var.in_memory_array[x]
                     sort_key = EMPTY_STRING
+                    # build the key based on the identified key fields
                     for sp in start_positions:
-                        sort_key = sort_key + data[sp[0]: sp[1]]
+                        t = EMPTY_STRING
+                        h = data[sp[0]:sp[1]]
+                        # convert the key data to EBCDIC for emulated mainframe sorting order
+                        for c in h:                            
+                            a = find_hex_value_by_ebcdic(c)
+                            t = t + a.ASCII_hex[2:]
+                        sort_key = sort_key + t
+                        sort_key_len_mod = 2
+                    # prepend the key to the record
                     var.in_memory_array[x] = sort_key + var.in_memory_array[x]
+                # sort the array
                 var.in_memory_array.sort()
+                # strip the prepended key for final output
                 for x in range(0,len(var.in_memory_array)):
-                    var.in_memory_array[x] = var.in_memory_array[x][sort_key_len:]
+                    var.in_memory_array[x] = var.in_memory_array[x][sort_key_len * sort_key_len_mod:]
                 
                 success = True
                 break
