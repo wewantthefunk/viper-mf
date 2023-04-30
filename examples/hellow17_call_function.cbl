@@ -9,5 +9,7 @@
            DISPLAY 'actual message:'
            CALL 'HELLOW18'.
 
+           DISPLAY 'returned'.
+
            STOP RUN.
 

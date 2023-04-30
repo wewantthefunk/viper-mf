@@ -441,7 +441,7 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
     return
 
 def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args, skip_except_block = False):
-    if tokens[0] == P2C_TERMINATE:
+    if tokens[0] == P2C_TERMINATE or (len(tokens) > 1 and tokens[0] == STOP_KEYWORD + SPACE + RUN_KEYWORD):
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "#inform calling module that termination has happened" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
 
@@ -770,11 +770,14 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
                 VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        if using_args == EMPTY_STRING:
+            using_args = "None"
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if self.terminate:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "return" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
@@ -796,6 +799,8 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_instance = module_class()" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(module_instance.main)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        if using_args == EMPTY_STRING:
+            using_args = "None"
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
