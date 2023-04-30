@@ -653,6 +653,11 @@ class KRAIT:
         return [krait_util.EMPTY_STRING, response_code]
 
 if __name__ == '__main__':
-    Krait_obj = KRAIT()
 
-    Krait_obj.Launch()
+    if len(sys.argv) < 2:
+        print("not enough arguments")
+        print(sys.argv)
+    else:
+        Krait_obj = KRAIT()
+
+        Krait_obj.Launch()
