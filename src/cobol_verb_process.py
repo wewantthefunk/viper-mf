@@ -141,9 +141,9 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == COBOL_VERB_CONTINUE:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0" + NEWLINE)
     elif verb == COBOL_VERB_OPEN:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[2] + "','" + tokens[1] + "')" + NEWLINE)
+        process_open_verb(name, tokens, level)
     elif verb == COBOL_VERB_CLOSE:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[1] + "')" + NEWLINE)
+        process_close_verb(name, tokens, level)
     elif verb == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
         into_rec = EMPTY_STRING
@@ -223,6 +223,33 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     current_line.is_evaluating = is_evaluating
     
     return level
+
+def process_open_verb(name: str, tokens: list, level: int):
+    current_open_type = tokens[1]
+    for x in range(2,len(tokens)):
+        if tokens[x] in COBOL_OPEN_KEYWORDS:
+            current_open_type = tokens[x]
+            continue
+        elif tokens[x] == PERIOD:
+            continue
+
+        if tokens[x].endswith(PERIOD):
+            tokens[x] = tokens[x][0:len(tokens) - 1]
+
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[x] + "','" + current_open_type + "')" + NEWLINE)
+
+def process_close_verb(name: str, tokens: list, level: int):
+    current_open_type = tokens[1]
+    for x in range(1,len(tokens)):
+        if tokens[x] == PERIOD:
+            continue
+        elif tokens[x] in COBOL_VERB_LIST:
+            break
+
+        if tokens[x].endswith(PERIOD):
+            tokens[x] = tokens[x][0:len(tokens) - 1]
+
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[x] + "')" + NEWLINE)
 
 def process_cics_return(level: int, name: str, tokens: list, current_line: LexicalInfo):
     func_params = "(True)"
