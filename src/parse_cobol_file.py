@@ -347,4 +347,4 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
     #parse_cobol_file("work/CABBSMBD.cbl", "converted/")
-    parse_cobol_file("examples/hellow18_call_receive_function.cbl", "converted/")
+    parse_cobol_file("examples/hellow90_open_multiple_files.cbl", "converted/")
