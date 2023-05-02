@@ -168,10 +168,6 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
     return [line, current_section, name, current_line]
 
 def process_procedure_division_line(line: str, name: str, current_line: LexicalInfo, next_few_lines, args):
-
-    if current_line.current_line_number == "52":
-        x = 0
-
     temp_tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, True)
 
     skip = 0
@@ -631,6 +627,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
                     found = True
+                elif count == index:
+                    found = True
                 else:
                     if count != index:
                         t = replace_info[count].replace("==.", EMPTY_STRING).strip()
@@ -652,6 +650,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
                     found = True
+                elif count == index:
+                    found = True
                 else:
                     if count != index:
                         t = replace_info[count].replace("==.", EMPTY_STRING).strip()
@@ -660,6 +660,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                     count = count + 1
                     if count > len(replace_info) - 1:
                         count = len(replace_info) - 1
+    ogc = copybook
     file_exists = exists(copybook)
     if file_exists == False:
         copybook = copybook + COPYBOOK_EXT
@@ -671,6 +672,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                 copybook = copybook.replace(COPYBOOK_EXT, EMPTY_STRING)
                 file_exists = exists(copybook)
                 if file_exists == False:
+                    print("Copybook NOT FOUND: " + ogc)
+                    print("Aborting conversion!")
                     return
 
     file_lines = read_file(copybook, True)
