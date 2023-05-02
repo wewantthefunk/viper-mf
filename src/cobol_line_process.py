@@ -598,18 +598,31 @@ def get_type_length(tokens, count: int):
 
 def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
     current_line.skip_the_next_lines = 0
+    has_replacing_keyword = False
+    if not copybook.endswith(PERIOD) and REPLACING_KEYWORD not in copybook:
+        not_end = True
+        count = 0
+        while not_end:
+            if REPLACING_KEYWORD in next_few_lines[count]:
+                has_replacing_keyword = True
+                not_end = False
+            count = count + 1
+            if count >= len(next_few_lines):
+                not_end = False
     is_eib = False
     if copybook == EIB_COPYBOOK:
         is_eib = True
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
     replacement_list = []
-    if REPLACING_KEYWORD in copybook:
+    if has_replacing_keyword:
         replace_info = copybook.split(REPLACING_DELIMITER)
         copybook = replace_info[0].replace(REPLACING_KEYWORD, EMPTY_STRING).strip()
-        if replace_info[len(replace_info) - 1] != PERIOD:
+        if len(replace_info) == 1:
+            replace_info.pop()
+        if len(replace_info) == 0 or replace_info[len(replace_info) - 1] != PERIOD:
             for next_line in next_few_lines:
-                replace_info.append(next_line)
-                if next_line.endswith(PERIOD):
+                replace_info.append(next_line.replace(REPLACING_KEYWORD, EMPTY_STRING))
+                if next_line.rstrip().endswith(PERIOD):
                     break
         indices = [i for i in range(len(replace_info)) if BY_KEYWORD in replace_info[i]]
         for index in indices:
@@ -627,8 +640,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
                     found = True
-                elif count == index:
-                    found = True
+                #elif count == index:
+                #    found = True
                 else:
                     if count != index:
                         t = replace_info[count].replace("==.", EMPTY_STRING).strip()
@@ -636,7 +649,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
                     count = count - 1
                     if count < 0:
-                        count = 0
+                        found = True
 
             replacement_list[last].old_value = replacement_list[last].old_value.strip()
             count = index
@@ -650,8 +663,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
                     found = True
-                elif count == index:
-                    found = True
+                #elif count == index:
+                #    found = True
                 else:
                     if count != index:
                         t = replace_info[count].replace("==.", EMPTY_STRING).strip()
@@ -659,7 +672,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
                     count = count + 1
                     if count > len(replace_info) - 1:
-                        count = len(replace_info) - 1
+                        found = True
     ogc = copybook
     file_exists = exists(copybook)
     if file_exists == False:
