@@ -865,6 +865,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 return [True, main_variable_memory]
             else:
                 if var.data_type in NUMERIC_DATA_TYPES:
+                    if not value.isnumeric():
+                        raise Exception("Invalid value assigned to numeric datatype: '" + value + "'")
                     if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if value.startswith(NEGATIVE_SIGN):
                             var.sign = NEGATIVE_SIGN
