@@ -78,6 +78,9 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
     if tokens[len(tokens) - 1] != PERIOD:
         for next_line in next_few_lines:
             nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
+            if nl_tokens[len(nl_tokens) - 1].endswith(PERIOD) and nl_tokens[len(nl_tokens) - 1] != PERIOD:
+                nl_tokens[len(nl_tokens) - 1] = nl_tokens[len(nl_tokens) - 1][0:len(nl_tokens[len(nl_tokens) - 1]) - 1]
+                nl_tokens.append(PERIOD)
             for nl_token in nl_tokens:
                 if nl_token != PERIOD:
                     tokens.append(nl_token)
@@ -134,6 +137,7 @@ def create_file_variable(tokens, name: str, next_few_lines, current_section: str
 
 def process_data_division_line(line: str, current_section: str, name: str, current_line: LexicalInfo, next_few_lines, args):
     global data_division_var_stack, data_division_level_stack, data_division_file_record, data_division_cascade_stack
+
     if line in DATA_DIVISION_SECTIONS:
         current_section = line
         current_line.first_line_section = True
@@ -216,25 +220,6 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
 
 def fix_parens(temp_tokens, value: str, value2: str):
     return
-    """if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("): # or value.startswith("WHEN("):
-        s = value.split(OPEN_PARENS)
-        temp_tokens[0] = s[0]
-        temp_tokens.insert(1,  OPEN_PARENS)
-        temp_tokens.insert(2, s[1])
-        if COLON in s[len(s) - 1]:
-            for x in range(2,len(s)):
-                t = s[x]
-                if t.endswith(CLOSE_PARENS) and COLON in t and not t.startswith(OPEN_PARENS):
-                    t = OPEN_PARENS + t
-                temp_tokens.insert(x + 1, t)
-            temp_tokens.append(CLOSE_PARENS)
-        elif value2.endswith(CLOSE_PARENS):
-            s = value.split(CLOSE_PARENS)
-            value = s[0]
-            temp_tokens.append(CLOSE_PARENS)
-    elif value.startswith("WHEN("):
-        temp_tokens.insert(0, COBOL_VERB_WHEN)
-        temp_tokens[1] = temp_tokens[1].replace("WHEN(", "(") """
 
 def check_ignore_verbs(ignore_verbs, v: str):
     if len(ignore_verbs) == 0:
@@ -270,6 +255,13 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             skip_lines_count = skip_lines_count + 1
             nlt = parse_line_tokens(nl[6:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
             
+            if len(nlt) == 0:
+                continue
+
+            if nlt[len(nlt) - 1].endswith(PERIOD) and nlt[len(nlt) - 1] != PERIOD:
+                nlt[len(nlt) - 1] = nlt[len(nlt) - 1][0:len(nlt[len(nlt) - 1]) - 1]
+                nlt.append(PERIOD)
+
             skip_next = False
             count = 0
             for t in nlt:
@@ -504,17 +496,35 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
             var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
         else:
             for x in range(value_index, len(tokens) - 1):
-                init_val = tokens[value_index]
+                init_val = tokens[value_index].strip()
+                if init_val.endswith(PERIOD):
+                    init_val = init_val[0:len(init_val) - 1]
                 if init_val.startswith("X'"):
                     init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
                 if init_val == LOW_VALUES_KEYWORD:
                     init_val = SINGLE_QUOTE + HEX_PREFIX + '00' + SINGLE_QUOTE
+                if init_val == HIGH_VALUES_KEYWORD:
+                    init_val = SINGLE_QUOTE + HEX_PREFIX + 'FF' + SINGLE_QUOTE
+                if init_val == ALL_KEYWORD:
+                    init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
                 if init_val == THRU_KEYWORD:
-                    val = int(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + 1
-                    end = int(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING))
+                    is_hex = False
+                    if tokens[value_index - 1].startswith("X'"):
+                        val = int("0x" + tokens[value_index - 1].replace("X", EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING), 16)
+                        end = int("0x" + tokens[value_index + 1].replace("X", EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING), 16)
+                        is_hex = True
+                    else:
+                        val = int(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + 1
+                        end = int(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING))
                     while val < end:
-                        var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
+                        if is_hex:
+                            var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + HEX_PREFIX + hex(val)[2:].upper() + SINGLE_QUOTE, EMPTY_STRING, v_name])
+                        else:
+                            var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
+                        
                         val = val + 1
+                elif init_val == "SYNC":
+                    x = 0
                 else:
                     var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
                 value_index = value_index + 1
@@ -531,10 +541,9 @@ def create_index_variables(vars, name: str):
             + "10, '9','" + var[1] + "','',0,0,'','" + var[2] + "')[0]" + NEWLINE)
 
 def allocate_variables(current_line: LexicalInfo, name: str):
-    #for cs in current_line.sections_list:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(" + SELF_REFERENCE + "_DataDivisionVars," + SELF_REFERENCE + name + MEMORY + ")" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_DataDivisionVars" + SPACE + EQUALS + SPACE + "result[0]" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "result[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(" + SELF_REFERENCE + "_DataDivisionVars," + SELF_REFERENCE + name + MEMORY + ")" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_DataDivisionVars" + SPACE + EQUALS + SPACE + "result[0]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "result[1]" + NEWLINE)
 
 def init_vars(name: str, args, current_line):
     global var_init_list
@@ -596,7 +605,7 @@ def get_type_length(tokens, count: int):
 
     return [type_length[0], length, decimal_length, comp_indicator]
 
-def insert_copybook(outfile, copybook, current_line, name, current_section, next_few_lines, args):
+def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
     current_line.skip_the_next_lines = 0
     has_replacing_keyword = False
     if not copybook.endswith(PERIOD) and REPLACING_KEYWORD not in copybook:
@@ -609,14 +618,18 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
             count = count + 1
             if count >= len(next_few_lines):
                 not_end = False
+    elif REPLACING_KEYWORD in copybook:
+        has_replacing_keyword = True
+
     is_eib = False
     if copybook == EIB_COPYBOOK:
         is_eib = True
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
     replacement_list = []
     if has_replacing_keyword:
-        replace_info = copybook.split(REPLACING_DELIMITER)
+        replace_info = copybook.split(REPLACING_KEYWORD)
         copybook = replace_info[0].replace(REPLACING_KEYWORD, EMPTY_STRING).strip()
+        temp = replace_info[0].replace(SPACE, EMPTY_STRING)
         if len(replace_info) == 1:
             replace_info.pop()
         if len(replace_info) == 0 or replace_info[len(replace_info) - 1] != PERIOD:
@@ -624,6 +637,8 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                 replace_info.append(next_line.replace(REPLACING_KEYWORD, EMPTY_STRING))
                 if next_line.rstrip().endswith(PERIOD):
                     break
+        if temp == copybook + REPLACING_KEYWORD:
+            replace_info.pop(0)
         indices = [i for i in range(len(replace_info)) if BY_KEYWORD in replace_info[i]]
         for index in indices:
             count = index
@@ -633,20 +648,31 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
             last = len(replacement_list) - 1
             if s[0].strip() != EMPTY_STRING:
                 replacement_list[last].old_value = s[0].strip().replace("==.", EMPTY_STRING).replace("==", EMPTY_STRING)
-            while not found:                
+            else:
+                count = count - 1
+            if count < 0:
+                found = True
+            count2 = 0
+            while not found:  
+                count2 = count2 + 1
+                if count2 > 1000:
+                    break              
                 if replace_info[count].strip().startswith("==") or replace_info[count].endswith("==."):
                     if count != index:
                         t = replace_info[count].replace("==.", EMPTY_STRING).strip()
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
                     found = True
-                #elif count == index:
-                #    found = True
                 else:
                     if count != index:
-                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                        t = t.replace("==", EMPTY_STRING)
-                        replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
+                        if BY_KEYWORD not in replace_info[count]:
+                            t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                            t = t.replace("==", EMPTY_STRING)
+                            replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
+                        else:
+                            found = True
+                    elif replacement_list[last].old_value != EMPTY_STRING:
+                        found = True
                     count = count - 1
                     if count < 0:
                         found = True
@@ -663,13 +689,16 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                         t = t.replace("==", EMPTY_STRING)
                         replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
                     found = True
-                #elif count == index:
-                #    found = True
                 else:
                     if count != index:
-                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                        t = t.replace("==", EMPTY_STRING)
-                        replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
+                        if BY_KEYWORD not in replace_info[count]:
+                            t = replace_info[count].replace("==.", EMPTY_STRING).strip()
+                            t = t.replace("==", EMPTY_STRING)
+                            replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
+                        else:
+                            found = True
+                    elif replacement_list[last].new_value != EMPTY_STRING:
+                        found = True
                     count = count + 1
                     if count > len(replace_info) - 1:
                         found = True
@@ -689,9 +718,20 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
                     print("Aborting conversion!")
                     return
 
-    file_lines = read_file(copybook, True)
+    current_line.total_copybooks_inserted = current_line.total_copybooks_inserted + 1
+    file_lines = read_file(copybook, False)
     for repl in replacement_list:
-        file_lines = file_lines.replace(repl.old_value, repl.new_value)
+        repl_old_list = repl.old_value.split(NEWLINE)
+        repl_new_list = repl.new_value.split(NEWLINE)
+        while len(repl_new_list) > len(repl_old_list):
+            repl_new_list[len(repl_new_list) - 2] = repl_new_list[len(repl_new_list) - 2] + NEWLINE + pad(11) + repl_new_list[len(repl_new_list) - 1]
+            repl_new_list.pop()
+        while len(repl_old_list) > len(repl_new_list):
+            repl_new_list.append(EMPTY_STRING)
+        c = 0
+        for repl_old in repl_old_list:
+            file_lines = file_lines.replace(repl_old, repl_new_list[c])
+            c = c + 1
 
     write_file("temp_cpybook.txt", file_lines)
     raw_lines = read_raw_file_lines("temp_cpybook.txt", 0)
@@ -701,7 +741,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
     count = 0
     skip_the_next_lines_count = 0
     for line in raw_lines:
-        line = "      " + line
+        line = "      " + line[6:]
         count = count + 1
         next_few_lines_count = LINES_AHEAD
         lines_left = total - count
@@ -712,7 +752,7 @@ def insert_copybook(outfile, copybook, current_line, name, current_section, next
         next_few_lines = raw_lines[count:count+next_few_lines_count]
         count2 = 0
         for nfl in next_few_lines:
-            next_few_lines[count2] = "      " + next_few_lines[count2]
+            next_few_lines[count2] = "      " + next_few_lines[count2][6:]
             count2 = count2 + 1
         if skip_the_next_lines_count == current_line.skip_the_next_lines:
             skip_the_next_lines_count = 0

@@ -29,6 +29,8 @@ class LexicalInfo:
         self.is_evaluating = False
         self.index_variables = []
         self.sections_list = []
+        self.total_copybooks_inserted = 0
+        self.unknown_cobol_verbs = 0
 
 class Replacement:
     def __init__(self) -> None:

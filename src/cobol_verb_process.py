@@ -219,6 +219,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_get_dd(tokens, level, name, current_line)
     else:
         append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
+        current_line.unknown_cobol_verbs = current_line.unknown_cobol_verbs + 1
     
     current_line.is_evaluating = is_evaluating
     
@@ -1506,8 +1507,10 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
     value = tokens[1]
     if value == SPACE_KEYWORD or value == SPACES_KEYWORD:
         value = SINGLE_QUOTE + SPACES_INITIALIZER + SINGLE_QUOTE
-    elif value == ZERO_KEYWORD:
+    elif value == ZERO_KEYWORD or value == ZEROS_KEYWORD:
         value = ZERO
+    elif value == NULL_KEYWORD:
+        value = SINGLE_QUOTE + ADDRESS_INDICATOR + NULL_KEYWORD + SINGLE_QUOTE
 
     if value.startswith("X'"):
         value = value.replace("X'", SINGLE_QUOTE + HEX_PREFIX)

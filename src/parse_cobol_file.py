@@ -29,9 +29,9 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 start_tracking_line_number = True
 
             if rl[6:7] == "-":
-                line = rl[6:72]
+                line = rl[6:72].rstrip()
             else:
-                line = rl[7:72]
+                line = rl[7:72].rstrip()
             t_line = line.split(SPACE, 1)
             l = pad(7) + t_line[0] + SPACE
             if len(t_line) > 1:
@@ -200,6 +200,12 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
     print("completed conversion of " + file + " to --> " + target_dir + name + PYTHON_EXT)
 
+    if current_line.total_copybooks_inserted > 0:
+        print(pad(len(INDENT)) + "total copybooks inserted: " + str(current_line.total_copybooks_inserted))
+
+    if current_line.unknown_cobol_verbs > 0:
+        print(pad(len(INDENT)) + "unknown COBOL statements: " + str(current_line.unknown_cobol_verbs))
+
 def insert(originalfile,imports):
     for imp in imports:
         insert_beginning_of_file(originalfile, "from " + imp + " import *" + NEWLINE)        
@@ -221,6 +227,7 @@ def parse_line(line: str, current_division: str, name: str, first_time: bool, cu
 
 def parse_current_line(line: str, current_division: str, name: str, first_time: bool, current_line: LexicalInfo, next_few_lines):
     global args
+    old_division_name = EMPTY_STRING
     if current_division == EMPTY_STRING:
         if not line.startswith(COBOL_DIVISIONS[0]) \
             and not line.startswith(COBOL_DIVISIONS[1]):
@@ -232,6 +239,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
     new_division = False
     for division in COBOL_DIVISIONS:
         if line.startswith(division):
+            old_division_name = current_division
             current_division = division
             new_division = True
             if division == COBOL_DIVISIONS[PROCEDURE_DIVISION_POS]:
@@ -288,7 +296,7 @@ def parse_current_line(line: str, current_division: str, name: str, first_time: 
 def process_line(line: str, current_division: str, name: str, current_line: LexicalInfo, next_few_lines):
     global args
     if current_division == COBOL_DIVISIONS[IDENTIFICATION_DIVISION_POS] \
-        or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:
+        or current_division == COBOL_DIVISIONS[ID_DIVISION_POS]:        
         name = process_identification_division_line(line, name)
         write_file(name + PYTHON_EXT, "from cobol_variable import *" + NEWLINE)
         append_file(name + PYTHON_EXT, "import importlib, inspect, os, sys" + NEWLINE)
@@ -346,5 +354,5 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
     #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
-    parse_cobol_file("work/CABBEMBD.cbl", "converted/")
+    parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
     #parse_cobol_file("examples/hellow90_open_multiple_files.cbl", "converted/")
