@@ -2,63 +2,15 @@ from util import read_raw_file_lines
 from cobol_lexicon import *
 from cobol_line_process import *
 from util import *
+from cobol_util import *
 
 args = []
 
 def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     global args
     args = []
-    r_lines = read_raw_file_lines(file, 0)
-
-    raw_lines = []
-
-    count = 0
-    start_tracking_line_number = False
-    for rl in r_lines:
-        count = count + 1
-        rl = rl.replace(NEWLINE, EMPTY_STRING)
-        if len(rl) < 7:
-            rl = EMPTY_STRING
-
-        if rl == EMPTY_STRING:
-            continue
-        if rl.strip().startswith("CBL "):
-            continue
-        if (rl[6] != COBOL_COMMENT and rl[7:] != EMPTY_STRING):
-            if " PROCEDURE DIVISION" in rl:
-                start_tracking_line_number = True
-
-            if rl[6:7] == "-":
-                line = rl[6:72].rstrip()
-            else:
-                line = rl[7:72].rstrip()
-            t_line = line.split(SPACE, 1)
-            l = pad(7) + t_line[0] + SPACE
-            if len(t_line) > 1:
-                if (SPACE + OPEN_PARENS) in t_line[1]:
-                    sp = t_line[1].split(OPEN_PARENS)
-                    pl = EMPTY_STRING
-                    first = True
-                    for s in sp:
-                        if first == False:
-                            t = s.strip().split(SPACE)
-                            if pl in COBOL_VERB_LIST or pl in COBOL_COMPARISON_OPERATORS:
-                                pl = pl + SPACE + OPEN_PARENS
-                            else:
-                                pl = pl + OPEN_PARENS
-                        else:
-                            first = False
-                        pl = pl + s.strip()
-
-                    l = l + pl
-                else:
-                    l = l + t_line[1]
-            if start_tracking_line_number:
-                if " PROCEDURE DIVISION" not in rl:
-                    l = l + "^^^" + str(count)
-                else:
-                    l = rl
-            raw_lines.append(l)
+    r_lines = read_raw_file_lines(file, 0) 
+    raw_lines = prep_source(r_lines)
 
     lines = []
     current_division = EMPTY_STRING

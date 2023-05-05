@@ -1,6 +1,7 @@
 from cobol_lexicon import *
 from util import *
 from cobol_verb_process import *
+from cobol_util import *
 
 data_division_var_stack = []
 data_division_level_stack = []
@@ -231,6 +232,12 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
+
+    if 'HCPC-EDIT' in tokens:
+        x = 0
+        
+    if len(tokens) == 0:
+        return
 
     if tokens[0].isnumeric() == False:
         return
@@ -535,6 +542,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     current_line.cascade_data_type = cascade_data_type
 
+    return
+
 def create_index_variables(vars, name: str):
     for var in vars:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + var[3] + " = Add_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + var[3] + ",'" + var[0] + "', " \
@@ -606,142 +615,24 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
-    current_line.skip_the_next_lines = 0
-    has_replacing_keyword = False
-    if not copybook.endswith(PERIOD) and REPLACING_KEYWORD not in copybook:
-        not_end = True
-        count = 0
-        while not_end:
-            if REPLACING_KEYWORD in next_few_lines[count]:
-                has_replacing_keyword = True
-                not_end = False
-            count = count + 1
-            if count >= len(next_few_lines):
-                not_end = False
-    elif REPLACING_KEYWORD in copybook:
-        has_replacing_keyword = True
+    result = prep_copybook(current_line, copybook, next_few_lines)
+
+    lines = result[0]
+
+    copybook_name = result[1]
 
     is_eib = False
-    if copybook == EIB_COPYBOOK:
+    if copybook_name == EIB_COPYBOOK:
         is_eib = True
-    replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
-    replacement_list = []
-    if has_replacing_keyword:
-        replace_info = copybook.split(REPLACING_KEYWORD)
-        copybook = replace_info[0].replace(REPLACING_KEYWORD, EMPTY_STRING).strip()
-        temp = replace_info[0].replace(SPACE, EMPTY_STRING)
-        if len(replace_info) == 1:
-            replace_info.pop()
-        if len(replace_info) == 0 or replace_info[len(replace_info) - 1] != PERIOD:
-            for next_line in next_few_lines:
-                replace_info.append(next_line.replace(REPLACING_KEYWORD, EMPTY_STRING))
-                if next_line.rstrip().endswith(PERIOD):
-                    break
-        if temp == copybook + REPLACING_KEYWORD:
-            replace_info.pop(0)
-        indices = [i for i in range(len(replace_info)) if BY_KEYWORD in replace_info[i]]
-        for index in indices:
-            count = index
-            found = False
-            s = replace_info[count].split(BY_KEYWORD)
-            replacement_list.append(Replacement())
-            last = len(replacement_list) - 1
-            if s[0].strip() != EMPTY_STRING:
-                replacement_list[last].old_value = s[0].strip().replace("==.", EMPTY_STRING).replace("==", EMPTY_STRING)
-            else:
-                count = count - 1
-            if count < 0:
-                found = True
-            count2 = 0
-            while not found:  
-                count2 = count2 + 1
-                if count2 > 1000:
-                    break              
-                if replace_info[count].strip().startswith("==") or replace_info[count].endswith("==."):
-                    if count != index:
-                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                        t = t.replace("==", EMPTY_STRING)
-                        replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
-                    found = True
-                else:
-                    if count != index:
-                        if BY_KEYWORD not in replace_info[count]:
-                            t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                            t = t.replace("==", EMPTY_STRING)
-                            replacement_list[last].old_value = t + NEWLINE + replacement_list[last].old_value
-                        else:
-                            found = True
-                    elif replacement_list[last].old_value != EMPTY_STRING:
-                        found = True
-                    count = count - 1
-                    if count < 0:
-                        found = True
 
-            replacement_list[last].old_value = replacement_list[last].old_value.strip()
-            count = index
-            found = False
-            if s[1].strip() != EMPTY_STRING:
-                replacement_list[last].new_value = s[1].strip().replace("==.", EMPTY_STRING).replace("==", EMPTY_STRING)
-            while not found:
-                if replace_info[count].strip().endswith("==") or replace_info[count].endswith("==."):
-                    if count != index:
-                        t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                        t = t.replace("==", EMPTY_STRING)
-                        replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
-                    found = True
-                else:
-                    if count != index:
-                        if BY_KEYWORD not in replace_info[count]:
-                            t = replace_info[count].replace("==.", EMPTY_STRING).strip()
-                            t = t.replace("==", EMPTY_STRING)
-                            replacement_list[last].new_value = replacement_list[last].new_value + NEWLINE + t
-                        else:
-                            found = True
-                    elif replacement_list[last].new_value != EMPTY_STRING:
-                        found = True
-                    count = count + 1
-                    if count > len(replace_info) - 1:
-                        found = True
-    ogc = copybook
-    file_exists = exists(copybook)
-    if file_exists == False:
-        copybook = copybook + COPYBOOK_EXT
-        file_exists = exists(copybook)
-        if file_exists == False:
-            copybook = COPYBOOK_FOLDER + copybook
-            file_exists = exists(copybook)
-            if file_exists == False:
-                copybook = copybook.replace(COPYBOOK_EXT, EMPTY_STRING)
-                file_exists = exists(copybook)
-                if file_exists == False:
-                    print("Copybook NOT FOUND: " + ogc)
-                    print("Aborting conversion!")
-                    return
+    if len(lines) > 0:
+        append_file(outfile, "# Inserted Copybook: " + copybook_name + NEWLINE)
 
-    current_line.total_copybooks_inserted = current_line.total_copybooks_inserted + 1
-    file_lines = read_file(copybook, False)
-    for repl in replacement_list:
-        repl_old_list = repl.old_value.split(NEWLINE)
-        repl_new_list = repl.new_value.split(NEWLINE)
-        while len(repl_new_list) > len(repl_old_list):
-            repl_new_list[len(repl_new_list) - 2] = repl_new_list[len(repl_new_list) - 2] + NEWLINE + pad(11) + repl_new_list[len(repl_new_list) - 1]
-            repl_new_list.pop()
-        while len(repl_old_list) > len(repl_new_list):
-            repl_new_list.append(EMPTY_STRING)
-        c = 0
-        for repl_old in repl_old_list:
-            file_lines = file_lines.replace(repl_old, repl_new_list[c])
-            c = c + 1
-
-    write_file("temp_cpybook.txt", file_lines)
-    raw_lines = read_raw_file_lines("temp_cpybook.txt", 0)
-    
-    append_file(outfile, "# Inserted Copybook: " + copybook + NEWLINE)
-    total = len(raw_lines)
-    count = 0
+    total = len(lines)
     skip_the_next_lines_count = 0
-    for line in raw_lines:
-        line = "      " + line[6:]
+    count = 0
+
+    for line in lines:
         count = count + 1
         next_few_lines_count = LINES_AHEAD
         lines_left = total - count
@@ -749,7 +640,7 @@ def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_
             while lines_left < 0:
                 lines_left = lines_left - 1
             next_few_lines_count = lines_left
-        next_few_lines = raw_lines[count:count+next_few_lines_count]
+        next_few_lines = lines[count:count+next_few_lines_count]
         count2 = 0
         for nfl in next_few_lines:
             next_few_lines[count2] = "      " + next_few_lines[count2][6:]
@@ -760,15 +651,10 @@ def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_
         else:
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
-        line = line[6:].strip()
-        if line == EMPTY_STRING:
-            continue
-        if line != EMPTY_STRING and line.startswith(COBOL_COMMENT) == False:
-            create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
+        create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
     current_line.skip_the_next_lines = 0
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
-    delete_file("temp_cpybook.txt")
 
     if is_eib:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "result = Allocate_Memory(self.EIBList,self.EIBMemory)\n")
