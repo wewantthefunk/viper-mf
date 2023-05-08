@@ -547,7 +547,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                             var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
                         
                         val = val + 1
-                elif init_val == "SYNC":
+                elif init_val == "SYNC" or init_val in COMP_FIELD_TYPES:
                     x = 0
                 else:
                     var_init_list.append([COBOL_VERB_MOVE, init_val, EMPTY_STRING, v_name])
