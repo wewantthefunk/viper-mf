@@ -8,7 +8,7 @@
 
        FILE-CONTROL.  
 
-      * set the environment variable TESTFILE=test-records.txt
+      * set the environment variable TESTFILE=DATA/INPUT/FILES/SEQRTEST
       * prior to running the converted Python file
            SELECT INPUTFILE       ASSIGN TO TESTFILE
                                   FILE STATUS IS FILE-STATUS
