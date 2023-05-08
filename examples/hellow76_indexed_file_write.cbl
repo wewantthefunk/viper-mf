@@ -37,6 +37,8 @@
 
        01 FILE-STATUS      PIC X(2).
 
+       01 PARM-LENGTH      PIC S9(4) COMP VALUE 6.
+
        01 NEW-KEY          PIC X(4).
 
        01 KEY-LEN          PIC 9(2) VALUE 4.
@@ -73,7 +75,7 @@
            MOVE NEW-KEY TO SEARCH-KEY.
            MOVE NEW-KEY TO TEST-REC-KEY.
            MOVE 2 TO KEY-LEN.
-           CALL 'RANDSTR' USING KEY-LEN, TEST-REC-D-2.
+           CALL 'RANDSTR' USING PARM-LENGTH, KEY-LEN, TEST-REC-D-2.
            MOVE 'test record' TO TEST-REC-D-1.
 
            WRITE TEST-REC.
