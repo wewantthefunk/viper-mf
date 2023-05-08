@@ -208,6 +208,15 @@ def pad_char(l: int, c: str):
 def find(s: str, ch: str):
     return [i for i, ltr in enumerate(s) if ltr == ch]
 
+def find_pos_last_letter(s: str):
+    count = 1
+    for r in s:
+        if not r.isnumeric():
+            break
+        count = count + 1
+
+    return count
+
 def gen_rand(length: int):
     return ''.join(random.choices(string.ascii_lowercase, k=length))
 
