@@ -233,9 +233,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if 'HCPC-EDIT' in tokens:
+    if 'CNCR-HCPCS-CD-VALID' in tokens:
         x = 0
-        
+
     if len(tokens) == 0:
         return
 
@@ -260,7 +260,9 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     if not line.endswith(PERIOD):
         for nl in next_few_lines:
             skip_lines_count = skip_lines_count + 1
-            nlt = parse_line_tokens(nl[6:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
+            if nl[7:].startswith(COBOL_COMMENT):
+                continue
+            nlt = parse_line_tokens(nl[7:].replace(NEWLINE, EMPTY_STRING), SPACE, EMPTY_STRING, True)
             
             if len(nlt) == 0:
                 continue
@@ -506,6 +508,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 init_val = tokens[value_index].strip()
                 if init_val.endswith(PERIOD):
                     init_val = init_val[0:len(init_val) - 1]
+                if init_val.startswith(COBOL_COMMENT):
+                    continue
                 if init_val.startswith("X'"):
                     init_val = init_val.replace("X'", SINGLE_QUOTE + HEX_PREFIX)
                 if init_val == LOW_VALUES_KEYWORD:
@@ -516,16 +520,29 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                     init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
                 if init_val == THRU_KEYWORD:
                     is_hex = False
+                    is_char = False
+                    char_prefix = EMPTY_STRING
+                    char_pad_len = 0
                     if tokens[value_index - 1].startswith("X'"):
                         val = int("0x" + tokens[value_index - 1].replace("X", EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING), 16)
                         end = int("0x" + tokens[value_index + 1].replace("X", EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING), 16)
                         is_hex = True
+                    elif not tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING).isnumeric():
+                        last_letter_index = find_pos_last_letter(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING))
+                        val = int(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)[last_letter_index:])
+                        last_letter_index = find_pos_last_letter(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING))
+                        end = int(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)[last_letter_index:])
+                        char_prefix = tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)[0:last_letter_index]
+                        char_pad_len = len(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)) - len(char_prefix) 
+                        is_char = True
                     else:
                         val = int(tokens[value_index - 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + 1
                         end = int(tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING))
                     while val < end:
                         if is_hex:
                             var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + HEX_PREFIX + hex(val)[2:].upper() + SINGLE_QUOTE, EMPTY_STRING, v_name])
+                        elif is_char:
+                            var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + char_prefix + pad_char(char_pad_len - len(str(val)), ZERO) + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
                         else:
                             var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + str(val) + SINGLE_QUOTE, EMPTY_STRING, v_name])
                         
