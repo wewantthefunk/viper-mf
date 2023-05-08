@@ -1,0 +1,1 @@
+       01 :X:-PASSED-VARIABLE PIC X(8).

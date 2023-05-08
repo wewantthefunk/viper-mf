@@ -306,5 +306,5 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
     #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
-    parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
-    #parse_cobol_file("examples/hellow90_open_multiple_files.cbl", "converted/")
+    #parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
+    parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
