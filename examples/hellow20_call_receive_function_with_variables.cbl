@@ -6,11 +6,7 @@
 
        LINKAGE SECTION. 
 
-      * 01  PASSED-VARIABLE PIC X(8).
-       COPY H19_H20 
-           REPLACING
-                   ==:X:==    BY                 
-               ==TEST==.  
+       01  PASSED-VARIABLE PIC X(8).
 
        PROCEDURE DIVISION USING PASSED-VARIABLE.
 

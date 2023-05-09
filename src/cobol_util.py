@@ -109,8 +109,9 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
             if "==" not in line or line.endswith(BY_KEYWORD):
                 p = line.split(BY_KEYWORD)[1]
                 i = index + 1
-                while p == EMPTY_STRING and i < len(replace_info):
-                    p = replace_info[i].strip()
+                while p == EMPTY_STRING and i <= len(replace_info):
+                    p = p + replace_info[i].strip()
+                    i = i + 1
                 items = [p]
             elif not line.endswith("==") and not line.endswith("==."):
                 line = line.replace(BY_KEYWORD, EMPTY_STRING).strip()
