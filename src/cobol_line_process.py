@@ -233,7 +233,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if 'CNCR-HCPCS-CD-VALID' in tokens:
+    if "VALUE ALL 'N'" in line:
+        x = 0
+
+    if 'BENE-MASTER-COMPONENT-FLAGS' in tokens:
         x = 0
 
     if len(tokens) == 0:
@@ -496,8 +499,17 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         current_line.highest_var_name = v_name
         data_division_var_stack[len(data_division_var_stack) - 1] = v_name
 
-    if VALUE_CLAUSE in tokens:
-        value_index = tokens.index(VALUE_CLAUSE) + 1
+    if VALUE_CLAUSE in tokens or VALUES_CLAUSE in tokens or current_line.cascade_init_value != EMPTY_STRING:
+        if current_line.cascade_init_value != EMPTY_STRING and tokens[0] != '88':
+            value_index = 0
+            init_val = current_line.cascade_init_value
+        else:
+            i = -1
+            if VALUE_CLAUSE in tokens:
+                i = tokens.index(VALUE_CLAUSE)
+            elif VALUES_CLAUSE in tokens:
+                i = tokens.index(VALUES_CLAUSE)
+            value_index = i + 1
         if tokens[value_index] == IS_KEYWORD:
             value_index = tokens.index(VALUE_CLAUSE) + 2
         if value_index == len(tokens) - 1:
@@ -517,7 +529,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 if init_val == HIGH_VALUES_KEYWORD:
                     init_val = SINGLE_QUOTE + HEX_PREFIX + 'FF' + SINGLE_QUOTE
                 if init_val == ALL_KEYWORD:
-                    init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
+                    if int(data_info[1]) > 0:
+                        init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
+                    else:
+                        init_val = SINGLE_QUOTE + INIT_ALL_PREFIX + tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING) + SINGLE_QUOTE
                 if init_val == THRU_KEYWORD:
                     is_hex = False
                     is_char = False
