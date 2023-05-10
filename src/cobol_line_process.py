@@ -233,10 +233,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if "VALUE ALL 'N'" in line:
-        x = 0
-
-    if 'BENE-MASTER-COMPONENT-FLAGS' in tokens:
+    if 'HHMO-PERIODS' in tokens:
         x = 0
 
     if len(tokens) == 0:
@@ -647,6 +644,8 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
+    if "CIOCHMO" in copybook:
+        x = 0
     result = prep_copybook(current_line, copybook, next_few_lines)
 
     lines = result[0]
