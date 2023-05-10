@@ -35,6 +35,7 @@ HEX_PREFIX = "_hex_"
 HIGH_VALUES_NAME = 'HIGH-VALUES'
 INDEX_FILE_EXT = ".idx"
 INDEX_FILE_FIELD_DELIMITER = "^^^"
+INIT_ALL_PREFIX = "___&"
 LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
@@ -435,6 +436,8 @@ def _get_length_of_children(var: COBOLVariable):
     result = ZERO
 
     for child in var.children:
+        if child.level == "88":
+            continue
         if child.length == 0:
             result = result + child.child_length
         else:
@@ -924,6 +927,9 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                         new_value = new_value + eh.EBCDIC_value
                     value = new_value[:length]
                     var.is_hex = is_hex
+                elif str(value).startswith(INIT_ALL_PREFIX):
+                    tv = value.replace(INIT_ALL_PREFIX)
+                    value = pad_char(var.child_length, tv)
                 elif str(value) == SPACES_INITIALIZER:
                     value = pad(length)
                 elif var.data_type not in NUMERIC_DATA_TYPES:

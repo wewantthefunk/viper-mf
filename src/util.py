@@ -20,6 +20,7 @@ class LexicalInfo:
         self.skip_the_next_lines = 0
         self.loop_modifier = []
         self.cascade_data_type = ""
+        self.cascade_init_value = ""
         self.needs_except_block = False
         self.in_else_block = False
         self.nested_level = 0

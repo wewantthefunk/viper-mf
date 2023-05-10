@@ -309,3 +309,5 @@ if __name__ == "__main__":
     #parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
     parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
     parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
+    #parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
+    #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
