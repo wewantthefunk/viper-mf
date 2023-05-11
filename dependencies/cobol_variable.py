@@ -928,8 +928,11 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     value = new_value[:length]
                     var.is_hex = is_hex
                 elif str(value).startswith(INIT_ALL_PREFIX):
-                    tv = value.replace(INIT_ALL_PREFIX)
-                    value = pad_char(var.child_length, tv)
+                    tv = value.replace(INIT_ALL_PREFIX, EMPTY_STRING)
+                    le = var.length
+                    if le == ZERO:
+                        le = var.child_length
+                    value = pad_char(le, tv)
                 elif str(value) == SPACES_INITIALIZER:
                     value = pad(length)
                 elif var.data_type not in NUMERIC_DATA_TYPES:

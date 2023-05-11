@@ -101,6 +101,10 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
                 while not replace_info[i].strip().startswith("=="):
                     i -= 1
                 before_by_items = replace_info[i:index]
+                if BY_KEYWORD in line:
+                    bk = line.split(BY_KEYWORD)
+                    if bk[0].strip().endswith("=="):
+                        before_by_items.append(bk[0])
             else:
                 before_by_items = line.split('BY')[0].split('==')[1:]
             array_before_by.append('\n'.join([item.strip() for item in before_by_items]))

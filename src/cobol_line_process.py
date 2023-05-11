@@ -232,17 +232,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
     global data_division_var_stack, data_division_level_stack, var_init_list, data_division_cascade_stack, data_division_redefines_stack
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
-
-<<<<<<< HEAD
-    if 'CNCR-HCPCS-CD-VALID' in tokens:
-=======
-    if "VALUE ALL 'N'" in line:
-        x = 0
-
-    if 'BENE-MASTER-COMPONENT-FLAGS' in tokens:
->>>>>>> main
-        x = 0
-
     if len(tokens) == 0:
         return
 
@@ -533,14 +522,10 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
                 if init_val == HIGH_VALUES_KEYWORD:
                     init_val = SINGLE_QUOTE + HEX_PREFIX + 'FF' + SINGLE_QUOTE
                 if init_val == ALL_KEYWORD:
-<<<<<<< HEAD
-                    init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
-=======
                     if int(data_info[1]) > 0:
                         init_val = SINGLE_QUOTE + pad_char(int(data_info[1]), tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING)) + SINGLE_QUOTE
                     else:
                         init_val = SINGLE_QUOTE + INIT_ALL_PREFIX + tokens[value_index + 1].replace(SINGLE_QUOTE, EMPTY_STRING) + SINGLE_QUOTE
->>>>>>> main
                 if init_val == THRU_KEYWORD:
                     is_hex = False
                     is_char = False
@@ -655,6 +640,8 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
+    if "CIOCHMO" in copybook:
+        x = 0
     result = prep_copybook(current_line, copybook, next_few_lines)
 
     lines = result[0]
