@@ -18,19 +18,26 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     parm = EMPTY_STRING
     is_getting_inline = False
     is_getting_dd_info = False
+    is_setting_vars = False
+    is_getting_joblib = False
     inline_args = EMPTY_STRING
 
     for rl in r_lines:
-        if not rl.startswith(JCL_LINE_START) and not is_getting_inline:
+        rl = rl[:72].strip()
+        if not rl.startswith(JCL_LINE_START) and not is_getting_inline or rl.startswith(JCL_COMMENT_START):
             continue
         index = rl.find(SPACE)
         temp = rl[2:index]
         if count == 0:
-            job_name = temp
+            job_name = temp.replace("#", UNDERSCORE)
             write_out_job_info(job_name, target_dir)
         else:
-            if JCL_EXEC_INDICATOR in rl:
+            if rl.startswith(JCL_COMMENT_START):
+                x = 0
+            elif JCL_EXEC_INDICATOR in rl:
                 is_getting_dd_info = False
+                is_setting_vars = False
+                is_getting_joblib = False
                 if program_name == "IDCAMS":
                     process_idcams_cmd(job_name, step_name, inline_args.strip(), target_dir, program_name)
                 elif step_name != EMPTY_STRING:
@@ -53,9 +60,16 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 p = s[1].split(EQUALS)
                 p[1] = p[1].replace(NEWLINE, EMPTY_STRING).replace(SINGLE_QUOTE, EMPTY_STRING)
                 parm = p[1]
+            elif JCL_SET_INDICATOR in rl:
+                is_setting_vars = True
+                i = rl.split(SPACE)
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + i[len(i) - 1].replace(COMMA, EMPTY_STRING).replace(PERIOD, FORWARD_SLASH) + "\n")
             elif rl.startswith("/*"):
                 is_getting_dd_info = False
                 is_getting_inline = False
+            elif is_setting_vars:
+                i = rl.split(SPACE)
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + i[len(i) - 1].replace(COMMA, EMPTY_STRING).replace(PERIOD, FORWARD_SLASH) + "\n")
             elif is_getting_inline:
                 inline_args = inline_args + rl.strip() + SPACE
             elif JCL_DD_INDICATOR in rl:
@@ -68,6 +82,8 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 args.append(t[0].replace(JCL_LINE_START, EMPTY_STRING).strip() + DD_ARG_DELIMITER + dd_target)
             elif is_getting_dd_info:
                 args[len(args) - 1] = args[len(args) - 1] + rl.replace(JCL_LINE_START, EMPTY_STRING).strip()
+            elif is_getting_joblib or rl.startswith(JOBLIB_STATEMENT):
+                is_getting_joblib = True
 
         count = count + 1
 
@@ -129,8 +145,8 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
 
     for arg in args:
         a = arg.split(DD_ARG_DELIMITER)
+        fname = a[1].split(EQUALS)[1].split(COMMA)[0]
         
-        append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.dd_name_list.append(['" + a[0] + "','" + a[1].split(EQUALS)[1].split(COMMA)[0] + "'])\n")
         if a[0] not in IGNORED_DD_STATEMENTS:
             split = a[1].split(EQUALS)
             split1 = split[1].split(COMMA)
@@ -140,7 +156,13 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
                 filename = file_info[0].replace(PERIOD, FORWARD_SLASH) + FORWARD_SLASH + file_info[1].replace(")", EMPTY_STRING)
             else:
                 filename = file_info[0].replace(")", EMPTY_STRING)
+
+            if filename.startswith(AMPERSAND):
+                x = filename.index("..")
+                filename = SINGLE_QUOTE + PLUS_SIGN + filename[1:x] + PLUS_SIGN + SINGLE_QUOTE + FORWARD_SLASH + filename[x + 2:]
+
             path = EMPTY_STRING
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "step.dd_name_list.append(['" + a[0] + "','" + filename + "'])\n")
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.environ['" + a[0] + "'] = '" + filename + "'\n")
             environment_vars.append(a[0])
 
@@ -291,11 +313,12 @@ if __name__ == "__main__":
         parse_jcl_file(sys.argv[1], sys.argv[2], prefix)
     else:
         #parse_jcl_file("examples/hellow83_sort_2.jcl", "converted/")
-        parse_jcl_file("examples/hellow86_parm_example.jcl", "converted/")
-        parse_jcl_file("examples/hellowo1_basic.jcl", "converted/")
+        #parse_jcl_file("examples/hellow86_parm_example.jcl", "converted/")
+        #parse_jcl_file("examples/hellowo1_basic.jcl", "converted/")
         #parse_jcl_file("examples/hellowo1_basic_sysout_to_file.jcl", "converted/")
         #parse_jcl_file("examples/hellow12_sequential_file_access.jcl", "converted/")
         #parse_jcl_file("examples/hellow79_sequential_file_access_into.jcl", "converted/")
         #parse_jcl_file("examples/hellowor_mulitple_steps.jcl", "converted/")
         #parse_jcl_file("examples/hellow75_indexed_file_access.jcl", "converted/") 
-        #parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")   
+        #parse_jcl_file("examples/hellow76_indexed_file_write.jcl", "converted/")  
+        parse_jcl_file("work/CABBEMBD.jcl","converted/") 
