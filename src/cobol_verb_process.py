@@ -455,16 +455,16 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
         for y in range(start_at, end_at):
             if y > start_at:
                 string_list = string_list + COMMA
-            var_name = SINGLE_QUOTE + tokens[y] + SINGLE_QUOTE
+            var_name = DOUBLE_QUOTE + tokens[y] + DOUBLE_QUOTE
             delim_by = tokens[end_at + 1]
             if tokens[y].startswith(SINGLE_QUOTE):
                 var_name = tokens[y]
                 delim_by = 'LITERAL'
 
-            string_list = string_list + OPEN_BRACKET + var_name + COMMA + SINGLE_QUOTE + delim_by + SINGLE_QUOTE + CLOSE_BRACKET
+            string_list = string_list + OPEN_BRACKET + var_name + COMMA + DOUBLE_QUOTE + delim_by + DOUBLE_QUOTE + CLOSE_BRACKET
 
     build_string_func = "Build_String(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA \
-        + SINGLE_QUOTE + target + SINGLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
+        + DOUBLE_QUOTE + target + DOUBLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + build_string_func + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     return

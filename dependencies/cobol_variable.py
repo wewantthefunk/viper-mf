@@ -875,6 +875,7 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 return [True, main_variable_memory]
             else:
                 if var.data_type in NUMERIC_DATA_TYPES:
+                    value = value.strip()
                     if value.strip() == EMPTY_STRING or value.strip() == SPACES_INITIALIZER:
                         value = ZERO_STRING
                     if not value.isnumeric():

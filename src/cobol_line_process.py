@@ -257,7 +257,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if 'PARAMETERS' in tokens:
+    if 'CA-HIVS-DATE-OF-SERVICE' in tokens:
         x = 0
 
     if len(tokens) == 0:
@@ -348,6 +348,12 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         else:
             current_line.redefines = EMPTY_STRING
         current_line.redefines_level = tokens[0]
+        if not hard_cascade_type:
+            current_line.cascade_data_type = EMPTY_STRING
+            current_line.cascade_init_value = EMPTY_STRING
+            cascade_data_type = EMPTY_STRING
+            if len(data_division_cascade_stack) > 0:
+                data_division_cascade_stack.pop()
     tokens[1] = tokens[1].replace(PERIOD, EMPTY_STRING)
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
 
@@ -359,7 +365,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
-                data_division_cascade_stack.pop()
+                if len(data_division_cascade_stack) > 0:
+                    data_division_cascade_stack.pop()
 
         if len(data_division_cascade_stack) > 0:
             if data_division_cascade_stack[len(data_division_cascade_stack) - 1] != cascade_data_type and cascade_data_type not in tokens:
@@ -431,7 +438,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
-                    current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
+                    if len(data_division_cascade_stack) > 0:
+                        current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
                     
                     if hard_cascade_type:
                         current_line.cascade_data_type = cascade_data_type
