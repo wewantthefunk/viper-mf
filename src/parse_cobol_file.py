@@ -37,8 +37,14 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
                 lines_left = lines_left - 1
             next_few_lines_count = lines_left
         next_few_lines = raw_lines[count:count+next_few_lines_count]
-        if skip_the_next_lines_count == current_line.skip_the_next_lines:
+        if current_line.next_available_line != EMPTY_STRING:
+            if current_line.next_available_line == line:
+                current_line.next_available_line = EMPTY_STRING
+            else:
+                continue
+        elif skip_the_next_lines_count == current_line.skip_the_next_lines:
             skip_the_next_lines_count = 0
+            current_line.skip_the_next_lines = 0
         else:
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
@@ -307,5 +313,6 @@ if __name__ == "__main__":
     #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
     parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
+    parse_cobol_file("work/CMNDATCV.cbl", "converted/")
     #parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")

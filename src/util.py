@@ -32,6 +32,7 @@ class LexicalInfo:
         self.sections_list = []
         self.total_copybooks_inserted = 0
         self.unknown_cobol_verbs = 0
+        self.next_available_line = ""
 
 class Replacement:
     def __init__(self) -> None:

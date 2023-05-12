@@ -3,6 +3,7 @@ import os, math, string, time
 from pathlib import Path
 from os.path import exists
 from random import *
+from io import StringIO
 
 ACCEPT_VALUE_FLAG = "__ACCEPT "
 ADD_COMMAND = "add"
@@ -1484,11 +1485,11 @@ def pad(l: int):
     return pad_char(l, SPACE)
 
 def pad_char(l: int, ch: str):
-    result = ""
+    result = StringIO()
     for x in range(l):
-        result = result + ch
+        result.write(ch)
 
-    return result
+    return result.getvalue()
 
 def _find_indices(ch: str, string: str):
     indexes = []

@@ -155,10 +155,13 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
             if line.startswith(SD_KEYWORD):
                 data_division_file_record = data_division_file_record + SORT_IDENTIFIER
         elif line.startswith(COPYBOOK_KEYWORD):
-            insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
+            insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
         else:
             if line[0:2].isnumeric() == False:
                 return [line, current_section, name, current_line]
+            
+            if '01  PARAMETERS.' in line:
+                x = 0
 
             create_variable(line, current_line, name, current_section, next_few_lines, args)
 
@@ -233,7 +236,7 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     tokens = parse_line_tokens(line, SPACE, EMPTY_STRING, False)
 
-    if 'HHMO-PERIODS' in tokens:
+    if 'PARAMETERS' in tokens:
         x = 0
 
     if len(tokens) == 0:
@@ -259,6 +262,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if not line.endswith(PERIOD):
         for nl in next_few_lines:
+            if 'CABBEMBD - END WORKING-STORAGE' in nl:
+                x = 0
             skip_lines_count = skip_lines_count + 1
             if nl[7:].startswith(COBOL_COMMENT):
                 continue
@@ -644,7 +649,7 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
-    if "CIOCHMO" in copybook:
+    if "CABCXREF" in copybook:
         x = 0
     result = prep_copybook(current_line, copybook, next_few_lines)
 
@@ -683,7 +688,8 @@ def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
         create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
-    current_line.skip_the_next_lines = 0
+    current_line.skip_the_next_lines = result[3]
+    current_line.next_available_line = result[4]
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
 
