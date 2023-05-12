@@ -192,6 +192,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
         compare_verb = temp_tokens[0]
         for nl in next_few_lines:
             nll = nl.split("^^^")
+            if nll[1] == "816":
+                x = 0
             nllt = nll[0]
             
             nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
@@ -223,6 +225,25 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     return [skip, level]
 
 def fix_parens(temp_tokens, value: str, value2: str):
+    """if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("): # or value.startswith("WHEN("):
+        s = value.split(OPEN_PARENS)
+        temp_tokens[0] = s[0]
+        temp_tokens.insert(1,  OPEN_PARENS)
+        temp_tokens.insert(2, s[1])
+        if COLON in s[len(s) - 1]:
+            for x in range(2,len(s)):
+                t = s[x]
+                if t.endswith(CLOSE_PARENS) and COLON in t and not t.startswith(OPEN_PARENS):
+                    t = OPEN_PARENS + t
+                temp_tokens.insert(x + 1, t)
+            temp_tokens.append(CLOSE_PARENS)
+        elif value2.endswith(CLOSE_PARENS):
+            s = value.split(CLOSE_PARENS)
+            value = s[0]
+            temp_tokens.append(CLOSE_PARENS)
+    elif value.startswith("WHEN("):
+        temp_tokens.insert(0, COBOL_VERB_WHEN)
+        temp_tokens[1] = temp_tokens[1].replace("WHEN(", "(") """
     return
 
 def check_ignore_verbs(ignore_verbs, v: str):

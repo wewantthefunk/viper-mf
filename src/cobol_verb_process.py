@@ -13,7 +13,7 @@ is_perform_looping = False
 def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, next_few_lines):
     global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
     level = close_out_evaluate(tokens[0], name, level)
-    
+
     if last_cmd_display == True:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
@@ -48,12 +48,13 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 level = level - 1
             else:
                 level = level - 1
-        if len(evaluate_compare_stack) > 0:
-            evaluate_compare_stack.pop()
+        if verb == COBOL_VERB_EVALUATE_END:
             if len(evaluate_compare_stack) > 0:
-                ec = evaluate_compare_stack[len(evaluate_compare_stack) - 1]
-                evaluate_compare = ec[0]
-                nested_above_evaluate_compare = ec[1]
+                evaluate_compare_stack.pop()
+                if len(evaluate_compare_stack) > 0:
+                    ec = evaluate_compare_stack[len(evaluate_compare_stack) - 1]
+                    evaluate_compare = ec[0]
+                    nested_above_evaluate_compare = ec[1]
         last_cmd_display = False
     elif verb == COBOL_VERB_MOVE:
         process_move_verb(tokens, name, indent, level)
@@ -1042,9 +1043,9 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
         operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
     if operand2 == NUMERIC_KEYWORD:
         operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
-        if evaluate_compare == TRUE_KEYWORD:
+        if evaluate_compare == TRUE_KEYWORD or temp_evaluate_compare == TRUE_KEYWORD:
             operand2 = 'True'
-        elif evaluate_compare == FALSE_KEYWORD:
+        elif evaluate_compare == FALSE_KEYWORD or temp_evaluate_compare == FALSE_KEYWORD:
             operand2 = "False"
     if operand1_name == operand2:
         line = prefix + operand1
