@@ -909,7 +909,7 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
-    if current_line.current_line_number == "378":
+    if current_line.current_line_number == "1419":
         x = 0
 
     if AND_KEYWORD in tokens:
@@ -1047,6 +1047,9 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
             operand2 = 'True'
         elif evaluate_compare == FALSE_KEYWORD or temp_evaluate_compare == FALSE_KEYWORD:
             operand2 = "False"
+    if operand2.startswith(SINGLE_QUOTE) and len(operand2.replace(SINGLE_QUOTE, EMPTY_STRING)) == 1:
+        operand2 = 'find_hex_value_by_ascii(' + operand2 + CLOSE_PARENS + PERIOD + "EBCDIC_value "
+        operand1 = 'find_hex_value_by_ascii(' + operand1 + CLOSE_PARENS + PERIOD + "EBCDIC_value "
     if operand1_name == operand2:
         line = prefix + operand1
     elif operator == NUMERIC_KEYWORD:
