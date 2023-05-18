@@ -3,13 +3,16 @@ from cobol_lexicon import *
 from cobol_line_process import *
 from util import *
 from cobol_util import *
+import cobol_pre_processor
 
 args = []
 
 def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     global args
     args = []
-    r_lines = read_raw_file_lines(file, 0) 
+    c_file = cobol_pre_processor.main(file)
+    r_lines = read_raw_file_lines(c_file, 0) 
+    delete_file(c_file)
     raw_lines = prep_source(r_lines)
 
     lines = []
@@ -309,10 +312,10 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    parse_cobol_file("examples/hellowo4_paragraph.cbl", "converted/")
     #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
-    parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
+    #parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
     #parse_cobol_file("work/CMNDATCV.cbl", "converted/")
     #parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
