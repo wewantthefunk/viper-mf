@@ -2,6 +2,10 @@ from util import *
 from cobol_lexicon import *
 
 def main(file: str):
+    #return do_work(file)
+    return file
+
+def do_work(file: str):
     delete_file("pre_processed.cbl")
     r_lines = read_raw_file_lines(file, 0) 
 
@@ -19,6 +23,10 @@ def main(file: str):
             work_line = EMPTY_STRING
 
         count = count + 1
+
+        if line[6:7] == COBOL_COMMENT or work_line[6:7] == COBOL_COMMENT:
+            out_line = EMPTY_STRING
+            continue
 
         if skip:
             skip = False
