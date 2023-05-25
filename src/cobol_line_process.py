@@ -49,15 +49,20 @@ def process_environment_division_line(line: str, current_section: str, name: str
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
     elif tokens[0] == CLASS_KEYWORD:
         create_class_variable(tokens, name, next_few_lines, current_section)
+    elif tokens[0] == SYMBOLIC_KEYWORD:
+        create_symbolic_variable(tokens, name, next_few_lines, current_section)
 
     return [line, current_line, name, current_section, next_few_lines, args]
+
+def create_symbolic_variable(tokens, name: str, next_few_lines, current_section: str):
+    pass
 
 def create_class_variable(tokens, name: str, next_few_lines, current_section: str):
     done_class_line = False
     for next_line in next_few_lines:
         nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
         for nl_token in nl_tokens:
-            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD]:
+            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD, SYMBOLIC_KEYWORD]:
                 tokens.append(nl_token)
             else:
                 done_class_line = True
