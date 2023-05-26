@@ -77,7 +77,23 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_DataDivisionVars = result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
-    var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
+    value = EMPTY_STRING
+
+    for x in range(2, len(tokens)):
+        if tokens[x] == PERIOD:
+            break
+        if tokens[x] == SPACE_KEYWORD or tokens[x] == SPACES_KEYWORD:
+            value = value + SPACE
+        elif tokens[x] == LOW_VALUES_KEYWORD:
+            value = value + "\x00"
+        elif tokens[x] == HIGH_VALUES_KEYWORD:
+            value = value + "\xFF"
+        elif tokens[x] == ZERO_KEYWORD or tokens[x] == ZEROS_KEYWORD:
+            value = value + ZERO
+        else:
+            value = value + tokens[x].replace(SINGLE_QUOTE, EMPTY_STRING)
+
+    var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + value + SINGLE_QUOTE, EMPTY_STRING, tokens[1]])
 
 def create_file_variable(tokens, name: str, next_few_lines, current_section: str):
     done_file_line = False
