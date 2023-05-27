@@ -23,6 +23,9 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     current_line.source_filename = file
     current_line.level = BASE_LEVEL
     current_line.current_line_number = ZERO
+    current_line.last_cmd_display = False
+    current_line.last_known_paragraph = EMPTY_STRING
+    current_line.paragraph_list = []
 
     total = len(raw_lines)
     count = 0
@@ -76,17 +79,45 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
         append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
         append_file(name + PYTHON_EXT, NEWLINE)
 
+    if len(current_line.paragraph_list) > 0:
+        if current_line.last_cmd_display:
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * BASE_LEVEL) + "if fallthru:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "self.fallthrough('" + current_line.last_known_paragraph + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+        
+
     if current_line.needs_except_block:
         append_file(name + PYTHON_EXT, NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
 
     append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def initialize2(self):" + NEWLINE)
+    for pl in current_line.paragraph_list:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "self.paragraph_list.append('" + pl + "')\n")
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def default_fallthrough(self):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "if len(self.paragraph_list) > self.last_fallthrough_paragraph:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "exec('self.' + self.paragraph_list[self.last_fallthrough_paragraph] + '(True)')" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def fallthrough(self, name):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "count = 0" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "for pl in self.paragraph_list:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "if pl == name and count + 1 < len(self.paragraph_list):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "# jump to the next paragraph" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "exec('self.' + self.paragraph_list[count + 1] + '(True)')" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "break" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "count = count + 1" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
+    append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def retrieve_pointer(self, name):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + 'name, name' + CLOSE_PARENS + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def set_value(self, name, value):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + 'name, value, name' + CLOSE_PARENS + "[1]" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def receive_control(self):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "pass" + NEWLINE)
@@ -125,6 +156,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print(exc_type, fname, exc_tb.tb_lineno)" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('COBOL Source File:      " + current_line.source_filename + "')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "print('COBOL File Line Number: ' + self.debug_line)" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, "if __name__ == '__main__':" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT)) + "main_obj = " + name + "Class()" + NEWLINE + pad(len(INDENT)))
@@ -267,6 +299,8 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "terminate = False" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "paragraph_list = []" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "last_fallthrough_paragraph = 0" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "debug_line = '0'" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + CALLING_MODULE_MEMBER + " = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = EMPTY_STRING" + NEWLINE)
@@ -297,6 +331,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + VARIABLES_LIST_NAME + ".append(" + SELF_REFERENCE + "EIBList)" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self._FILE_CONTROLVars = []" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "initialize()" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + "self.initialize2()" + NEWLINE)
     elif current_division == COBOL_DIVISIONS[ENVIRONMENT_DIVISION_POS]:
         result = process_environment_division_line(line, current_line.current_section, name, current_line, next_few_lines, args)
     elif current_division == COBOL_DIVISIONS[DATA_DIVISION_POS]:
@@ -312,8 +347,9 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/COMPL001.cbl", "converted/")
-    #parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
+    #parse_cobol_file("examples/COMPL001.cbl", "converted/")
+    parse_cobol_file("examples/hellow94_go_to_statement_fallthrough_2.cbl", "converted/")
+    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
     #parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
     #parse_cobol_file("work/CMNDATCV.cbl", "converted/")

@@ -33,6 +33,9 @@ class LexicalInfo:
         self.total_copybooks_inserted = 0
         self.unknown_cobol_verbs = 0
         self.next_available_line = ""
+        self.paragraph_list = []
+        self.last_known_paragraph = ""
+        self.last_cmd_display = False
 
 class Replacement:
     def __init__(self) -> None:

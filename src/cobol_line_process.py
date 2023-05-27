@@ -10,10 +10,10 @@ data_division_redefines_stack = []
 data_division_file_record = EMPTY_STRING
 var_init_list = []
 
-
 def process_identification_division_line(line: str, name: str):
-    global var_init_list
+    global var_init_list, last_cmd_display
     var_init_list = []
+    last_cmd_display = False
     if is_valid_verb(line, COBOL_IDENTIFICATION_DIVISION_VERBS):
         if COBOL_IDENTIFICATION_DIVISION_VERBS[0] in line:
             tmp = line.replace(COBOL_IDENTIFICATION_DIVISION_VERBS[0], EMPTY_STRING, 1)
@@ -644,6 +644,7 @@ def init_vars(name: str, args, current_line):
     current_line.level = 2
     for vil in var_init_list:
         process_verb(vil, name, True, 2, args, current_line, [])
+
     current_line.level = level
 
 def is_valid_verb(line: str, verb_list):
