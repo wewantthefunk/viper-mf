@@ -17,7 +17,7 @@
 
        01  TEST-VAR PIC X(12) VALUE 'hello, world'.
 
-       01  TEST-VAR-2 PIC X(2).
+       01  TEST-VAR-2 PIC X(1).
 
        PROCEDURE DIVISION.
        
@@ -26,8 +26,12 @@
 
            DISPLAY TEST-VAR.
 
-           MOVE '00' TO TEST-VAR-2.
+           MOVE 'A' TO TEST-VAR-2.
 
+           IF TEST-VAR-2 = LETTER-A 
+              DISPLAY 'they are the same'
+           END-IF.
+           
            DISPLAY TEST-VAR-2.                                     
 
            STOP RUN.
