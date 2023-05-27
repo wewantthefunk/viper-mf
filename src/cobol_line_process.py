@@ -50,12 +50,53 @@ def process_environment_division_line(line: str, current_section: str, name: str
     elif tokens[0] == CLASS_KEYWORD:
         create_class_variable(tokens, name, next_few_lines, current_section)
     elif tokens[0] == SYMBOLIC_KEYWORD:
-        create_symbolic_variable(tokens, name, next_few_lines, current_section)
+        create_symbolic_variable(tokens, name, next_few_lines, current_section, current_line, args)
 
     return [line, current_line, name, current_section, next_few_lines, args]
 
-def create_symbolic_variable(tokens, name: str, next_few_lines, current_section: str):
-    pass
+def create_symbolic_variable(tokens, name: str, next_few_lines, current_section: str, current_line: LexicalInfo, args):
+    count = 0
+    skip = False
+    skip2 = False
+    for nl in next_few_lines:
+        nlt = parse_line_tokens(nl, SPACE, EMPTY_STRING, True)
+        done_class_line = False
+        for nl_token in nlt:
+            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD, SYMBOLIC_KEYWORD]:
+                    tokens.append(nl_token)
+            else:
+                done_class_line = True
+                break
+
+        if done_class_line:
+            break
+    for token in tokens:
+        if count == 0 or skip:
+            count = count + 1
+            skip = False
+            continue
+        if skip2:
+            count = count + 1
+            skip = True
+            skip2 = False
+            continue
+        if token == CHARACTERS_KEYWORD or token == PERIOD:
+            count = count + 1
+            continue
+        
+        symbol_name = token
+        offset = 0
+        if tokens[count + 1] == IS_KEYWORD:
+            offset = 1
+            skip2 = True
+        else:
+            skip = True
+
+        value = int(tokens[count + 1 + offset]) - 1
+
+        create_variable("01 " + symbol_name + SPACE + "PIC X(1) VALUE X'" + hex(value).upper()[2:] + "'.", current_line, name, current_section, [], args, False)
+
+        count = count + 1
 
 def create_class_variable(tokens, name: str, next_few_lines, current_section: str):
     done_class_line = False
