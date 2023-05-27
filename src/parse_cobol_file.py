@@ -106,6 +106,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "count = 0" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "for pl in self.paragraph_list:" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + "if pl == name and count + 1 < len(self.paragraph_list):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "self.last_fallthrough_paragraph = count + 1" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "# jump to the next paragraph" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "exec('self.' + self.paragraph_list[count + 1] + '(True)')" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL + 1)) + "break" + NEWLINE)
