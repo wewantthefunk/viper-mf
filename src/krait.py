@@ -505,7 +505,7 @@ class KRAIT:
 
         return
 
-    def build_map(self, map_name: str, data: str, map_only: bool, data_only: bool):
+    def build_map(self, calling_tran, map_name: str, data: str, map_only: bool, data_only: bool):
         map_name = map_name.strip()
         self.clear_frame(self.main_frame)
         map = cobol_variable._read_file(map_name + ".txt", False)
@@ -530,14 +530,14 @@ class KRAIT:
             
             field_info = field_info + line + krait_util.SPACE
             if line.endswith(krait_util.MAP_CONTINUATION_CHARACTER) == False:
-                self.build_field(field_info, data, map_only, data_only)
+                self.build_field(field_info, data, map_only, data_only, calling_tran)
                 field_info = krait_util.EMPTY_STRING
 
-        self.build_field(field_info, data, map_only, data_only)
+        self.build_field(field_info, data, map_only, data_only, calling_tran)
 
         return
 
-    def build_field(self, field_info: str, data: str, map_only: bool, data_only: bool):
+    def build_field(self, field_info: str, data: str, map_only: bool, data_only: bool, calling_tran):
         if krait_util.MAP_FIELD_IDENTIFIER not in field_info:
             return krait_util.ZERO
 
@@ -596,6 +596,8 @@ class KRAIT:
             elif 'DFHMSD' in token or 'DFHMDI' in token:
                 field_type = "none"
 
+        field_text = calling_tran.get_value(var_name.upper() + "I")
+        
         if field_text[0:1] == " " and len(field_text) > int(field_length):
             field_text = field_text[1:]
 
@@ -675,13 +677,12 @@ class KRAIT:
 
 if __name__ == '__main__':
 
+    Krait_obj = KRAIT()
+    
     if len(sys.argv) < 2:
-        print("not enough arguments")
-        print(sys.argv)
+        pass
     else:
-        Krait_obj = KRAIT()
-
         the_queue.put("switch region " + sys.argv[1])
         the_queue.put("start " + sys.argv[2])
         
-        Krait_obj.Launch()
+    Krait_obj.Launch()

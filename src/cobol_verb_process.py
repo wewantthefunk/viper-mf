@@ -565,7 +565,7 @@ def process_send_map(tokens, level: int, name: str):
             data = "Get_Variable_Value(" + memory_area+ COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(" + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(self," + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
 
     return
 
