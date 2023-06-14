@@ -28,6 +28,7 @@ test-records-indexed.txt.dat
 test-records-indexed.txt.idx
 test-records.txt
 hw_basic_out.txt
+pre_processed.cbl
 TEST/
 JES/
 JES2/
@@ -66,3 +67,11 @@ copybooks/CIOCSPLL.CPY
 copybooks/CABESPLL.CPY
 copybooks/CABCESRD.CPY
 copybooks/CIOCHMO.CPY
+<<<<<<< HEAD
+=======
+copybooks/CABEMBD.CPY
+copybooks/CABCXREF.CPY
+copybooks/CABCREPP.CPY
+copybooks/CABCMSP.CPY
+copybooks/CABCHSPM.CPY
+>>>>>>> main

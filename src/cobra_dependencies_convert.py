@@ -9,6 +9,8 @@ if __name__ == "__main__":
             if 'examples' in d:
                 prefix = ""
                 break
+    print("Converting COBOL: " + prefix + "dependencies/CEE3ABD.cbl --> " + prefix + "converted/")
+    parse_cobol_file(prefix + "dependencies/CEE3ABD.cbl", prefix + "converted/",  prefix)
     print("Converting COBOL: " + prefix + "dependencies/CEE3AB2.cbl --> " + prefix + "converted/")
     parse_cobol_file(prefix + "dependencies/CEE3AB2.cbl", prefix + "converted/",  prefix)
     print("Converting COBOL: " + prefix + "dependencies/RANDSTR.cbl --> " + prefix + "converted/")

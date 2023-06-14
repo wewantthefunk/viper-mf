@@ -56,6 +56,7 @@ def prep_source(r_lines: list, track_debug_lines = True):
 def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
     current_line.skip_the_next_lines = 0
     has_replacing_keyword = False
+    next_available_line = EMPTY_STRING
     if not copybook.endswith(PERIOD) and REPLACING_KEYWORD not in copybook:
         not_end = True
         count = 0
@@ -69,6 +70,7 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
     elif REPLACING_KEYWORD in copybook:
         has_replacing_keyword = True
 
+    copybook = copybook.replace(PERIOD, EMPTY_STRING)
     replace_info = [copybook, EMPTY_STRING, EMPTY_STRING, EMPTY_STRING]
     array_by = []
     array_before_by = []
@@ -79,10 +81,16 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
         if len(replace_info) == 1:
             replace_info.pop()
         if len(replace_info) == 0 or replace_info[len(replace_info) - 1] != PERIOD:
+            c = 0
             for next_line in next_few_lines:
                 replace_info.append(next_line.replace(REPLACING_KEYWORD, EMPTY_STRING))
-                if next_line.rstrip().endswith(PERIOD):
+                if next_line.rstrip().endswith("==" + PERIOD):
+                    next_available_line = next_few_lines[c + 1]
                     break
+                elif next_line.rstrip().endswith(PERIOD) and BY_KEYWORD in next_line:
+                    next_available_line = next_few_lines[c + 1]
+                    break
+                c = c + 1
         if temp == copybook + REPLACING_KEYWORD:
             replace_info.pop(0)
         indices = [i for i in range(len(replace_info)) if BY_KEYWORD in replace_info[i]]
@@ -107,9 +115,9 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
                         before_by_items.append(bk[0])
             else:
                 before_by_items = line.split('BY')[0].split('==')[1:]
+            
             array_before_by.append('\n'.join([item.strip() for item in before_by_items]))
-            #items = line.split('BY')[1].split('==')
-            #array_by.append('\n'.join([item.strip() for item in items]))
+
             if "==" not in line or line.endswith(BY_KEYWORD):
                 p = line.split(BY_KEYWORD)[1]
                 i = index + 1
@@ -177,7 +185,13 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
             file_lines = file_lines.replace(repl_old, repl_new_list[c])
             c = c + 1
 
-    write_file("temp_cpybook.txt", file_lines)
+    out_lines = []
+    work_lines = file_lines.split(NEWLINE)
+    for fl in work_lines:
+        if fl[6:].startswith(COBOL_COMMENT):
+            continue
+        out_lines.append(fl[:72])
+    write_file("temp_cpybook.txt", NEWLINE.join(out_lines))
     raw_lines = read_raw_file_lines("temp_cpybook.txt", 0)
       
     result_lines = []
@@ -193,4 +207,4 @@ def prep_copybook(current_line: LexicalInfo, copybook: str, next_few_lines):
     #delete_file("temp_cpybook.txt")
     copy_file("temp_cpybook.txt", copybook + "_copybook.txt")
 
-    return [result_lines, copybook, next_few_lines]
+    return [result_lines, copybook, next_few_lines, 0, next_available_line]

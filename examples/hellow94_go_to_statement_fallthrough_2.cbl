@@ -1,0 +1,26 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLOW94.
+       AUTHOR. CHRISTIAN STRAMA.
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+       01 TEST-VAR PIC X VALUE '1'.
+
+       PROCEDURE DIVISION.
+
+       1000-FIRST-PARA.
+
+           DISPLAY 'fallthrough to 1000-FIRST-PARA'.
+
+           PERFORM 3000-THIRD-PARA.
+
+       2000-SECOND-PARA.
+
+           DISPLAY 'fallthrough to 2000-SECOND-PARA'.
+
+       3000-THIRD-PARA.
+
+           DISPLAY 'performed 3000-THIRD-PARA'.
+

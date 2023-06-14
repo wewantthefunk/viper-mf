@@ -4,8 +4,16 @@
        CONFIGURATION SECTION.
        SPECIAL-NAMES.
       
-           CLASS SPACE-A-C-F-Q-2-THRU-9    ' ACFQ23456789'
-           CLASS CONVERTED-VALUES           'BDEGHJKLMNPRSTUVWXYZ'.
+           CLASS SPACE-A-C-F-Q-2-THRU-9    ' '
+                                           'A'
+                                           'C'
+                                           'FQ23456789'
+           CLASS CONVERTED-VALUES           'BDEGHJKLMNPRSTUVWXYZ'
+
+           CLASS TEST-CLASS                LOW-VALUES
+                                           HIGH-VALUES
+                                           SPACE
+                                           ZERO.
       
        DATA DIVISION.
        WORKING-STORAGE SECTION.

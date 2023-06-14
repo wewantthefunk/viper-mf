@@ -81,7 +81,9 @@ See above, IF Blocks
 
 ### Fall through paragraphs
 
-Don't use fall through paragraphs. Even though COBOL has no concept of encapsulation, that doesn't mean you shouldn't try to write clean code. Since paragraphs are converted to actual functions with encapsulation, fall through paragraphs won't convert correctly. Sorry, not sorry.
+Don't use fall through paragraphs. Even though COBOL has no concept of encapsulation, that doesn't mean you shouldn't try to write clean code.
+
+Having said that, there is a lot of legacy that falls through. Don't do it going forward, but fall through "logic" works.
 
 ### Commas in multi-dimensional array element reference
 

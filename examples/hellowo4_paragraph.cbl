@@ -17,7 +17,10 @@
 
        PROCEDURE DIVISION.
 
-           PERFORM FIRST-PARA THRU FIRST-PARA-EXIT.
+           PERFORM 
+              FIRST-PARA 
+                 THRU 
+              FIRST-PARA-EXIT.
 
            STOP RUN.
 

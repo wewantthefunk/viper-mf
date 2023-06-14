@@ -1,5 +1,5 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. HELLOW74.
+       PROGRAM-ID. HELLOW93.
        AUTHOR. CHRISTIAN STRAMA.
 
        DATA DIVISION.
@@ -15,5 +15,13 @@
 
            DISPLAY 'jumped to 1000-FIRST-PARA'.
 
-           GOBACK.
+           PERFORM 3000-THIRD-PARA.
+
+       2000-SECOND-PARA.
+
+           DISPLAY 'fallthrough to 2000-SECOND-PARA'.
+
+       3000-THIRD-PARA.
+
+           DISPLAY 'performed 3000-THIRD-PARA'.
 

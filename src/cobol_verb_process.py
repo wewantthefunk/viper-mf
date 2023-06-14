@@ -11,12 +11,13 @@ is_first_when = True
 is_perform_looping = False
 
 def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, next_few_lines):
-    global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
+    global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when, paragraph_list
     level = close_out_evaluate(tokens[0], name, level)
-    
-    if last_cmd_display == True:
+
+    if current_line.last_cmd_display == True:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
+        current_line.last_cmd_display = False
 
     if tokens[0] == COBOL_VERB_CALL and P2C_TERMINATE in tokens[1]:
         tokens[0] = P2C_TERMINATE
@@ -35,6 +36,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
 
     if verb == VERB_RESET:
         last_cmd_display = False
+        current_line.last_cmd_display = False
         
     elif verb in COBOL_END_BLOCK_VERBS:
         if verb != COBOL_VERB_READ_END:
@@ -48,16 +50,19 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 level = level - 1
             else:
                 level = level - 1
-        if len(evaluate_compare_stack) > 0:
-            evaluate_compare_stack.pop()
+        if verb == COBOL_VERB_EVALUATE_END:
             if len(evaluate_compare_stack) > 0:
-                ec = evaluate_compare_stack[len(evaluate_compare_stack) - 1]
-                evaluate_compare = ec[0]
-                nested_above_evaluate_compare = ec[1]
+                evaluate_compare_stack.pop()
+                if len(evaluate_compare_stack) > 0:
+                    ec = evaluate_compare_stack[len(evaluate_compare_stack) - 1]
+                    evaluate_compare = ec[0]
+                    nested_above_evaluate_compare = ec[1]
         last_cmd_display = False
+        current_line.last_cmd_display = False
     elif verb == COBOL_VERB_MOVE:
         process_move_verb(tokens, name, indent, level)
         last_cmd_display = False
+        current_line.last_cmd_display = False
     elif verb == COBOL_VERB_SET:
         ind = tokens.index(TO_KEYWORD)
 
@@ -80,20 +85,24 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         for x in range(start, ind):
             process_move_verb([COBOL_VERB_MOVE, prefix + tokens[ind + offset], TO_KEYWORD, prefix2 + tokens[x]], name, indent, level)
         last_cmd_display = False
+        current_line.last_cmd_display = False
     elif verb == COBOL_VERB_DISPLAY:
         process_display_verb(tokens, name, level)
         last_cmd_display = True
+        current_line.last_cmd_display = True
     elif verb == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
         process_math_verb(tokens, name, level)
         last_cmd_display = False
+        current_line.last_cmd_display = False
     elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT or tokens[0] == P2C_TERMINATE:
         process_exit_verbs(level, name, tokens, current_line, args)
         
     elif verb == COBOL_VERB_PERFORM:
         level = process_perform_verb(tokens, name, level, current_line, next_few_lines, args)
     elif verb == COBOL_VERB_GO:
-        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines, args)
-        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
+        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines, args, True)
+        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args, True)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# not coming back because of GO TO, return statement added above" + NEWLINE)
     elif verb == COBOL_VERB_IF:
         if current_line.in_else_block:
             current_line.nested_level = current_line.nested_level - 1
@@ -106,9 +115,20 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         current_line.in_else_block = True
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
+        func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+        
         x = get_last_line_of_file(name + PYTHON_EXT)
         if x.startswith(RETURN_KEYWORD) == False:
-            process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args, True)
+            t_level = level
+            if len(current_line.paragraph_list) > 0:
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if fallthru:" + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.fallthrough('" + current_line.last_known_paragraph + "'" + CLOSE_PARENS + NEWLINE)
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "else:" + NEWLINE)
+                t_level = level + 1
+            else:
+                append_file(name + PYTHON_EXT, pad(len(INDENT) * t_level) + SELF_REFERENCE + "default_fallthrough()" + NEWLINE)
+            current_line.last_known_paragraph = EMPTY_STRING
+            process_exit_verbs(t_level, name, [COBOL_VERB_GOBACK], current_line, args, True)
         current_line.nested_level = 0
         if current_line.needs_except_block:
             append_file(name + PYTHON_EXT, NEWLINE)
@@ -116,10 +136,12 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
         current_line.needs_except_block = True
         level = BASE_LEVEL
-        func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 2)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self" + CLOSE_PARENS + COLON + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 2)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self, fallthru = False" + CLOSE_PARENS + COLON + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + "try:" + NEWLINE)
+        current_line.paragraph_list.append(func_name)
+        current_line.last_known_paragraph = func_name
         last_cmd_display = False
+        current_line.last_cmd_display = False
     elif verb == COBOL_VERB_EVALUATE:
         is_first_when = True
         long_evaluate_compare = EMPTY_STRING
@@ -164,6 +186,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_call_verb(tokens, name, indent, level, args, current_line)
     elif verb == COBOL_VERB_SEARCH:
         last_cmd_display = False
+        current_line.last_cmd_display = False
         process_search_verb(tokens, name, indent, level, args, current_line)
         level = level + 1
     elif verb == COBOL_VERB_COMPUTE:
@@ -454,16 +477,16 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
         for y in range(start_at, end_at):
             if y > start_at:
                 string_list = string_list + COMMA
-            var_name = SINGLE_QUOTE + tokens[y] + SINGLE_QUOTE
+            var_name = DOUBLE_QUOTE + tokens[y] + DOUBLE_QUOTE
             delim_by = tokens[end_at + 1]
             if tokens[y].startswith(SINGLE_QUOTE):
                 var_name = tokens[y]
                 delim_by = 'LITERAL'
 
-            string_list = string_list + OPEN_BRACKET + var_name + COMMA + SINGLE_QUOTE + delim_by + SINGLE_QUOTE + CLOSE_BRACKET
+            string_list = string_list + OPEN_BRACKET + var_name + COMMA + DOUBLE_QUOTE + delim_by + DOUBLE_QUOTE + CLOSE_BRACKET
 
     build_string_func = "Build_String(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA \
-        + SINGLE_QUOTE + target + SINGLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
+        + DOUBLE_QUOTE + target + DOUBLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + build_string_func + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     return
@@ -473,7 +496,13 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "#inform calling module that termination has happened" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "return")
+    t_level = level
+    if current_line.last_known_paragraph != EMPTY_STRING:
+        t_level = t_level + 1
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if fallthru:" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.fallthrough('" + current_line.last_known_paragraph + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "else:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * t_level) + "return")
 
     if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == P2C_TERMINATE:
         level = BASE_LEVEL
@@ -908,7 +937,7 @@ def close_out_perform_loop(verb: str, name: str, level: int, current_line: Lexic
 def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo):
     global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
 
-    if current_line.current_line_number == "378":
+    if current_line.current_line_number == "1419":
         x = 0
 
     if AND_KEYWORD in tokens:
@@ -1042,10 +1071,13 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
         operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
     if operand2 == NUMERIC_KEYWORD:
         operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
-        if evaluate_compare == TRUE_KEYWORD:
+        if evaluate_compare == TRUE_KEYWORD or temp_evaluate_compare == TRUE_KEYWORD:
             operand2 = 'True'
-        elif evaluate_compare == FALSE_KEYWORD:
+        elif evaluate_compare == FALSE_KEYWORD or temp_evaluate_compare == FALSE_KEYWORD:
             operand2 = "False"
+    if operand2.startswith(SINGLE_QUOTE) and len(operand2.replace(SINGLE_QUOTE, EMPTY_STRING)) == 1:
+        operand2 = 'find_hex_value_by_ascii(' + operand2 + CLOSE_PARENS + PERIOD + "EBCDIC_value "
+        operand1 = 'find_hex_value_by_ascii(' + operand1 + CLOSE_PARENS + PERIOD + "EBCDIC_value "
     if operand1_name == operand2:
         line = prefix + operand1
     elif operator == NUMERIC_KEYWORD:
@@ -1303,7 +1335,7 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
 
     return level + 1
 
-def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines, args):
+def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines, args, fallthrough = False):
     global is_perform_looping
     if VARYING_KEYWORD in tokens:
         is_perform_looping = True
@@ -1311,10 +1343,10 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         level = level + 1
     elif len(tokens) == 3 or THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
         func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
         if THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
             func_name = UNDERSCORE + tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
     elif COBOL_RETURN_KEYWORD in tokens:
         if tokens[len(tokens) - 1] != PERIOD:
             tokens.append(PERIOD)
@@ -1333,7 +1365,7 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
         process_verb(tokens[end_index + 1: end_index_2], name, True, level + 1, args, current_line, [])
     elif len(tokens) == 2:
         func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
     else:
         if tokens[1] == UNTIL_KEYWORD:
             if len(tokens) > 4:

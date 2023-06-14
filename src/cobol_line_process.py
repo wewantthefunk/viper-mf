@@ -10,10 +10,10 @@ data_division_redefines_stack = []
 data_division_file_record = EMPTY_STRING
 var_init_list = []
 
-
 def process_identification_division_line(line: str, name: str):
-    global var_init_list
+    global var_init_list, last_cmd_display
     var_init_list = []
+    last_cmd_display = False
     if is_valid_verb(line, COBOL_IDENTIFICATION_DIVISION_VERBS):
         if COBOL_IDENTIFICATION_DIVISION_VERBS[0] in line:
             tmp = line.replace(COBOL_IDENTIFICATION_DIVISION_VERBS[0], EMPTY_STRING, 1)
@@ -49,15 +49,61 @@ def process_environment_division_line(line: str, current_section: str, name: str
         append_file(name + PYTHON_EXT, "# " + current_section + NEWLINE)
     elif tokens[0] == CLASS_KEYWORD:
         create_class_variable(tokens, name, next_few_lines, current_section)
+    elif tokens[0] == SYMBOLIC_KEYWORD:
+        create_symbolic_variable(tokens, name, next_few_lines, current_section, current_line, args)
 
     return [line, current_line, name, current_section, next_few_lines, args]
+
+def create_symbolic_variable(tokens, name: str, next_few_lines, current_section: str, current_line: LexicalInfo, args):
+    count = 0
+    skip = False
+    skip2 = False
+    for nl in next_few_lines:
+        nlt = parse_line_tokens(nl, SPACE, EMPTY_STRING, True)
+        done_class_line = False
+        for nl_token in nlt:
+            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD, SYMBOLIC_KEYWORD]:
+                    tokens.append(nl_token)
+            else:
+                done_class_line = True
+                break
+
+        if done_class_line:
+            break
+    for token in tokens:
+        if count == 0 or skip:
+            count = count + 1
+            skip = False
+            continue
+        if skip2:
+            count = count + 1
+            skip = True
+            skip2 = False
+            continue
+        if token == CHARACTERS_KEYWORD or token == PERIOD:
+            count = count + 1
+            continue
+        
+        symbol_name = token
+        offset = 0
+        if tokens[count + 1] == IS_KEYWORD:
+            offset = 1
+            skip2 = True
+        else:
+            skip = True
+
+        value = int(tokens[count + 1 + offset]) - 1
+
+        create_variable("01 " + symbol_name + SPACE + "PIC X(1) VALUE X'" + hex(value).upper()[2:] + "'.", current_line, name, current_section, [], args, False)
+
+        count = count + 1
 
 def create_class_variable(tokens, name: str, next_few_lines, current_section: str):
     done_class_line = False
     for next_line in next_few_lines:
         nl_tokens = parse_line_tokens(next_line, SPACE, EMPTY_STRING, True)
         for nl_token in nl_tokens:
-            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD]:
+            if nl_token != PERIOD and nl_token not in [CLASS_KEYWORD, SYMBOLIC_KEYWORD]:
                 tokens.append(nl_token)
             else:
                 done_class_line = True
@@ -72,7 +118,23 @@ def create_class_variable(tokens, name: str, next_few_lines, current_section: st
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "_DataDivisionVars = result[0]" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
 
-    var_init_list.append([COBOL_VERB_MOVE, tokens[2], EMPTY_STRING, tokens[1]])
+    value = EMPTY_STRING
+
+    for x in range(2, len(tokens)):
+        if tokens[x] == PERIOD:
+            break
+        if tokens[x] == SPACE_KEYWORD or tokens[x] == SPACES_KEYWORD:
+            value = value + SPACE
+        elif tokens[x] == LOW_VALUES_KEYWORD:
+            value = value + "\x00"
+        elif tokens[x] == HIGH_VALUES_KEYWORD:
+            value = value + "\xFF"
+        elif tokens[x] == ZERO_KEYWORD or tokens[x] == ZEROS_KEYWORD:
+            value = value + ZERO
+        else:
+            value = value + tokens[x].replace(SINGLE_QUOTE, EMPTY_STRING)
+
+    var_init_list.append([COBOL_VERB_MOVE, SINGLE_QUOTE + value + SINGLE_QUOTE, EMPTY_STRING, tokens[1]])
 
 def create_file_variable(tokens, name: str, next_few_lines, current_section: str):
     done_file_line = False
@@ -155,10 +217,13 @@ def process_data_division_line(line: str, current_section: str, name: str, curre
             if line.startswith(SD_KEYWORD):
                 data_division_file_record = data_division_file_record + SORT_IDENTIFIER
         elif line.startswith(COPYBOOK_KEYWORD):
-            insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).replace(PERIOD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
+            insert_copybook(name + PYTHON_EXT, line.replace(COPYBOOK_KEYWORD, EMPTY_STRING).strip(), current_line, name, current_section, next_few_lines, args)
         else:
             if line[0:2].isnumeric() == False:
                 return [line, current_section, name, current_line]
+            
+            if '01  PARAMETERS.' in line:
+                x = 0
 
             create_variable(line, current_line, name, current_section, next_few_lines, args)
 
@@ -189,6 +254,8 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
         compare_verb = temp_tokens[0]
         for nl in next_few_lines:
             nll = nl.split("^^^")
+            if nll[1] == "816":
+                x = 0
             nllt = nll[0]
             
             nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
@@ -220,6 +287,25 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     return [skip, level]
 
 def fix_parens(temp_tokens, value: str, value2: str):
+    """if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("): # or value.startswith("WHEN("):
+        s = value.split(OPEN_PARENS)
+        temp_tokens[0] = s[0]
+        temp_tokens.insert(1,  OPEN_PARENS)
+        temp_tokens.insert(2, s[1])
+        if COLON in s[len(s) - 1]:
+            for x in range(2,len(s)):
+                t = s[x]
+                if t.endswith(CLOSE_PARENS) and COLON in t and not t.startswith(OPEN_PARENS):
+                    t = OPEN_PARENS + t
+                temp_tokens.insert(x + 1, t)
+            temp_tokens.append(CLOSE_PARENS)
+        elif value2.endswith(CLOSE_PARENS):
+            s = value.split(CLOSE_PARENS)
+            value = s[0]
+            temp_tokens.append(CLOSE_PARENS)
+    elif value.startswith("WHEN("):
+        temp_tokens.insert(0, COBOL_VERB_WHEN)
+        temp_tokens[1] = temp_tokens[1].replace("WHEN(", "(") """
     return
 
 def check_ignore_verbs(ignore_verbs, v: str):
@@ -255,6 +341,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if not line.endswith(PERIOD):
         for nl in next_few_lines:
+            if 'CABBEMBD - END WORKING-STORAGE' in nl:
+                x = 0
             skip_lines_count = skip_lines_count + 1
             if nl[7:].startswith(COBOL_COMMENT):
                 continue
@@ -318,6 +406,12 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         else:
             current_line.redefines = EMPTY_STRING
         current_line.redefines_level = tokens[0]
+        if not hard_cascade_type:
+            current_line.cascade_data_type = EMPTY_STRING
+            current_line.cascade_init_value = EMPTY_STRING
+            cascade_data_type = EMPTY_STRING
+            if len(data_division_cascade_stack) > 0:
+                data_division_cascade_stack.pop()
     tokens[1] = tokens[1].replace(PERIOD, EMPTY_STRING)
     tokens[0] = tokens[0].replace(PERIOD, EMPTY_STRING)
 
@@ -329,7 +423,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
         while len(data_division_level_stack) > 0 and int(new_level) <= int(data_division_level_stack[len(data_division_level_stack) - 1]):
                 data_division_level_stack.pop()
                 data_division_var_stack.pop()
-                data_division_cascade_stack.pop()
+                if len(data_division_cascade_stack) > 0:
+                    data_division_cascade_stack.pop()
 
         if len(data_division_cascade_stack) > 0:
             if data_division_cascade_stack[len(data_division_cascade_stack) - 1] != cascade_data_type and cascade_data_type not in tokens:
@@ -401,7 +496,8 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
                 if len(data_division_var_stack) > 0:
                     current_line.highest_var_name = data_division_var_stack[len(data_division_var_stack) - 1]
-                    current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
+                    if len(data_division_cascade_stack) > 0:
+                        current_line.cascade_data_type = data_division_cascade_stack[len(data_division_cascade_stack) - 1]
                     
                     if hard_cascade_type:
                         current_line.cascade_data_type = cascade_data_type
@@ -585,6 +681,7 @@ def init_vars(name: str, args, current_line):
     current_line.level = 2
     for vil in var_init_list:
         process_verb(vil, name, True, 2, args, current_line, [])
+
     current_line.level = level
 
 def is_valid_verb(line: str, verb_list):
@@ -640,7 +737,7 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
-    if "CIOCHMO" in copybook:
+    if "CABCXREF" in copybook:
         x = 0
     result = prep_copybook(current_line, copybook, next_few_lines)
 
@@ -679,7 +776,8 @@ def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_
             skip_the_next_lines_count = skip_the_next_lines_count + 1
             continue
         create_variable(line, current_line, name, current_section, next_few_lines, args, is_eib)
-    current_line.skip_the_next_lines = 0
+    current_line.skip_the_next_lines = result[3]
+    current_line.next_available_line = result[4]
     append_file(outfile, NEWLINE)
     append_file(outfile, NEWLINE)
 
