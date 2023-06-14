@@ -67,8 +67,10 @@ def build_field(tokens: list, name: str, output: str):
     
     append_file(name, pad(10) + "02 " + tokens[0] + "I PIC " + datatype + "(" + length + ") VALUE " + initial + ".\n")
     append_file(name, pad(10) + "02 " + tokens[0] + "F PIC S9(4) COMP VALUE " + length + ".\n")
+    append_file(name, pad(10) + "02 " + tokens[0] + "L PIC S9(4) COMP.\n")
 
     output = output + pad(10) + "02 " + tokens[0] + "O PIC " + datatype + "(" + length + ").\n"
+    output = output + pad(10) + "02 FILLER PIC X(2).\n"
     output = output + pad(10) + "02 FILLER PIC X(2).\n"
 
     return output
