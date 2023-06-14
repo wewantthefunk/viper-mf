@@ -1,0 +1,5 @@
+---
+region: CICSR1
+tran: HELLOW12
+dds:
+  TESTFILE: DATA/INPUT/FILES/SEQRTEST

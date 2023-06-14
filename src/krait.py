@@ -3,9 +3,11 @@ from tkinter import font
 from tkinter import ttk
 from io import StringIO
 from os.path import exists
-import importlib, sys, os, random
+import importlib, sys, os, random, queue
 import cobol_variable, string
 import krait_region, krait_util, krait_queue, krait_ui
+
+the_queue = queue.Queue()
 
 class KRAIT:     
     def __init__(self):
@@ -88,6 +90,9 @@ class KRAIT:
 
         return
 
+    def terminate_on_callback(self):
+        return
+    
     def Launch(self):
         lbl = Label(self.window, text=krait_util.COMMAND_PROMPT_PREFIX, font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_TEXT_COLOR)
         lbl.place(x=5,y=4,in_=self.window)
@@ -143,6 +148,7 @@ class KRAIT:
         f = font.Font(size=krait_util.STANDARD_FONT_SIZE, family=krait_util.STANDARD_BACKGROUND_COLOR)
         self.character_width = f.measure('W')
         self.character_height = f.metrics("linespace")
+        self.window.after(100, self._check_for_message)
         self.window.mainloop()
 
         return
@@ -182,6 +188,21 @@ class KRAIT:
                 break
 
         return
+    
+    def put_on_queue(self, message: str):
+        the_queue.put(message)
+        
+    def _check_for_message(self):
+        try:
+            message = the_queue.get(block=False)
+            print(message)
+        except queue.Empty:
+            # let's try again later
+            #self.window.after(100, self._check_for_message)
+            return
+        
+        self.process_command(message)
+        self._check_for_message()
     
     def main_on_keypress(self, event):        
         if event.state == 20 and event.keycode == krait_util.F1_KEY:
@@ -660,4 +681,7 @@ if __name__ == '__main__':
     else:
         Krait_obj = KRAIT()
 
+        the_queue.put("switch region " + sys.argv[1])
+        the_queue.put("start " + sys.argv[2])
+        
         Krait_obj.Launch()
