@@ -123,7 +123,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def get_value(self, name):" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return Get_Variable_Value(self.CICS04Memory, self.variables_list, name, name)" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + ", self.variables_list, name, name)" + NEWLINE)
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def receive_control(self):" + NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "pass" + NEWLINE)
