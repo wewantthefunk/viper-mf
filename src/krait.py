@@ -465,8 +465,8 @@ class KRAIT:
 
         return
 
-    def receive_control(self, final_control = False):
-        self.transaction_label.config(text=krait_util.EMPTY_STRING)
+    def receive_control(self, final_control = False, tran_id = ""):
+        self.transaction_label.config(text=tran_id)
         self.is_in_transaction = not final_control
         if self.is_in_transaction and not final_control:
             # Wait for a key to be pressed
