@@ -575,7 +575,10 @@ class KRAIT:
             elif 'LENGTH' in token:
                 s = token.split(krait_util.EQUALS)
                 field_length = int(s[1].replace(krait_util.COMMA, krait_util.EMPTY_STRING))
-            elif 'INITIAL' in token or in_literal:
+
+            elif 'DFHMSD' in token or 'DFHMDI' in token:
+                field_type = "none"
+            """elif 'INITIAL' in token or in_literal:
                 s = token.split(krait_util.EQUALS)
                 if len(s) > 1:
                     temp_field_text = s[1]
@@ -592,9 +595,7 @@ class KRAIT:
                         field_text = field_text + krait_util.SPACE + temp_field_text[:len(temp_field_text) - 1]
                     in_literal = False
                 else:
-                    field_text = field_text + krait_util.SPACE + temp_field_text
-            elif 'DFHMSD' in token or 'DFHMDI' in token:
-                field_type = "none"
+                    field_text = field_text + krait_util.SPACE + temp_field_text"""
 
         field_text = calling_tran.get_value(var_name.upper() + "I")
         
@@ -674,6 +675,9 @@ class KRAIT:
             response_code = krait_util.EIB_QIDERR_RESP
             
         return [krait_util.EMPTY_STRING, response_code]
+    
+    def get_value(self, name: str):
+        return ""
 
 if __name__ == '__main__':
 
