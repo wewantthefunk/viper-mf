@@ -221,7 +221,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     elif verb == CICS_VERB_SEND:
         process_send_map(tokens, level, name)
     elif verb == CICS_VERB_RECEIVE:
-        process_send_map(tokens, level, name)
+        process_receive_map(tokens, level, name)
     elif verb == COBOL_VERB_NEXT:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
@@ -286,6 +286,7 @@ def process_cics_return(level: int, name: str, tokens: list, current_line: Lexic
                 trans_id = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + t1[1] + COMMA + t1[1] + CLOSE_PARENS + NEWLINE
             func_params = "(False, " + trans_id  + ")"
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit(0)" + NEWLINE)
     #process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
 
 def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
@@ -530,6 +531,9 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
         current_line.needs_except_block = False
 
     return
+
+def process_receive_map(tokens, level: int, name: str):
+    pass
 
 def process_send_map(tokens, level: int, name: str):
     map_name = EMPTY_STRING

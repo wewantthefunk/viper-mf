@@ -746,7 +746,7 @@ def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_
     copybook_name = result[1]
 
     is_eib = False
-    if copybook_name == EIB_COPYBOOK:
+    if copybook == EIB_COPYBOOK:
         is_eib = True
 
     if len(lines) > 0:

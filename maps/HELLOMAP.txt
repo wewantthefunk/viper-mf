@@ -4,12 +4,12 @@ HELLOMAP   DFHMSD TYPE=MAP,                                            X
 HELLOMAP   DFHMDI SIZE=(24,80),                                        X
                   LINE=1
 *
-LBL1       DFHMDF                                                      X
+HLBL1       DFHMDF                                                      X
             POS=(10,24),                                               X
             LENGTH=07,                                                 X
             INITIAL='hello, '                                          X
             ATTRB=(NORM,ASKIP)
-LBL2       DFHMDF                                                      X
+HLBL2       DFHMDF                                                      X
             POS=(10,31),                                               X
             LENGTH=10,                                                 X
             ATTRB=(NORM,ASKIP)

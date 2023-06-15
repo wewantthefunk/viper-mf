@@ -28,6 +28,7 @@ class KRAIT:
         self.character_width = 10
         self.map_entry_fields = []
         self.last_known_trans_id = krait_util.GENERIC_TRANS_ID
+        self.return_control_trans_id = krait_util.EMPTY_STRING
 
         self.is_in_transaction = False
         self.map_key_pressed = BooleanVar()
@@ -206,11 +207,12 @@ class KRAIT:
     
     def main_on_keypress(self, event):        
         if event.state == 20 and event.keycode == krait_util.F1_KEY:
-            self.receive_control(True)
+            self.receive_control(True, krait_util.EMPTY_STRING)
         elif self.is_in_transaction:
             if event.keycode in krait_util.ATTENTION_KEYS:
                 should_return_control = self.transaction_module.process_key(event.keycode)
-                self.receive_control(should_return_control)
+                self.receive_control(should_return_control, self.return_control_trans_id)
+                self.pass_control()
         else:
             #print(event)
             pass
@@ -285,6 +287,7 @@ class KRAIT:
         self.command_input.delete(krait_util.ZERO, END)
         self.message_label.config(text=krait_util.EMPTY_STRING)
         if text.lower().startswith(krait_util.START_COMMAND):
+            self.set_current_transaction(text.replace(krait_util.START_COMMAND + krait_util.SPACE, krait_util.EMPTY_STRING))
             self.start_module(text)
         elif text.lower().startswith(krait_util.SHOW_SYSOUT):
             self.show_sysout_window()
@@ -466,13 +469,17 @@ class KRAIT:
         return
 
     def receive_control(self, final_control = False, tran_id = ""):
-        self.transaction_label.config(text=tran_id)
+        self.return_control_trans_id = tran_id
         self.is_in_transaction = not final_control
         if self.is_in_transaction and not final_control:
             # Wait for a key to be pressed
             self.window.wait_variable(self.map_key_pressed)
         elif final_control:
             self.is_in_transaction = False
+        return
+    
+    def pass_control(self):
+        self.process_command(krait_util.START_COMMAND + krait_util.SPACE + self.return_control_trans_id)
         return
 
     def write_to_sysout(self, output: str):
@@ -575,10 +582,7 @@ class KRAIT:
             elif 'LENGTH' in token:
                 s = token.split(krait_util.EQUALS)
                 field_length = int(s[1].replace(krait_util.COMMA, krait_util.EMPTY_STRING))
-
-            elif 'DFHMSD' in token or 'DFHMDI' in token:
-                field_type = "none"
-            """elif 'INITIAL' in token or in_literal:
+            elif 'INITIAL' in token or in_literal:
                 s = token.split(krait_util.EQUALS)
                 if len(s) > 1:
                     temp_field_text = s[1]
@@ -595,7 +599,9 @@ class KRAIT:
                         field_text = field_text + krait_util.SPACE + temp_field_text[:len(temp_field_text) - 1]
                     in_literal = False
                 else:
-                    field_text = field_text + krait_util.SPACE + temp_field_text"""
+                    field_text = field_text + krait_util.SPACE + temp_field_text
+            elif 'DFHMSD' in token or 'DFHMDI' in token:
+                field_type = "none"
 
         field_text = calling_tran.get_value(var_name.upper() + "I")
         
@@ -628,13 +634,13 @@ class KRAIT:
         result = True
         if self.region_label == None:
             self.show_error_message("You must switch to a CICS Region")
-            self.receive_control(True)
+            self.receive_control(True, krait_util.EMPTY_STRING)
             result = False
         else:
             value = self.region_label.cget("text")
             if value.strip() == krait_util.EMPTY_STRING:
                 self.show_error_message("You must switch to a CICS Region")
-                self.receive_control(True)
+                self.receive_control(True, krait_util.EMPTY_STRING)
                 result = False
 
         return result
@@ -675,9 +681,6 @@ class KRAIT:
             response_code = krait_util.EIB_QIDERR_RESP
             
         return [krait_util.EMPTY_STRING, response_code]
-    
-    def get_value(self, name: str):
-        return ""
 
 if __name__ == '__main__':
 
