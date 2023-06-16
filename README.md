@@ -186,7 +186,7 @@ Thanks for giving me the inspiration!
 
 Only a small set of COBOL verbs, functions, and keywords are converted, at this time. As more modules are used in testing, more verbs and keywords will be added. Conversions for CICS statements are also planned.
 
-Level 77 variables are not processed or handled properly in logic statements.
+COMP-1, COMP-2, and COMP-4 datatypes are not handled.
 
 ## Bug Reporting
 

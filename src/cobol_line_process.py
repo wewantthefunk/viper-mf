@@ -254,8 +254,6 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
         compare_verb = temp_tokens[0]
         for nl in next_few_lines:
             nll = nl.split("^^^")
-            if nll[1] == "816":
-                x = 0
             nllt = nll[0]
             
             nlt = parse_line_tokens(nllt[6:], SPACE, EMPTY_STRING, True)
@@ -287,25 +285,6 @@ def process_procedure_division_line(line: str, name: str, current_line: LexicalI
     return [skip, level]
 
 def fix_parens(temp_tokens, value: str, value2: str):
-    """if value.startswith("IF(") or value.startswith('AND(') or value.startswith("OR("): # or value.startswith("WHEN("):
-        s = value.split(OPEN_PARENS)
-        temp_tokens[0] = s[0]
-        temp_tokens.insert(1,  OPEN_PARENS)
-        temp_tokens.insert(2, s[1])
-        if COLON in s[len(s) - 1]:
-            for x in range(2,len(s)):
-                t = s[x]
-                if t.endswith(CLOSE_PARENS) and COLON in t and not t.startswith(OPEN_PARENS):
-                    t = OPEN_PARENS + t
-                temp_tokens.insert(x + 1, t)
-            temp_tokens.append(CLOSE_PARENS)
-        elif value2.endswith(CLOSE_PARENS):
-            s = value.split(CLOSE_PARENS)
-            value = s[0]
-            temp_tokens.append(CLOSE_PARENS)
-    elif value.startswith("WHEN("):
-        temp_tokens.insert(0, COBOL_VERB_WHEN)
-        temp_tokens[1] = temp_tokens[1].replace("WHEN(", "(") """
     return
 
 def check_ignore_verbs(ignore_verbs, v: str):
@@ -323,6 +302,11 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if tokens[0].isnumeric() == False:
         return
+    
+    # convert level 77 variables to level 01 variables
+    # they are just level 01 variables with no children
+    if tokens[0] == "77":
+        tokens[0] = "01"
 
     cascade_data_type = current_line.cascade_data_type
     hard_cascade_type = False
@@ -341,8 +325,6 @@ def create_variable(line: str, current_line: LexicalInfo, name: str, current_sec
 
     if not line.endswith(PERIOD):
         for nl in next_few_lines:
-            if 'CABBEMBD - END WORKING-STORAGE' in nl:
-                x = 0
             skip_lines_count = skip_lines_count + 1
             if nl[7:].startswith(COBOL_COMMENT):
                 continue
@@ -737,8 +719,6 @@ def get_type_length(tokens, count: int):
     return [type_length[0], length, decimal_length, comp_indicator]
 
 def insert_copybook(outfile, copybook, current_line: LexicalInfo, name, current_section, next_few_lines, args):
-    if "CABCXREF" in copybook:
-        x = 0
     result = prep_copybook(current_line, copybook, next_few_lines)
 
     lines = result[0]
