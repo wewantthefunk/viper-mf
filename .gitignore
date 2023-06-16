@@ -1,4 +1,5 @@
 converted/*.py
+converted/maps/*.txt
 __pycache__
 *.exe
 *.dll
@@ -67,11 +68,8 @@ copybooks/CIOCSPLL.CPY
 copybooks/CABESPLL.CPY
 copybooks/CABCESRD.CPY
 copybooks/CIOCHMO.CPY
-<<<<<<< HEAD
-=======
 copybooks/CABEMBD.CPY
 copybooks/CABCXREF.CPY
 copybooks/CABCREPP.CPY
 copybooks/CABCMSP.CPY
 copybooks/CABCHSPM.CPY
->>>>>>> main
