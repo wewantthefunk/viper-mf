@@ -2,6 +2,7 @@
 ATTRB_KEYWORD = "ATTRB"
 BOTH_OPTION = "both"
 CARRIAGE_RETURN = "\r"
+CLEAR = 'clear'
 CLOSE_PARENS = ")"
 COBOL_COMMENT = "*"
 COLON = ":"
@@ -53,6 +54,7 @@ STANDARD_TEXT_COLOR = "white"
 STANDARD_INFO_TEXT_COLOR = "light green"
 START_COMMAND = "start"
 SWITCH_REGION = "switch region"
+SYSMAP_NAME = "SYSMAP"
 SYSOUT_TITLE = "KRAIT SYSOUT Display"
 SYSOUT_WINDOW_SIZE = '300x300+30+30'
 TERMINAL_CONFIG = "terminal.config"
@@ -117,4 +119,5 @@ COMMAND_LIST = [
     , [SET_DD, "Associate a file with a DD entry"]
     , [CREATE_REGION, "Create a CICS Region"]
     , [SWITCH_REGION, "Switch to a CICS Region"]
+    , [CLEAR, "Clear the screen"]
 ]

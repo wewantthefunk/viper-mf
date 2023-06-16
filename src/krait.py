@@ -22,6 +22,7 @@ class KRAIT:
         self.command_input = None
         self.message_label = None
         self.sysout_label = None
+        self.sysout_value = krait_util.EMPTY_STRING
         self.main_frame = None
         self.transaction_module = None
         self.character_height = krait_util.STANDARD_FONT_SIZE
@@ -307,6 +308,9 @@ class KRAIT:
             self.switch_region(text)
         elif text.lower().startswith(krait_util.HELP):
             self.show_help()
+        elif text.lower().startswith(krait_util.CLEAR):
+            self.sysout_value = krait_util.EMPTY_STRING
+            self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
         else:
             trans = self.check_for_transaction(text)
             if trans != krait_util.EMPTY_STRING:
@@ -339,7 +343,8 @@ class KRAIT:
 
     def list_transactions(self):
         current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
-        self.write_to_sysout(current_transactions + krait_util.NEWLINE)
+        self.sysout_value = current_transactions + krait_util.NEWLINE
+        self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
         return
 
     def set_transaction(self, text: str):
@@ -347,19 +352,16 @@ class KRAIT:
         current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
         current_transactions = current_transactions + krait_util.NEWLINE + tokens[2] + krait_util.COLON + tokens[3]
         cobol_variable._write_file(krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
-        
+        self.list_transactions()
         return
 
     def show_help(self):
-        self.show_sysout_window()
-        
-        string_io = StringIO()
-        sys.stdout = string_io
-
+        output = krait_util.EMPTY_STRING
         for c in krait_util.COMMAND_LIST:
-            print(c[0] + krait_util.COLON + krait_util.SPACE + c[1])
+            output = output + c[0] + krait_util.COLON + krait_util.SPACE + c[1] + krait_util.NEWLINE
 
-        self.handle_sysout_messages(string_io)
+        self.sysout_value = output
+        self.build_map(self, "SYSMAP", output, True, False)
 
         return
 
@@ -593,7 +595,11 @@ class KRAIT:
             elif 'DFHMSD' in token or 'DFHMDI' in token:
                 field_type = "none"
 
-        field_text = calling_tran.get_value(var_name.upper() + "I")
+        if calling_tran != None:
+            if calling_tran == self:
+                field_text = self.get_value(self, var_name.upper())
+            else:
+                field_text = calling_tran.get_value(var_name.upper() + "I")
         
         if field_text[0:1] == " " and len(field_text) > int(field_length):
             field_text = field_text[1:]
@@ -611,6 +617,10 @@ class KRAIT:
     def get_value(self, caller, name: str):
         result = ''
         
+        if name.startswith("SYSOUT"):
+            result = self.sysout_value
+            return result
+
         field_name = name[:len(name) - 1].lower()
         field = self.main_frame.nametowidget(field_name)            
         if field.widgetName == "label":

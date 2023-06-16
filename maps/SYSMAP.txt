@@ -1,0 +1,11 @@
+TESTMAP    DFHMSD TYPE=MAP,                                            X
+                  MODE=INOUT
+*
+TESTMAP    DFHMDI SIZE=(24,80),                                        X
+                  LINE=1
+*
+SYSOUT      DFHMDF                                                     X
+            POS=(01,01),                                               X
+            LENGTH=1920,                                               X
+            INITIAL=''                                                 X
+            ATTRB=(NORM,ASKIP)

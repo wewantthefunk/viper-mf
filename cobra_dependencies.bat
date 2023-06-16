@@ -8,6 +8,7 @@ copy src\krait_queue.py converted\krait_queue.py
 copy src\krait_region.py converted\krait_region.py
 copy src\krait_ui.py converted\krait_ui.py
 copy src\krait_util.py converted\krait_util.py
+copy maps\SYSMAP.txt converted\maps\SYSMAP.txt
 
 goto END
 
