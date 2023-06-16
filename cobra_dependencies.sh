@@ -3,6 +3,9 @@
 # Change to the directory where the script is located
 cd "$(dirname "$0")"
 
+mkdir converted
+mkdir converted/maps
+
 # Call the module
 python3 src/cobra_dependencies_convert.py
 
