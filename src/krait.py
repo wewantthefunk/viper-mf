@@ -331,6 +331,11 @@ class KRAIT:
         self.message_label.config(foreground=krait_util.ERROR_TEXT_COLOR)
         self.message_label.config(text=krait_util.INVALID_COMMAND_MSG + krait_util.SPACE + text)
         return
+    
+    def show_info_message(self, text: str):
+        self.message_label.config(foreground=krait_util.INFO_TEXT_COLOR)
+        self.message_label.config(text=krait_util.INFO_MSG + krait_util.SPACE + text)
+        return
 
     def list_transactions(self):
         current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
@@ -339,7 +344,7 @@ class KRAIT:
 
     def set_transaction(self, text: str):
         tokens = text.split(krait_util.SPACE)
-        current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE)
+        current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
         current_transactions = current_transactions + krait_util.NEWLINE + tokens[2] + krait_util.COLON + tokens[3]
         cobol_variable._write_file(krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
         
@@ -476,6 +481,9 @@ class KRAIT:
             self.window.wait_variable(self.map_key_pressed)
         elif final_control:
             self.is_in_transaction = False
+            self.show_info_message(self.last_known_trans_id + " ended")
+            self.set_current_transaction(krait_util.EMPTY_STRING) 
+            self.command_input.focus()           
         return
     
     def pass_control(self):
@@ -582,24 +590,6 @@ class KRAIT:
             elif 'LENGTH' in token:
                 s = token.split(krait_util.EQUALS)
                 field_length = int(s[1].replace(krait_util.COMMA, krait_util.EMPTY_STRING))
-            elif 'INITIAL' in token or in_literal:
-                s = token.split(krait_util.EQUALS)
-                if len(s) > 1:
-                    temp_field_text = s[1]
-                else:
-                    temp_field_text = s[0]
-                if temp_field_text.startswith(krait_util.SINGLE_QUOTE) and not in_literal:
-                    temp_field_text = temp_field_text[1:]
-                    in_literal = True
-
-                if temp_field_text.endswith(krait_util.SINGLE_QUOTE):
-                    if field_text == temp_field_text[:len(field_text) - 1]:
-                        field_text = field_text[:len(field_text) - 1]
-                    else:
-                        field_text = field_text + krait_util.SPACE + temp_field_text[:len(temp_field_text) - 1]
-                    in_literal = False
-                else:
-                    field_text = field_text + krait_util.SPACE + temp_field_text
             elif 'DFHMSD' in token or 'DFHMDI' in token:
                 field_type = "none"
 
@@ -617,6 +607,22 @@ class KRAIT:
             self.create_map_entry(self.main_frame, field_text, var_name, field_x, field_y, field_length, has_focus)
 
         return skip_lines
+    
+    def get_value(self, caller, name: str):
+        result = ''
+        
+        field_name = name[:len(name) - 1].lower()
+        field = self.main_frame.nametowidget(field_name)            
+        if field.widgetName == "label":
+            result = field.cget("text")
+        elif field.widgetName == 'entry':
+            result = field.get()
+
+        if name.endswith("L"):
+            result = len(result)
+        elif name.endswith("F"):
+            result = caller.get_value(name)
+        return result
 
     def parse_tokens(self, field_info: str):
         temp_tokens = field_info.split(krait_util.SPACE)

@@ -46,6 +46,9 @@
               EXEC CICS RECEIVE MAP('RECVMAP')
                  
               END-EXEC
+
+              MOVE NAMEO TO HLBL2I
+
               EXEC CICS SEND MAP('HELLOMAP')
               END-EXEC
 

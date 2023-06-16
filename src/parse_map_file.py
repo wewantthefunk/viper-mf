@@ -38,9 +38,10 @@ def parse_map_file(map_name: str, target_dir: str):
                 tokens = parse_line_tokens(field_info, SPACE, EMPTY_STRING, True)
                 if "DFHMSD" in tokens:
                     first_level = tokens[0]
-                    output = pad(7) + "01 " + first_level + "O REDEFINES " + first_level + "I.\n"
+                    output = pad(10) + "02 " + first_level + "O REDEFINES " + first_level + "I.\n"
                     delete_file(target_dir + first_level + ".CPY")
-                    append_file(target_dir + first_level + ".CPY", pad(7) + "01 " + first_level + "I.\n")
+                    append_file(target_dir + first_level + ".CPY", pad(7) + "01 " + first_level + "M.\n")
+                    append_file(target_dir + first_level + ".CPY", pad(10) + "02 " + first_level + "I.\n")
                 elif "DFHMDF" in tokens:
                     output = build_field(tokens, target_dir + first_level + ".CPY", output)
 
@@ -65,13 +66,13 @@ def build_field(tokens: list, name: str, output: str):
             t = token.split("=")
             initial = t[1]
     
-    append_file(name, pad(10) + "02 " + tokens[0] + "I PIC " + datatype + "(" + length + ") VALUE " + initial + ".\n")
-    append_file(name, pad(10) + "02 " + tokens[0] + "F PIC S9(4) COMP VALUE " + length + ".\n")
-    append_file(name, pad(10) + "02 " + tokens[0] + "L PIC S9(4) COMP.\n")
+    append_file(name, pad(12) + "03 " + tokens[0] + "I PIC " + datatype + "(" + length + ") VALUE " + initial + ".\n")
+    append_file(name, pad(12) + "03 " + tokens[0] + "F PIC S9(4) COMP VALUE " + length + ".\n")
+    append_file(name, pad(12) + "03 " + tokens[0] + "L PIC S9(4) COMP.\n")
 
-    output = output + pad(10) + "02 " + tokens[0] + "O PIC " + datatype + "(" + length + ").\n"
-    output = output + pad(10) + "02 FILLER PIC X(2).\n"
-    output = output + pad(10) + "02 FILLER PIC X(2).\n"
+    output = output + pad(12) + "03 " + tokens[0] + "O PIC " + datatype + "(" + length + ").\n"
+    output = output + pad(12) + "03 " + tokens[0] + "F-FILLER PIC X(2).\n"
+    output = output + pad(12) + "03 " + tokens[0] + "L-FILLER PIC X(2).\n"
 
     return output
 

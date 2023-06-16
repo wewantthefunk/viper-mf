@@ -533,14 +533,29 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
     return
 
 def process_receive_map(tokens, level: int, name: str):
-    pass
+    for token in tokens:
+        if token.startswith("MAP"):
+            s = token.split(OPEN_PARENS)
+            map_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)[:len(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) - 1] + 'I' + SINGLE_QUOTE
+            if map_name.startswith(SINGLE_QUOTE) == False:
+                memory_area = SELF_REFERENCE + name + MEMORY
+                if map_name in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                elif map_name in SPECIAL_REGISTERS_VARIABLES:
+                    memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+                map_name = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS + PLUS_SIGN + "'I'"
+            break
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "Get_All_Variables(self, " + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name + CLOSE_PARENS + NEWLINE)
+                
+    return
+    
 
 def process_send_map(tokens, level: int, name: str):
     map_name = EMPTY_STRING
     map_only = 'False'
     data_only = 'False'
     data = "''"
-    length = 0
     for token in tokens:
         if token.startswith("TEXT"):
             map_name = "'text'"
@@ -1407,7 +1422,10 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                 append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
                     + COLON + NEWLINE)
-                level = level + 1                
+                level = level + 1  
+        else:
+            func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)            
 
     return level
 

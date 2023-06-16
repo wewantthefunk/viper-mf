@@ -1,14 +1,15 @@
-       01 RECVMAPI.
-          02 LBL1I PIC X(17) VALUE 'Enter your name: '.
-          02 LBL1F PIC S9(4) COMP VALUE 17.
-          02 LBL1L PIC S9(4) COMP.
-          02 NAMEI PIC X(10) VALUE SPACES.
-          02 NAMEF PIC S9(4) COMP VALUE 10.
-          02 NAMEL PIC S9(4) COMP.
-       01 RECVMAPO REDEFINES RECVMAPI.
-          02 LBL1O PIC X(17).
-          02 FILLER PIC X(2).
-          02 FILLER PIC X(2).
-          02 NAMEO PIC X(10).
-          02 FILLER PIC X(2).
-          02 FILLER PIC X(2).
+       01 RECVMAPM.
+          02 RECVMAPI.
+            03 LBL1I PIC X(17) VALUE 'Enter your name: '.
+            03 LBL1F PIC S9(4) COMP VALUE 17.
+            03 LBL1L PIC S9(4) COMP.
+            03 NAMEI PIC X(10) VALUE SPACES.
+            03 NAMEF PIC S9(4) COMP VALUE 10.
+            03 NAMEL PIC S9(4) COMP.
+          02 RECVMAPO REDEFINES RECVMAPI.
+            03 LBL1O PIC X(17).
+            03 LBL1F-FILLER PIC X(2).
+            03 LBL1L-FILLER PIC X(2).
+            03 NAMEO PIC X(10).
+            03 NAMEF-FILLER PIC X(2).
+            03 NAMEL-FILLER PIC X(2).

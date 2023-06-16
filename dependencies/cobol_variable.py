@@ -1306,19 +1306,26 @@ def convert_multi_comp(var_list, var: COBOLVariable, value: str):
 
     return new_value
 
-def Get_All_Variables(caller_module, main_variable_memory, variable_lists, name: str):
+def Get_All_Variables(main_module, caller_module, main_variable_memory, variable_lists, name: str):
     children = []
     for var_list in variable_lists:
         for vars in var_list:
             if vars.name == name:
-                children = _find_all_children(variable_lists, name)
+                children = _find_all_children(var_list, name)
                 break
             
     for child in children:
-        Set_Variable(main_variable_memory, variable_lists, child.name, Get_Variable_From_Caller(caller_module, child.name), child.name)
+        if child.name == 'FILLER':
+            continue
+        x = 0
+        main_variable_memory = Set_Variable(main_variable_memory, variable_lists, child.name, Get_Variable_From_Caller(main_module, caller_module, child.name), child.name)[1]
+        x = 0
 
-def Get_Variable_From_Caller(caller_module, name: str):
-    return caller_module.get_value(name)
+    return main_variable_memory
+
+def Get_Variable_From_Caller(main_module, caller_module, name: str):
+    result = caller_module.get_value(main_module, name)
+    return result
 
 def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name

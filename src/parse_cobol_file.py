@@ -356,9 +356,10 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
 
 if __name__ == "__main__":
     #parse_cobol_file("examples/COMPL001.cbl", "converted/")
-    parse_cobol_file("examples/hellow95_symbolic.cbl", "converted/")
-    parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
+    #parse_cobol_file("examples/hellow95_symbolic.cbl", "converted/")
+    #parse_cobol_file("examples/hellowo1_basic.cbl", "converted/")
     #parse_cobol_file("examples/cics08_writeq.cbl", "converted/")
-    parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
+    #parse_cobol_file("work/CABBEMBD_work.cbl", "converted/")
     #parse_cobol_file("examples/hellow19_call_function_with_variables.cbl", "converted/")
     #parse_cobol_file("examples/hellow20_call_receive_function_with_variables.cbl", "converted/")
+    parse_cobol_file("examples/cics05_send_map.cbl", "converted/")
