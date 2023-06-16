@@ -193,10 +193,14 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_compute_verb(tokens, name, indent, level, args, current_line)
     elif verb == COBOL_VERB_ACCEPT:
         accept_value = UNDERSCORE + UNDERSCORE + COBOL_VERB_ACCEPT + SPACE
-        if len(tokens) > 3:
-            accept_value = accept_value + tokens[3]
-            if len(tokens) > 4:
-                accept_value = accept_value + SPACE + tokens[4]
+        if len(tokens) > 2:
+            if len(tokens) > 3:
+                accept_value = accept_value + tokens[3]
+                if len(tokens) > 4:
+                    accept_value = accept_value + SPACE + tokens[4]
+            else:
+                x = 0
+                #accept_value = "input()"
 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
     elif verb == CICS_VERB_ASKTIME:

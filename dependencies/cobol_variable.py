@@ -335,6 +335,9 @@ def Add_Variable(main_variable_memory, list, name: str, length: int, data_type: 
     if level == LEVEL_88:
         redefines = EMPTY_STRING
 
+    if display_mask != EMPTY_STRING and len(display_mask) < unpacked_length:
+        display_mask = pad_char(unpacked_length - len(display_mask), "Z")
+
     list.append(COBOLVariable(name, length, data_type, parent, redefines, occurs_length, decimal_len, level, comp_indicator, next_pos, unpacked_length, index, len(list), is_top_redefines, display_mask))
 
     return [list, main_variable_memory]
@@ -845,11 +848,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
         else:
             occurrence = int(Get_Variable_Value(main_variable_memory, orig_var_list, offset_val, offset_val))
 
-    if str(value).startswith(ACCEPT_VALUE_FLAG):
-        value = parse_accept_statement(value)
-
     for var in var_list:
         if var.name == var_name or var.parent in parent:
+            if str(value).startswith(ACCEPT_VALUE_FLAG):
+                value = parse_accept_statement(value)
             count = count + 1
             if var.level == LEVEL_88:
                 if value == 'True':
@@ -1576,7 +1578,7 @@ def find_hex_value_by_comp3(value: str):
     return EBCDIC_ASCII_CHART[0]
 
 def parse_accept_statement(accept: str):
-    result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING)
+    result = accept.replace(ACCEPT_VALUE_FLAG, EMPTY_STRING).strip()
     if result != EMPTY_STRING:
         temp = EMPTY_STRING
         s = result.split(SPACE)
@@ -1600,7 +1602,7 @@ def parse_accept_statement(accept: str):
     else:
         result = os.getenv(SYSIN_ENV_VARIABLE)
         if result == None:
-            result = EMPTY_STRING
+            result = input("[input value]: ")
 
     return result
 
