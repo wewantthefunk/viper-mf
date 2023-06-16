@@ -16,6 +16,7 @@ if "%~1"=="jes" (
 
 if "%~1"=="converted" (
     del %folder%*.py /F /Q
+    del %folder%maps\*.* /F /Q
 )
 
 goto END

@@ -24,4 +24,5 @@ fi
 if [ "$1" == "converted" ]; then
     echo clear converted
     rm -f converted/*.py
+    rm -f converted/maps/*.*
 fi
