@@ -289,6 +289,8 @@ class KRAIT:
         self.message_label.config(text=krait_util.EMPTY_STRING)
         if text.lower().startswith(krait_util.START_COMMAND):
             self.set_current_transaction(text.replace(krait_util.START_COMMAND + krait_util.SPACE, krait_util.EMPTY_STRING))
+            if text.replace(krait_util.START_COMMAND + krait_util.SPACE, krait_util.EMPTY_STRING) == krait_util.EMPTY_STRING:
+                return
             self.start_module(text)
         elif text.lower().startswith(krait_util.SHOW_SYSOUT):
             self.show_sysout_window()
@@ -441,7 +443,9 @@ class KRAIT:
             module_name = tokens[1]
             cobol_variable.Build_Comm_Area(module_name, krait_util.EMPTY_STRING, [], krait_util.EMPTY_STRING)             
             module = importlib.import_module(module_name)
+            module_name = module_name.replace("_jcl", "JCL")
             module_class = getattr(module, module_name + 'Class')
+            
             module_instance = module_class()
             module_instance.calling_module = self
 
@@ -493,8 +497,10 @@ class KRAIT:
         return
 
     def write_to_sysout(self, output: str):
-        t = self.sysout_label.cget("text")
-        self.sysout_label.config(text=t + output)
+        #t = self.sysout_label.cget("text")
+        #self.sysout_label.config(text=t + output)
+        self.sysout_value = output
+        self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
 
         return
 

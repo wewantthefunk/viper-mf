@@ -101,7 +101,12 @@ def write_out_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def terminate_on_callback(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "return\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def process_key(self, keycode: int):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "if keycode == 27 or keycode == 13 or (keycode >= 110 and keycode <= 123):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "return True\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "return False\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def main(self, caller_module):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "start_time = datetime.now()\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "highest_return_code = 0\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("JES2/OUTPUT/").mkdir(parents=True, exist_ok=True)\n')
@@ -135,6 +140,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing    Step: " + step_name + "' + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          Program: " + program_name + "' + NEWLINE)" + NEWLINE)
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "current_stdout = sys.stdout\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     environment_vars = []
@@ -188,7 +194,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
         dsn_index = check_for_dsn(a)
         disp_index = check_for_disp(a)
         if "SYSOUT=*" in a:
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = current_stdout\n")
             append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, string_io.getvalue() + NEWLINE)\n")
         if dsn_index > -1:
             split = a[dsn_index].split(EQUALS)
