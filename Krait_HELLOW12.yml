@@ -1,5 +1,5 @@
 ---
-region: CICSR1
+region: CMYACT
 tran: HELLOW12
 dds:
   TESTFILE: DATA/INPUT/FILES/SEQRTEST

@@ -3,7 +3,7 @@ from tkinter import font
 from tkinter import ttk
 from io import StringIO
 from os.path import exists
-import importlib, sys, os, random, queue
+import importlib, importlib.util, sys, os, random, queue
 import cobol_variable, string
 import krait_region, krait_util, krait_queue, krait_ui
 
@@ -95,6 +95,9 @@ class KRAIT:
     def terminate_on_callback(self):
         return
     
+    def ask_quit(self):
+        self.window.destroy()
+    
     def Launch(self):
         lbl = Label(self.window, text=krait_util.COMMAND_PROMPT_PREFIX, font=(krait_util.STANDARD_FONT, krait_util.STANDARD_FONT_SIZE),background=krait_util.STANDARD_BACKGROUND_COLOR,foreground=krait_util.STANDARD_TEXT_COLOR)
         lbl.place(x=5,y=4,in_=self.window)
@@ -151,6 +154,7 @@ class KRAIT:
         self.character_width = f.measure('W')
         self.character_height = f.metrics("linespace")
         self.window.after(100, self._check_for_message)
+        self.window.protocol("WM_DELETE_WINDOW", self.ask_quit)
         self.window.mainloop()
 
         return
@@ -199,8 +203,6 @@ class KRAIT:
             message = the_queue.get(block=False)
             print(message)
         except queue.Empty:
-            # let's try again later
-            #self.window.after(100, self._check_for_message)
             return
         
         self.process_command(message)
@@ -313,6 +315,8 @@ class KRAIT:
         elif text.lower().startswith(krait_util.CLEAR):
             self.sysout_value = krait_util.EMPTY_STRING
             self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
+        elif text.lower().startswith(krait_util.EXIT):
+            self.ask_quit()
         else:
             trans = self.check_for_transaction(text)
             if trans != krait_util.EMPTY_STRING:
@@ -351,9 +355,9 @@ class KRAIT:
 
     def set_transaction(self, text: str):
         tokens = text.split(krait_util.SPACE)
-        current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
+        current_transactions = cobol_variable._read_file(self.region_label.cget("text") + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False)
         current_transactions = current_transactions + krait_util.NEWLINE + tokens[2] + krait_util.COLON + tokens[3]
-        cobol_variable._write_file(krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
+        cobol_variable._write_file(self.region_label.cget("text") + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, current_transactions)
         self.list_transactions()
         return
 
@@ -372,7 +376,7 @@ class KRAIT:
             return
 
         tokens = text.split(krait_util.SPACE)
-        current_dd = cobol_variable._read_file(krait_util.DD_CONFIG_FILE)
+        current_dd = cobol_variable._read_file(self.region_label.cget("text") + krait_util.UNDERSCORE + krait_util.DD_CONFIG_FILE)
         value = krait_util.EMPTY_STRING
         for x in range(3, len(tokens)):
             value = value + tokens[x] + krait_util.SPACE
@@ -392,7 +396,7 @@ class KRAIT:
         if found == False:
             temp = temp + krait_util.NEWLINE + tokens[2] + krait_util.COLON + value
 
-        cobol_variable._write_file(krait_util.DD_CONFIG_FILE, temp)
+        cobol_variable._write_file(self.region_label.cget("text") + krait_util.UNDERSCORE + krait_util.DD_CONFIG_FILE, temp)
 
         self.set_dd_values()
         
@@ -436,17 +440,31 @@ class KRAIT:
             return
         
         module_name = text
+        prefix = krait_util.EMPTY_STRING
+        cp = os.getcwd().lower().replace("\\", "/")
+        if not cp.endswith("/"):
+            cp = cp + "/"
+        if not cp.endswith("converted/"):
+            prefix = "converted/"
+
         try:
             # create a StringIO object
             string_io = StringIO()            
             tokens = text.split(krait_util.SPACE)
             module_name = tokens[1]
-            cobol_variable.Build_Comm_Area(module_name, krait_util.EMPTY_STRING, [], krait_util.EMPTY_STRING)             
-            module = importlib.import_module(module_name)
+            cobol_variable.Build_Comm_Area(module_name, krait_util.EMPTY_STRING, [], krait_util.EMPTY_STRING) 
+            spec = importlib.util.spec_from_file_location(module_name, prefix + self.region_label.cget("text").lower() + ".load/" + module_name + ".py") 
+            # creates a new module based on spec
+            module = importlib.util.module_from_spec(spec)
+            
+            # executes the module in its own namespace
+            # when a module is imported or reloaded.
+            spec.loader.exec_module(module)
             module_name = module_name.replace("_jcl", "JCL")
             module_class = getattr(module, module_name + 'Class')
             
             module_instance = module_class()
+
             module_instance.calling_module = self
 
             self.transaction_module = module_instance
@@ -465,9 +483,12 @@ class KRAIT:
         except SystemExit as e:
             x = 0
         finally:
-            if module_instance != None:
-                if module_instance.is_batch:
-                    self.handle_sysout_messages(string_io)
+            try:
+                if module_instance != None:
+                    if module_instance.is_batch:
+                        self.handle_sysout_messages(string_io)
+            except Exception as e1:
+                x = e1
             return
 
     def handle_sysout_messages(self, string_io: StringIO):

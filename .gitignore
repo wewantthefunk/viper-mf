@@ -14,6 +14,7 @@ temp/
 .vscode/
 work/
 converted/*.txt
+converted/*.load
 src/scratch.py
 src/HELLOWO1.py
 src/HELLOW12.py

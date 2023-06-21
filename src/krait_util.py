@@ -21,6 +21,7 @@ ENTRY_BOX_TEXT_COLOR = "black"
 EQUALS = "="
 ERROR_TEXT_COLOR = "red"
 ESCAPE = 27
+EXIT = "exit"
 GENERIC_TRANS_ID = "XXXX"
 HELP = "help"
 HIDE_SYSOUT = "hide sysout"
@@ -59,6 +60,7 @@ SYSOUT_TITLE = "KRAIT SYSOUT Display"
 SYSOUT_WINDOW_SIZE = '300x300+30+30'
 TERMINAL_CONFIG = "terminal.config"
 TRANSACTION_CONFIG_FILE = "trans.config"
+UNDERSCORE = "_"
 UP_ARROW = 38
 WINDOW_TITLE = "KRAIT CICS Emulator"
 WINDOW_SIZE = '1520x768+2+2'
@@ -112,7 +114,6 @@ ATTENTION_KEYS = [
 
 COMMAND_LIST = [
     [HELP, "Show Help Info"]
-    , [SHOW_SYSOUT, "Open the SYSOUT Window"]
     , [HIDE_SYSOUT, "Close the SYSOUT Window"]
     , [LIST_TRANSACTIONS, "List transactions and corresponding programs"]
     , [SET_TRANSACTION, "Associate a transaction with a program"]
@@ -120,4 +121,5 @@ COMMAND_LIST = [
     , [CREATE_REGION, "Create a CICS Region"]
     , [SWITCH_REGION, "Switch to a CICS Region"]
     , [CLEAR, "Clear the screen"]
+    , [EXIT, "Exit the Krait System"]
 ]
