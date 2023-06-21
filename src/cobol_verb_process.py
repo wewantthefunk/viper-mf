@@ -28,6 +28,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         verb = EXEC_KEYWORD + SPACE + CICS_KEYWORD + SPACE + tokens[2]
         if tokens[2] == HANDLE_KEYWORD:
             verb = verb + SPACE + tokens[3]
+        current_line.is_cics = True
 
     if verb == STOP_KEYWORD:
         if len(tokens) > 1:
@@ -200,7 +201,6 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                     accept_value = accept_value + SPACE + tokens[4]
             else:
                 x = 0
-                #accept_value = "input()"
 
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
     elif verb == CICS_VERB_ASKTIME:
@@ -537,6 +537,10 @@ def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, 
     return
 
 def process_receive_map(tokens, level: int, name: str):
+    set_result_statements = EMPTY_STRING
+    map_name = EMPTY_STRING
+    map_name_get = EMPTY_STRING
+    into_statement = EMPTY_STRING
     for token in tokens:
         if token.startswith("MAP"):
             s = token.split(OPEN_PARENS)
@@ -547,11 +551,35 @@ def process_receive_map(tokens, level: int, name: str):
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 elif map_name in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-                map_name = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS + PLUS_SIGN + "'I'"
-            break
+                map_name_get = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS + PLUS_SIGN + "'I'"
+            else:
+                map_name_get = map_name
+        elif token.startswith("INTO"):
+            s = token.split(OPEN_PARENS)
+            response_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING).strip()
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if response_name in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            elif response_name in SPECIAL_REGISTERS_VARIABLES:
+                memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+            if map_name.replace(SINGLE_QUOTE, EMPTY_STRING).strip() != response_name:
+                into_statement = memory_area + " = Set_Variable(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + response_name + "', Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name + COMMA + map_name + ") ,'" + response_name + "')[1]" + NEWLINE
+        elif token.startswith("RESP"):
+            s = token.split(OPEN_PARENS)
+            response_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if response_name in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            elif response_name in SPECIAL_REGISTERS_VARIABLES:
+                memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+            set_result_statements = memory_area + " = Set_Variable(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + response_name + "', result ,'" + response_name + "')[1]" + NEWLINE
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "Get_All_Variables(self, " + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name + CLOSE_PARENS + NEWLINE)
-                
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "Get_All_Variables(self, " + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name_get + CLOSE_PARENS + NEWLINE)
+    if set_result_statements != EMPTY_STRING:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "result = 0" + NEWLINE) 
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + set_result_statements)     
+    if into_statement != EMPTY_STRING:
+           append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + into_statement)  
     return
     
 
@@ -560,6 +588,7 @@ def process_send_map(tokens, level: int, name: str):
     map_only = 'False'
     data_only = 'False'
     data = "''"
+    set_result_statements = EMPTY_STRING
     for token in tokens:
         if token.startswith("TEXT"):
             map_name = "'text'"
@@ -573,11 +602,19 @@ def process_send_map(tokens, level: int, name: str):
                 elif map_name in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                 map_name = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + map_name + SINGLE_QUOTE + CLOSE_PARENS
-            break
         elif token == "MAPONLY":
             map_only = 'True'
         elif token == "DATAONLY":
             data_only = 'True'
+        elif token.startswith("RESP"):
+            s = token.split(OPEN_PARENS)
+            response_name = s[1].replace(CLOSE_PARENS, EMPTY_STRING)
+            memory_area = SELF_REFERENCE + name + MEMORY
+            if response_name in EIB_VARIABLES:
+                memory_area = SELF_REFERENCE + EIB_MEMORY
+            elif response_name in SPECIAL_REGISTERS_VARIABLES:
+                memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+            set_result_statements = memory_area + " = Set_Variable(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + response_name + "', result ,'" + response_name + "')[1]" + NEWLINE
         elif token.startswith("FROM"):
             s = token.split(OPEN_PARENS)
             memory_area = SELF_REFERENCE + name + MEMORY
@@ -588,8 +625,9 @@ def process_send_map(tokens, level: int, name: str):
             data = "Get_Variable_Value(" + memory_area+ COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(self," + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
-
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "result = " + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(self," + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
+    if set_result_statements != EMPTY_STRING:
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + set_result_statements)
     return
 
 def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):

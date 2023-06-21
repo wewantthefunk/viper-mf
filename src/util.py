@@ -36,6 +36,7 @@ class LexicalInfo:
         self.paragraph_list = []
         self.last_known_paragraph = ""
         self.last_cmd_display = False
+        self.is_cics = False
 
 class Replacement:
     def __init__(self) -> None:

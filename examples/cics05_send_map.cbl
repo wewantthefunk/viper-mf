@@ -7,6 +7,8 @@
 
        01 TEST-DATA PIC X(10).
 
+       01 TEST-AREA PIC X(200).
+
        01 FIRST-TIME  PIC X VALUE 'Y'.
 
        01 W-RESPONSE-CODE PIC S9(8) COMP.
@@ -34,6 +36,7 @@
 
            IF FIRST-TIME = 'Y'
               EXEC CICS SEND MAP('RECVMAP')
+                 RESP(W-RESPONSE-CODE)
               END-EXEC
               EXEC CICS WRITEQ TS 
                  QUEUE('CICS05Q')
@@ -44,12 +47,14 @@
            ELSE
               MOVE 'N' TO FIRST-TIME
               EXEC CICS RECEIVE MAP('RECVMAP')
-                 
+                 INTO (TEST-AREA)
+                 RESP(W-RESPONSE-CODE)
               END-EXEC
 
               MOVE NAMEO TO HLBL2I
 
               EXEC CICS SEND MAP('HELLOMAP')
+                 RESP(W-RESPONSE-CODE)
               END-EXEC
 
               PERFORM RETURN-TO-CICS

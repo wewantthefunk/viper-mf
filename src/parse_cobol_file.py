@@ -93,6 +93,7 @@ def parse_cobol_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
     append_file(name + PYTHON_EXT, NEWLINE)
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 2)) + "def initialize2(self):" + NEWLINE)
+    append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + SELF_REFERENCE + "is_batch = " + str(not current_line.is_cics) + NEWLINE)
     for pl in current_line.paragraph_list:
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "self.paragraph_list.append('" + pl + "')\n")
     append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + "return" + NEWLINE)
@@ -304,6 +305,7 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
         append_file(name + PYTHON_EXT, "# PROGRAM-ID: " + name + NEWLINE)
         append_file(name + PYTHON_EXT, "class " + name + "Class:" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 1) + "def __init__(self):" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "is_batch = True" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "call_result = None" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "terminate = False" + NEWLINE)
         append_file(name + PYTHON_EXT, pad(len(INDENT) * 2) + SELF_REFERENCE + "paragraph_list = []" + NEWLINE)
@@ -355,4 +357,4 @@ def process_line(line: str, current_division: str, name: str, current_line: Lexi
     return [current_division, name, current_line]
 
 if __name__ == "__main__":
-    parse_cobol_file("examples/hellow97_level_77.cbl", "converted/")
+    parse_cobol_file("examples/cics05_send_map.cbl", "converted/")

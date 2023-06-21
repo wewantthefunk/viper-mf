@@ -465,7 +465,9 @@ class KRAIT:
         except SystemExit as e:
             x = 0
         finally:
-            self.handle_sysout_messages(string_io)
+            if module_instance != None:
+                if module_instance.is_batch:
+                    self.handle_sysout_messages(string_io)
             return
 
     def handle_sysout_messages(self, string_io: StringIO):
@@ -497,8 +499,6 @@ class KRAIT:
         return
 
     def write_to_sysout(self, output: str):
-        #t = self.sysout_label.cget("text")
-        #self.sysout_label.config(text=t + output)
         self.sysout_value = output
         self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
 
@@ -529,37 +529,43 @@ class KRAIT:
         return
 
     def build_map(self, calling_tran, map_name: str, data: str, map_only: bool, data_only: bool):
-        map_name = map_name.strip()
-        self.clear_frame(self.main_frame)
-        map = cobol_variable._read_file(map_name + ".txt", False)
-        if map == krait_util.EMPTY_STRING:
-            map = cobol_variable._read_file(map_name + ".map", False)
+        result = 0
+
+        try:
+            map_name = map_name.strip()
+            self.clear_frame(self.main_frame)
+            map = cobol_variable._read_file(map_name + ".txt", False)
             if map == krait_util.EMPTY_STRING:
-                map = cobol_variable._read_file("maps/" + map_name + ".map", False)
+                map = cobol_variable._read_file(map_name + ".map", False)
                 if map == krait_util.EMPTY_STRING:
-                    map = cobol_variable._read_file("maps/" + map_name + ".txt", False)
+                    map = cobol_variable._read_file("maps/" + map_name + ".map", False)
                     if map == krait_util.EMPTY_STRING:
-                        self.show_error_message("MAP " + map_name + " NOT FOUND")
-                        return
+                        map = cobol_variable._read_file("maps/" + map_name + ".txt", False)
+                        if map == krait_util.EMPTY_STRING:
+                            self.show_error_message("MAP " + map_name + " NOT FOUND")
+                            return
 
-        lines = map.split(krait_util.NEWLINE)
+            lines = map.split(krait_util.NEWLINE)
 
-        field_info = krait_util.EMPTY_STRING
+            field_info = krait_util.EMPTY_STRING
 
-        for x in range(0, len(lines)):
-            line = lines[x].strip().replace(krait_util.NEWLINE, krait_util.SPACE).replace(krait_util.CARRIAGE_RETURN, krait_util.SPACE)
-            if line.startswith(krait_util.COBOL_COMMENT):
-                continue
-            
-            field_info = field_info + line + krait_util.SPACE
-            if line.endswith(krait_util.MAP_CONTINUATION_CHARACTER) == False:
-                self.build_field(field_info, data, map_only, data_only, calling_tran)
-                field_info = krait_util.EMPTY_STRING
+            for x in range(0, len(lines)):
+                line = lines[x].strip().replace(krait_util.NEWLINE, krait_util.SPACE).replace(krait_util.CARRIAGE_RETURN, krait_util.SPACE)
+                if line.startswith(krait_util.COBOL_COMMENT):
+                    continue
+                
+                field_info = field_info + line + krait_util.SPACE
+                if line.endswith(krait_util.MAP_CONTINUATION_CHARACTER) == False:
+                    self.build_field(field_info, data, map_only, data_only, calling_tran)
+                    field_info = krait_util.EMPTY_STRING
 
-        self.build_field(field_info, data, map_only, data_only, calling_tran)
+            self.build_field(field_info, data, map_only, data_only, calling_tran)
 
-        return
+        except Exception as e:
+            result = 1
 
+        return result
+    
     def build_field(self, field_info: str, data: str, map_only: bool, data_only: bool, calling_tran):
         if krait_util.MAP_FIELD_IDENTIFIER not in field_info:
             return krait_util.ZERO
