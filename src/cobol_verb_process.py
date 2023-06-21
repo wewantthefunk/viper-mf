@@ -1761,20 +1761,29 @@ def process_display_verb(tokens, name: str, level: int):
 
 def process_math_verb(tokens, name: str, level: int):
     giving = tokens[3]
+    is_into = False
     if GIVING_KEYWORD in tokens:
         if TO_KEYWORD in tokens or BY_KEYWORD in tokens:
             giving = tokens[5]
         else:
             giving = tokens[4]
     mod = "'" + tokens[1] + "'"
-    target = tokens[3]
-    if tokens[1].lstrip('+-').isdigit() == False and tokens[1] != LENGTH_KEYWORD:
+    if tokens[2] == INTO_KEYWORD:
+        target = tokens[1]
+        mod = "'" + tokens[3] + "'"
+        is_into = True
+    else:
+        target = tokens[3]
+    if tokens[1].lstrip('+-').isdigit() == False and tokens[1].strip() != LENGTH_KEYWORD:
         memory_area = SELF_REFERENCE + name + MEMORY
-        if tokens[1] in EIB_VARIABLES:
+        loc = 1
+        if is_into:
+            loc = 3
+        if tokens[loc] in EIB_VARIABLES:
             memory_area = SELF_REFERENCE + EIB_MEMORY
-        elif tokens[3] in SPECIAL_REGISTERS_VARIABLES:
+        elif tokens[loc] in SPECIAL_REGISTERS_VARIABLES:
                 memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-        mod = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')"
+        mod = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[loc] + "','" + tokens[loc] + "')"
     elif tokens[1] == LENGTH_KEYWORD:
         t = 2
         if tokens[2] == OF_KEYWORD:

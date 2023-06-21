@@ -98,6 +98,9 @@ def write_out_job_info(job_name, target_dir):
     write_file(target_dir + job_name + CONVERTED_JCL_EXT, "# JOB NAME: " + job_name + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def __init__(self):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "self.is_batch = True\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def terminate_on_callback(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "return\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
@@ -130,7 +133,7 @@ def write_out_final_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "print('Job Results stored in file: ' + jes_result_file)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "if __name__ == '__main__':\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj = " + job_name + "JCLClass()\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj.main()\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "main_obj.main(main_obj)\n")
 
     return
 
