@@ -154,7 +154,7 @@ class KRAIT:
         f = font.Font(size=krait_util.STANDARD_FONT_SIZE, family=krait_util.STANDARD_BACKGROUND_COLOR)
         self.character_width = f.measure('W')
         self.character_height = f.metrics("linespace")
-        self.window.after(100, self._check_for_message)
+        #self.window.after(100, self._check_for_message)
         self.window.protocol("WM_DELETE_WINDOW", self.ask_quit)
         self.window.mainloop()
 
@@ -278,7 +278,7 @@ class KRAIT:
         if self.region_label == None:
             return
         
-        current_dd = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.DD_CONFIG_FILE, False)
+        current_dd = cobol_variable._read_file(self.region_label.cget("text").strip() + krait_util.UNDERSCORE + krait_util.DD_CONFIG_FILE, False)
         dd_splits = current_dd.split(krait_util.NEWLINE)
         for dd_split in dd_splits:
             if dd_split == krait_util.EMPTY_STRING:
@@ -355,7 +355,7 @@ class KRAIT:
         return
 
     def list_transactions(self):
-        current_transactions = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False)
+        current_transactions = cobol_variable._read_file(self.region_label.cget("text").strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False)
         self.sysout_value = current_transactions + krait_util.NEWLINE
         self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
         return
@@ -441,7 +441,7 @@ class KRAIT:
 
     def check_for_transaction(self, trans: str):
         trans = trans.lower().strip()
-        current_transactions = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False).split(krait_util.NEWLINE)
+        current_transactions = cobol_variable._read_file(self.region_label.cget("text").strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False).split(krait_util.NEWLINE)
         for ct in current_transactions:
             if ct == krait_util.EMPTY_STRING:
                 continue
@@ -504,6 +504,7 @@ class KRAIT:
                 if module_instance != None:
                     if module_instance.is_batch:
                         self.handle_sysout_messages(string_io)
+                        self.receive_control(True)
             except Exception as e1:
                 x = e1
             return
