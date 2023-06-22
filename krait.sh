@@ -18,17 +18,20 @@ import os
 import yaml
 import subprocess
 
-with open("$yaml_file", "r") as file:
-    data = yaml.safe_load(file)
+if "$yaml_file" == "":
+    subprocess.run(["python3", "converted/krait.py"])
+else:
+    with open("$yaml_file", "r") as file:
+        data = yaml.safe_load(file)
 
-for key, value in data.items():
-    if isinstance(value, dict):
-        for nested_key, nested_value in value.items():
-            os.environ[f"{nested_key.upper()}"] = nested_value
-            print(nested_key.upper())
-    else:
-        os.environ[key.upper()] = value
-        print(key.upper())
+    for key, value in data.items():
+        if isinstance(value, dict):
+            for nested_key, nested_value in value.items():
+                os.environ[f"{nested_key.upper()}"] = nested_value
+                print(nested_key.upper())
+        else:
+            os.environ[key.upper()] = value
+            print(key.upper())
 
-subprocess.run(["python3", "converted/krait.py", os.environ["REGION"], os.environ["TRAN"]])
+    subprocess.run(["python3", "converted/krait.py", os.environ["REGION"], os.environ["TRAN"]])
 EOF
