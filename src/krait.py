@@ -348,7 +348,7 @@ class KRAIT:
         return
 
     def list_transactions(self):
-        current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False)
+        current_transactions = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False)
         self.sysout_value = current_transactions + krait_util.NEWLINE
         self.build_map(self, krait_util.SYSMAP_NAME, krait_util.EMPTY_STRING, True, False)
         return
@@ -407,6 +407,17 @@ class KRAIT:
         value = cobol_variable._read_file(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT)
         if value == krait_util.EMPTY_STRING:
             cobol_variable._write_file(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT, krait_util.REGION_FILE_EXT)
+
+        prefix = krait_util.EMPTY_STRING
+        cp = os.getcwd().lower().replace("\\", "/")
+        if not cp.endswith("/"):
+            cp = cp + "/"
+        if not cp.endswith("converted/"):
+            prefix = "converted/"
+
+        folder_path = prefix + tokens[2].lower().strip() + ".load"
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
         
         return
     
@@ -422,7 +433,7 @@ class KRAIT:
 
     def check_for_transaction(self, trans: str):
         trans = trans.lower().strip()
-        current_transactions = cobol_variable._read_file(krait_util.TRANSACTION_CONFIG_FILE, False).split(krait_util.NEWLINE)
+        current_transactions = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.TRANSACTION_CONFIG_FILE, False).split(krait_util.NEWLINE)
         for ct in current_transactions:
             if ct == krait_util.EMPTY_STRING:
                 continue
