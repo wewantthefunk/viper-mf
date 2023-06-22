@@ -3,7 +3,8 @@ from tkinter import font
 from tkinter import ttk
 from io import StringIO
 from os.path import exists
-import importlib, importlib.util, sys, os, random, queue
+from importlib.machinery import SourceFileLoader
+import sys, os, random, queue
 import cobol_variable, string
 import krait_region, krait_util, krait_queue, krait_ui
 
@@ -274,14 +275,20 @@ class KRAIT:
         return
 
     def set_dd_values(self):
-        current_dd = cobol_variable._read_file(krait_util.DD_CONFIG_FILE, False)
+        if self.region_label == None:
+            return
+        
+        current_dd = cobol_variable._read_file(self.region_label.cget("text").lower().strip() + krait_util.UNDERSCORE + krait_util.DD_CONFIG_FILE, False)
         dd_splits = current_dd.split(krait_util.NEWLINE)
         for dd_split in dd_splits:
             if dd_split == krait_util.EMPTY_STRING:
                 continue
 
             s = dd_split.split(krait_util.COLON)
+            s[0] = s[0].strip()
+            s[1] = s[1].strip()
             os.environ[s[0]] = s[1].replace(krait_util.NEWLINE, krait_util.EMPTY_STRING).replace(krait_util.CARRIAGE_RETURN, krait_util.EMPTY_STRING)
+        
         return
 
     def process_command(self, text: str):
@@ -426,6 +433,7 @@ class KRAIT:
 
         if cobol_variable._file_exists(tokens[2].upper().strip() + krait_util.REGION_FILE_EXT):
             self.region_label.config(text=tokens[2].upper().strip())
+            self.set_dd_values()
         else:
             self.show_error_message("Region '" + tokens[2].upper().strip() + "' does not exist")
 
@@ -464,15 +472,13 @@ class KRAIT:
             tokens = text.split(krait_util.SPACE)
             module_name = tokens[1]
             cobol_variable.Build_Comm_Area(module_name, krait_util.EMPTY_STRING, [], krait_util.EMPTY_STRING) 
-            spec = importlib.util.spec_from_file_location(module_name, prefix + self.region_label.cget("text").lower() + ".load/" + module_name + ".py") 
-            # creates a new module based on spec
-            module = importlib.util.module_from_spec(spec)
+            path = prefix + self.region_label.cget("text").lower() + ".load/"
+            sub_modules = self.get_submodules(cp + path + module_name + ".py", cp + path)
+            [SourceFileLoader(submodule_name, path + submodule_name + ".py").load_module() for submodule_name in sub_modules]
+            module_class = module_name.replace("_jcl", "JCL")
+            module = SourceFileLoader(module_class, path + module_name + ".py").load_module()
             
-            # executes the module in its own namespace
-            # when a module is imported or reloaded.
-            spec.loader.exec_module(module)
-            module_name = module_name.replace("_jcl", "JCL")
-            module_class = getattr(module, module_name + 'Class')
+            module_class = getattr(module, module_class + 'Class')
             
             module_instance = module_class()
 
@@ -741,6 +747,24 @@ class KRAIT:
             response_code = krait_util.EIB_QIDERR_RESP
             
         return [krait_util.EMPTY_STRING, response_code]
+    
+    def get_submodules(self, file: str, path: str):
+        result = []
+        if exists(file) == False:
+            return result
+        with open(file, mode="rb") as file:
+            for line in file:
+                line = str(line, encoding="utf-8")
+                if line.startswith("from cobol_variable import *"):
+                    break
+                else:
+                    tokens = line.split(krait_util.SPACE)
+                    result.append(tokens[1])
+                    result.extend(self.get_submodules(path + tokens[1] + ".py", path))
+        
+        return result
+
+        
 
 if __name__ == '__main__':
 
