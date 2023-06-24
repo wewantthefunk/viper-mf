@@ -15,7 +15,7 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
     level = close_out_evaluate(tokens[0], name, level)
 
     if current_line.last_cmd_display == True:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
+        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
         last_cmd_display = False
         current_line.last_cmd_display = False
 
@@ -1218,8 +1218,20 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
                             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                         last_known_operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + t + SINGLE_QUOTE + CLOSE_PARENS + SPACE
             positions = s[len(s) - 1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
-            slice_length = int(positions[0]) -1 + int(positions[1])
-            slice_compare = OPEN_BRACKET + str(int(positions[0]) - 1) + COLON + str(slice_length) + CLOSE_BRACKET
+            slice_length = "0"
+            pos0 = str(positions[0])
+            if positions[0].isnumeric() == False:
+                memory_area = SELF_REFERENCE + name + MEMORY 
+                if positions[0] in EIB_VARIABLES:
+                    memory_area = SELF_REFERENCE + EIB_MEMORY
+                elif positions[0] in SPECIAL_REGISTERS_VARIABLES:
+                    memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+                slice_length = "int(Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + positions[0] + "','" + positions[0] + "')) - 1 + " + positions[1]
+                pos0 = "int(Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + positions[0] + "','" + positions[0] + "')) - 1"
+            else:
+                slice_length = str(int(positions[0]) - 1 + int(positions[1]))
+                pos0 = str(int(positions[0]) - 1)
+            slice_compare = OPEN_BRACKET + pos0 + COLON + slice_length + CLOSE_BRACKET
             last_known_slice_compare = slice_compare
             if count < len(tokens):
                 if tokens[count] not in COBOL_COMPARISON_OPERATORS and tokens[count] != IN_KEYWORD and tokens[count] != IS_KEYWORD and tokens[count] != NOT_KEYWORD and tokens[count] != NUMERIC_KEYWORD:
@@ -1772,7 +1784,7 @@ def process_display_verb(tokens, name: str, level: int):
                 if tokens[count + 1] == OF_KEYWORD:
                     t = 'len_' + tokens[count + 2]
                     parent = tokens[count + 2]
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
+            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
     return

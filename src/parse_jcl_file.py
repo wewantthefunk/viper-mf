@@ -96,11 +96,16 @@ def parse_jcl_file(file: str, target_dir: str, dep_dir = EMPTY_STRING):
 
 def write_out_job_info(job_name, target_dir):
     write_file(target_dir + job_name + CONVERTED_JCL_EXT, "# JOB NAME: " + job_name + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from io import StringIO\nfrom cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "from cobol_variable import *\nfrom datetime import datetime\nimport sys, os\n") 
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "class " + job_name + "JCLClass:\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def __init__(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "self.is_batch = True\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "self.jes_out_file = ''\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def print_out(self, val, end_l):\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(self.jes_out_file + '.SYSOUT', val + end_l)\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "return\n")
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 1) + "def terminate_on_callback(self):\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "return\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, "\n")
@@ -114,7 +119,7 @@ def write_out_job_info(job_name, target_dir):
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "highest_return_code = 0\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'Path("JES2/OUTPUT/").mkdir(parents=True, exist_ok=True)\n')
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "jes_result_file = 'JES2/OUTPUT/" + job_name + "_' + datetime.strftime(start_time, '%d-%b-%Y-%H-%M-%S')" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io = StringIO()\n")    
+    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "self.jes_out_file = jes_result_file\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing Job: " + job_name + "' + NEWLINE)\n")
 
     return
@@ -143,8 +148,6 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing    Step: " + step_name + "' + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          Program: " + program_name + "' + NEWLINE)" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "current_stdout = sys.stdout\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     environment_vars = []
 
@@ -197,8 +200,10 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
         dsn_index = check_for_dsn(a)
         disp_index = check_for_disp(a)
         if "SYSOUT=*" in a:
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = current_stdout\n")
-            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, string_io.getvalue() + NEWLINE)\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + 'with open(jes_result_file + ".SYSOUT", mode="rb") as file:\n')
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 3) + "for line in file:\n")
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 4) + 'line = str(line, encoding="utf-8")\n')
+            append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 4) + "append_file_data(jes_result_file, line + NEWLINE)\n")
         if dsn_index > -1:
             split = a[dsn_index].split(EQUALS)
             split1 = split[1].split(COMMA)
@@ -216,9 +221,7 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
                 if path != EMPTY_STRING:
                     if path.endswith(FORWARD_SLASH) == False:
                         path = path + FORWARD_SLASH
-                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '===> SYSOUT messages are stored in: " + path + filename + "' + NEWLINE + NEWLINE)\n\n")
-                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "write_file_data('" + path + filename + "', string_io.getvalue())\n")
-                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = sys.__stdout__\n")
+                append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '===> SYSOUT messages are stored in: " + path + filename + "' + NEWLINE + NEWLINE)\n")
         if disp_index > -1:
             disp_clause = a[disp_index].replace("DISP=", EMPTY_STRING)
             if OPEN_PARENS in a[disp_index]:
@@ -238,10 +241,6 @@ def write_out_step_info(job_name, step_name, program_name, args, target_dir, par
                 elif x == 2:
                     if disp[x] == "DELETE":
                         cleanup_abnormal.append(path + filename)
-
-
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.truncate(0)\n")
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "string_io.seek(0)\n")
 
     for e in environment_vars:
         append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "os.unsetenv('" + e + "')\n")
@@ -265,7 +264,6 @@ def process_idcams_cmd(job_name: str, step_name: str, inline_args: str, target_d
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '" + pad_char(20, DASH) + "' + NEWLINE)" + NEWLINE)
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, 'Executing    Step: " + step_name + "' + NEWLINE)\n")
     append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "append_file_data(jes_result_file, '          Program: " + program_name + "' + NEWLINE)" + NEWLINE)
-    append_file(target_dir + job_name + CONVERTED_JCL_EXT, pad(len(INDENT) * 2) + "sys.stdout = string_io\n")
 
     args = inline_args.split(SPACE)
 

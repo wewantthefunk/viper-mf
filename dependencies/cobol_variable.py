@@ -1346,7 +1346,7 @@ def Get_Variable_From_Caller(main_module, caller_module, name: str):
     result = caller_module.get_value(main_module, name)
     return result
 
-def Display_Variable(main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
+def Display_Variable(calling_module, main_variable_memory, variable_lists, name: str, parent: str, is_literal: bool, is_last: bool):
     dv = name
     if is_literal == False:
         get_length_of = False
@@ -1394,7 +1394,7 @@ def Display_Variable(main_variable_memory, variable_lists, name: str, parent: st
                                         
                     break
 
-    print_value(dv)
+    print_value(dv, calling_module)
 
     return
 
@@ -1503,11 +1503,11 @@ def milliseconds_since_1900():
     milliseconds = diff.total_seconds() * 1000
     return int(milliseconds)
 
-def print_value(l: str):
+def print_value(l: str, calling_module):
     end_l = EMPTY_STRING
     if l == EMPTY_STRING:
         end_l = NEWLINE
-    print(l, end=end_l)
+    calling_module.print_out(l, end_l)
     return
 
 def gen_rand(length: int):
