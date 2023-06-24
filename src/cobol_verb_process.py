@@ -967,6 +967,7 @@ def process_inspect_verb(tokens, name: str, level: int):
         func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3 + offset] + COMMA + tokens[5 + offset] + COMMA + only_first + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
         append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
 
+
     return
 
 def close_out_evaluate(verb: str, name: str, level: int):
@@ -1527,11 +1528,16 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
     elif tokens[varying_index + 1] in SPECIAL_REGISTERS_VARIABLES:
         memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
     operand2 = tokens[until_index + 3]
+    strip_logic = EMPTY_STRING
     if operand2.startswith(PLUS_SIGN):
         operand2 = operand2.replace(PLUS_SIGN, EMPTY_STRING)
     elif operand2.isnumeric() == False and operand2.startswith(SINGLE_QUOTE) == False:
-        operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
-    line = "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + SPACE \
+        if operand2 == SPACE_KEYWORD or operand2 == SPACES_KEYWORD:
+            operand2 = "EMPTY_STRING"
+            strip_logic = ".strip()"
+        else:
+            operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + SINGLE_QUOTE + CLOSE_PARENS
+    line = "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[until_index + 1] + "','" + tokens[until_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + strip_logic + SPACE \
         + convert_operator_opposite(tokens[until_index + 2]) + SPACE + operand2
 
     append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + line)
@@ -1565,8 +1571,15 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
             memory_area = SELF_REFERENCE + EIB_MEMORY
         elif operand1 in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-        line = "\\" + NEWLINE + " and Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + operand1 + "','" + operand1 + SINGLE_QUOTE + CLOSE_PARENS + sub_string
+
         offset = 2
+        final_paren = EMPTY_STRING
+        int_conv = EMPTY_STRING
+        if tokens[or_index + offset + 1].isnumeric():
+            final_paren = CLOSE_PARENS
+            int_conv = "int("
+        line = "\\" + NEWLINE + " and " + int_conv + "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + operand1 + "','" + operand1 + SINGLE_QUOTE + CLOSE_PARENS + sub_string + final_paren
+        
         if tokens[or_index + 2] == NOT_KEYWORD:
             line = line + SPACE + convert_operator(tokens[or_index + 3])
             offset = 3
@@ -1581,12 +1594,10 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
                 memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
             t = "[Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "')-1" + COLON + "Get_Variable_Value(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" + split[0] + "','" + split[0] + "') + " + split[1] + "-1]"
             line = line + t + SPACE
-        else:
-            line = line + SPACE + tokens[or_index + 2] + SPACE
-        line = line + convert_operator(tokens[or_index + offset + 1])
+        line = line + convert_operator_opposite(tokens[or_index + offset])
         if (or_index + offset + 2) < len(tokens):
-            if tokens[or_index + offset + 2] not in COBOL_VERB_LIST and tokens[or_index + offset + 2] != PERIOD:
-                line = line + tokens[or_index + offset + 2]
+            if tokens[or_index + offset + 1] not in COBOL_VERB_LIST and tokens[or_index + offset + 1] != PERIOD:
+                line = line + tokens[or_index + offset + 1]
         append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + line)
     append_file(name + PYTHON_EXT, COLON + NEWLINE)
     current_line.loop_modifier.append(SELF_REFERENCE + name + "Memory = Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
@@ -1643,6 +1654,13 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
                     elif s1[0] in SPECIAL_REGISTERS_VARIABLES:
                         memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                     end_offset = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + s1[0] + "','" + s1[0] + "')"
+                if end.isnumeric() == False:
+                    memory_area = SELF_REFERENCE + name + MEMORY
+                    if s1[0] in EIB_VARIABLES:
+                        memory_area = SELF_REFERENCE + EIB_MEMORY
+                    elif s1[0] in SPECIAL_REGISTERS_VARIABLES:
+                        memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
+                    end = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + "variables_list,'" + end + "','" + end + "')"
 
                 value = get_var_value + OPEN_BRACKET + end_offset + "- 1" + COLON + end_offset + " - 1 + " + end + CLOSE_BRACKET
             else:
@@ -1763,7 +1781,7 @@ def process_math_verb(tokens, name: str, level: int):
     giving = tokens[3]
     is_into = False
     if GIVING_KEYWORD in tokens:
-        if TO_KEYWORD in tokens or BY_KEYWORD in tokens:
+        if TO_KEYWORD in tokens or BY_KEYWORD in tokens or FROM_KEYWORD in tokens:
             giving = tokens[5]
         else:
             giving = tokens[4]
@@ -1843,6 +1861,8 @@ def convert_operator_opposite(operator: str):
         return LESS_THAN_EQUAL_TO
     if operator == LESS_THAN_EQUAL_TO:
         return GREATER_THAN
+    if operator == NOT_EQUALS_COBOL:
+        return DOUBLE_EQUALS
 
     return operator
 
@@ -1855,6 +1875,8 @@ def convert_operator(operator: str):
         return GREATER_THAN
     elif operator == DIVISION_OPERATOR:
         return DIVISION_OPERATOR + DIVISION_OPERATOR
+    elif operator == NOT_EQUALS_COBOL:
+        return NOT_EQUALS
     
     return operator
 

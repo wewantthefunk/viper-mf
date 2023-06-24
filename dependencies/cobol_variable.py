@@ -880,7 +880,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                     value = value.strip()
                     if value.strip() == EMPTY_STRING or value.strip() == SPACES_INITIALIZER:
                         value = ZERO_STRING
-                    if not value.isnumeric():
+                    tval = value
+                    if tval.startswith(DASH):
+                        tval = tval[1:]
+                    if not tval.isnumeric():
                         raise Exception("Invalid value assigned to numeric datatype: '" + value + "'")
                     if var.data_type == NUMERIC_SIGNED_DATA_TYPE:
                         if value.startswith(NEGATIVE_SIGN):
@@ -1091,7 +1094,21 @@ def _get_variable_value(main_variable_memory, var_list, name: str, parent, force
         s = var_name.split(OPEN_PARENS)
         var_name = s[0]
         temp_sub_string = s[1].replace(CLOSE_PARENS, EMPTY_STRING).split(COLON)
-        sub_string = str(int(temp_sub_string[0]) - 1) + COLON + str(int(temp_sub_string[0]) + int(temp_sub_string[1]) - 1)
+        if temp_sub_string[0].isnumeric() and temp_sub_string[1].isnumeric():
+            sub_string = str(int(temp_sub_string[0]) - 1) + COLON + str(int(temp_sub_string[0]) + int(temp_sub_string[1]) - 1)
+        else:
+            s_start = 0
+            s_end = 0
+            if not temp_sub_string[0].isnumeric():
+                s_start = Get_Variable_Value(main_variable_memory, orig_var_list, temp_sub_string[0], temp_sub_string[0])
+            else:
+                s_start = int(temp_sub_string[0])
+            if not temp_sub_string[1].isnumeric():
+                s_end = Get_Variable_Value(main_variable_memory, orig_var_list, temp_sub_string[1], temp_sub_string[1])
+            else:
+                s_end = int(temp_sub_string[1])
+
+            sub_string = str(s_start - 1) + COLON + str(s_start - 1 + s_end)
 
     var = _find_variable(var_list, var_name)
 
