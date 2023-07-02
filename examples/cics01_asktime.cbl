@@ -16,4 +16,6 @@
            EXEC CICS        ASKTIME
            END-EXEC
 
+           DISPLAY WS-ABSTIME.
+
            STOP RUN.

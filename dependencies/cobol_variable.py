@@ -41,6 +41,7 @@ LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
 LEVEL_88 = "88"
+LINUX_OS = "posix"
 LITERAL = "literal"
 LOW_VALUES_NAME = 'LOW-VALUES'
 MULTIPLICATION_OPERATOR = "*"
@@ -64,6 +65,7 @@ SPACES_INITIALIZER = "____spaces"
 SYSIN_ENV_VARIABLE = "SYSIN"
 UNSIGNED_HEX_FLAG = "F"
 UPD_COMMAND = "update"
+WINDOWS_OS = "nt"
 ZERO = 0
 ZERO_MASK = "Z"
 ZERO_STRING = "0"
@@ -94,6 +96,39 @@ NUMERIC_SIGNS = [
     POSITIVE_SIGN
     , NEGATIVE_SIGN
 ]
+
+ATTENTION_KEYS = [
+    13,
+    10,
+    27,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123
+]
+
+LINUX_ATTENTION_KEYS = [
+    36,
+    104
+]
+
+def CheckAttentionKey(keycode: int):
+    if os.name == WINDOWS_OS:
+        return keycode in ATTENTION_KEYS
+    elif os.name == LINUX_OS:
+        return keycode in LINUX_ATTENTION_KEYS
+    
+    return False
 
 class EBCDICASCII:
     def __init__(self, hex_val: str, ebcdic_val: str, ascii_val: str, ascii_hex = '') -> None:
