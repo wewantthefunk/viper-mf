@@ -185,6 +185,8 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
         process_write_verb(name, level, tokens)
     elif verb == COBOL_VERB_CALL:
         process_call_verb(tokens, name, indent, level, args, current_line)
+    elif verb == COBOL_VERB_INITIALIZE:
+        process_move_verb([COBOL_VERB_MOVE, INIT_VALUE, TO_KEYWORD, tokens[1]], name, indent, level)
     elif verb == COBOL_VERB_SEARCH:
         last_cmd_display = False
         current_line.last_cmd_display = False

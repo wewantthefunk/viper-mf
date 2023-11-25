@@ -37,6 +37,7 @@ HIGH_VALUES_NAME = 'HIGH-VALUES'
 INDEX_FILE_EXT = ".idx"
 INDEX_FILE_FIELD_DELIMITER = "^^^"
 INIT_ALL_PREFIX = "___&"
+INIT_VALUE = "~_~_~_~_"
 LENGTH_FUNC_PREFIX = "len_"
 LESS_THAN = "<"
 LESS_THAN_EQUAL = "<="
@@ -912,6 +913,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 return [True, main_variable_memory]
             else:
                 if var.data_type in NUMERIC_DATA_TYPES:
+                    if value == INIT_VALUE:
+                        value = ZERO
                     value = value.strip()
                     if value.strip() == EMPTY_STRING or value.strip() == SPACES_INITIALIZER:
                         value = ZERO_STRING
@@ -927,6 +930,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                                 value = value[1:]
                         else:
                             var.sign = POSITIVE_SIGN
+                    else:
+                        value = tval
                     pad_length = var.unpacked_length
                     if var.comp_indicator == COMP_3_INDICATOR:
                         if not value.endswith(POSITIVE_SIGNED_HEX_FLAG) and not value.endswith(NEGATIVE_SIGNED_HEX_FLAG) and not value.endswith(UNSIGNED_HEX_FLAG):
@@ -978,6 +983,8 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 elif str(value) == SPACES_INITIALIZER:
                     value = pad(length)
                 elif var.data_type not in NUMERIC_DATA_TYPES:
+                    if value == INIT_VALUE:
+                        value = EMPTY_STRING
                     value = value.ljust(length, SPACE)
                 
                 if len(sub_string) > 0:
@@ -987,7 +994,10 @@ def _set_variable(main_variable_memory, var_list, name: str, value: str, parent,
                 if var.name == DFHCOMMAREA_NAME:
                     _write_file(orig_var_list[0][0].value + COMM_AREA_EXT, value)
                 else:
-                    main_variable_memory = main_variable_memory[:start] + value[:length] + main_variable_memory[start + length:]
+                    if var.data_type in NUMERIC_DATA_TYPES:
+                        main_variable_memory = main_variable_memory[:start] + value[len(value) - length:length + 1] + main_variable_memory[start + length:]
+                    else:
+                        main_variable_memory = main_variable_memory[:start] + value[:length] + main_variable_memory[start + length:]
             return [True, main_variable_memory]
         else:
             count = count + 1
