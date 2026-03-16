@@ -1,22 +1,48 @@
 from cobol_lexicon import *
 from util import *
+from codegen import CodeWriter
+from translation_context import TranslationContext
 from decimal import Decimal
 
-last_cmd_display = False
-evaluate_compare = EMPTY_STRING
-evaluate_compare_stack = []
-nested_above_evaluate_compare = EMPTY_STRING
-is_evaluating = False
-is_first_when = True
-is_perform_looping = False
 
-def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, next_few_lines):
-    global last_cmd_display, evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when, paragraph_list
-    level = close_out_evaluate(tokens[0], name, level)
+def _normalize_verb(tokens):
+    """Return the verb key used for registry lookup (e.g. EXEC CICS HANDLE ABEND -> one key)."""
+    if len(tokens) == 0:
+        return None
+    verb = tokens[0]
+    if verb == EXEC_KEYWORD and len(tokens) > 2 and tokens[1] == CICS_KEYWORD:
+        verb = EXEC_KEYWORD + SPACE + CICS_KEYWORD + SPACE + tokens[2]
+        if len(tokens) > 3 and tokens[2] == HANDLE_KEYWORD:
+            verb = verb + SPACE + tokens[3]
+    return verb
+
+
+def _handle_move(tokens, name, indent, level, args, current_line, next_few_lines, writer, context):
+    process_move_verb(tokens, name, indent, level, writer)
+    context.last_cmd_display = False
+    current_line.last_cmd_display = False
+    return level
+
+
+def _handle_display(tokens, name, indent, level, args, current_line, next_few_lines, writer, context):
+    process_display_verb(tokens, name, level, writer)
+    context.last_cmd_display = True
+    current_line.last_cmd_display = True
+    return level
+
+
+VERB_REGISTRY = {
+    COBOL_VERB_MOVE: _handle_move,
+    COBOL_VERB_DISPLAY: _handle_display,
+}
+
+
+def process_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, next_few_lines, writer: CodeWriter, context: TranslationContext):
+    level = close_out_evaluate(tokens[0], name, level, writer, context)
 
     if current_line.last_cmd_display == True:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
-        last_cmd_display = False
+        writer.write(writer.indent(level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'','literal',True,True)" + NEWLINE)
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
 
     if tokens[0] == COBOL_VERB_CALL and P2C_TERMINATE in tokens[1]:
@@ -36,13 +62,20 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 tokens[0] = tokens[0] + SPACE + RUN_KEYWORD
 
     if verb == VERB_RESET:
-        last_cmd_display = False
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
-        
-    elif verb in COBOL_END_BLOCK_VERBS:
+        current_line.is_evaluating = context.is_evaluating
+        return level
+
+    if verb in VERB_REGISTRY:
+        level = VERB_REGISTRY[verb](tokens, name, indent, level, args, current_line, next_few_lines, writer, context)
+        current_line.is_evaluating = context.is_evaluating
+        return level
+
+    if verb in COBOL_END_BLOCK_VERBS:
         if verb != COBOL_VERB_READ_END:
             if verb == COBOL_VERB_PERFORM_END:
-                level = close_out_perform_loop(tokens[0], name, level, current_line)
+                level = close_out_perform_loop(tokens[0], name, level, current_line, writer, context)
             elif verb == COBOL_VERB_EXEC_END:
                 x = 0
             elif verb == COBOL_VERB_IF_END:
@@ -52,17 +85,13 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             else:
                 level = level - 1
         if verb == COBOL_VERB_EVALUATE_END:
-            if len(evaluate_compare_stack) > 0:
-                evaluate_compare_stack.pop()
-                if len(evaluate_compare_stack) > 0:
-                    ec = evaluate_compare_stack[len(evaluate_compare_stack) - 1]
-                    evaluate_compare = ec[0]
-                    nested_above_evaluate_compare = ec[1]
-        last_cmd_display = False
-        current_line.last_cmd_display = False
-    elif verb == COBOL_VERB_MOVE:
-        process_move_verb(tokens, name, indent, level)
-        last_cmd_display = False
+            if len(context.evaluate_compare_stack) > 0:
+                context.evaluate_compare_stack.pop()
+                if len(context.evaluate_compare_stack) > 0:
+                    ec = context.evaluate_compare_stack[len(context.evaluate_compare_stack) - 1]
+                    context.evaluate_compare = ec[0]
+                    context.nested_above_evaluate_compare = ec[1]
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
     elif verb == COBOL_VERB_SET:
         ind = tokens.index(TO_KEYWORD)
@@ -84,89 +113,83 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
                 start = 3
 
         for x in range(start, ind):
-            process_move_verb([COBOL_VERB_MOVE, prefix + tokens[ind + offset], TO_KEYWORD, prefix2 + tokens[x]], name, indent, level)
-        last_cmd_display = False
-        current_line.last_cmd_display = False
-    elif verb == COBOL_VERB_DISPLAY:
-        process_display_verb(tokens, name, level)
-        last_cmd_display = True
-        current_line.last_cmd_display = True
+            process_move_verb([COBOL_VERB_MOVE, prefix + tokens[ind + offset], TO_KEYWORD, prefix2 + tokens[x]], name, indent, level, writer)
     elif verb == COBOL_VERB_ADD or tokens[0] == COBOL_VERB_SUBTRACT or tokens[0] == COBOL_VERB_MULTIPLY or tokens[0] == COBOL_VERB_DIVIDE:
-        process_math_verb(tokens, name, level)
-        last_cmd_display = False
+        process_math_verb(tokens, name, level, writer)
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
     elif verb == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == COBOL_VERB_EXIT or tokens[0] == P2C_TERMINATE:
-        process_exit_verbs(level, name, tokens, current_line, args)
+        process_exit_verbs(level, name, tokens, current_line, args, False, writer)
         
     elif verb == COBOL_VERB_PERFORM:
-        level = process_perform_verb(tokens, name, level, current_line, next_few_lines, args)
+        level = process_perform_verb(tokens, name, level, current_line, next_few_lines, args, False, writer, context)
     elif verb == COBOL_VERB_GO:
-        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines, args, True)
-        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args, True)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# not coming back because of GO TO, return statement added above" + NEWLINE)
+        level = process_perform_verb([COBOL_VERB_PERFORM, tokens[2], PERIOD], name, level, current_line, next_few_lines, args, True, writer, context)
+        process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args, True, writer)
+        writer.write( writer.indent(level) + "# not coming back because of GO TO, return statement added above" + NEWLINE)
     elif verb == COBOL_VERB_IF:
         if current_line.in_else_block:
             current_line.nested_level = current_line.nested_level - 1
         current_line.in_else_block = False
-        level = process_if_verb(tokens, name, level, False, current_line)
+        level = process_if_verb(tokens, name, level, False, current_line, writer)
     elif verb == COBOL_VERB_ELSE:
         if current_line.in_else_block:
             current_line.nested_level = current_line.nested_level - 1
             level = level - 1
         current_line.in_else_block = True
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
+        writer.write( writer.indent(level - 1) + ELSE + COLON + NEWLINE)
     elif len(tokens) == 2 and tokens[1] == PERIOD:
         func_name = UNDERSCORE + tokens[0].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
         
-        x = get_last_line_of_file(name + PYTHON_EXT)
+        x = get_last_line_of_file(writer.output_path)
         if x.startswith(RETURN_KEYWORD) == False:
             t_level = level
             if len(current_line.paragraph_list) > 0:
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if fallthru:" + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.fallthrough('" + current_line.last_known_paragraph + "'" + CLOSE_PARENS + NEWLINE)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "else:" + NEWLINE)
+                writer.write( writer.indent(level) + "if fallthru:" + NEWLINE)
+                writer.write( writer.indent(level + 1) + "self.fallthrough('" + current_line.last_known_paragraph + "'" + CLOSE_PARENS + NEWLINE)
+                writer.write( writer.indent(level) + "else:" + NEWLINE)
                 t_level = level + 1
             else:
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * t_level) + SELF_REFERENCE + "default_fallthrough()" + NEWLINE)
+                writer.write( writer.indent(t_level) + SELF_REFERENCE + "default_fallthrough()" + NEWLINE)
             current_line.last_known_paragraph = EMPTY_STRING
-            process_exit_verbs(t_level, name, [COBOL_VERB_GOBACK], current_line, args, True)
+            process_exit_verbs(t_level, name, [COBOL_VERB_GOBACK], current_line, args, True, writer)
         current_line.nested_level = 0
         if current_line.needs_except_block:
-            append_file(name + PYTHON_EXT, NEWLINE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (BASE_LEVEL)) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+            writer.write( NEWLINE)
+            writer.write( writer.indent(BASE_LEVEL - 1) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+            writer.write( writer.indent(BASE_LEVEL) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
         current_line.needs_except_block = True
         level = BASE_LEVEL
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 2)) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self, fallthru = False" + CLOSE_PARENS + COLON + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + "try:" + NEWLINE)
+        writer.write( writer.indent(level - 2) + DEF_KEYWORD + SPACE + func_name + OPEN_PARENS + "self, fallthru = False" + CLOSE_PARENS + COLON + NEWLINE)
+        writer.write( writer.indent(level - 1) + "try:" + NEWLINE)
         current_line.paragraph_list.append(func_name)
         current_line.last_known_paragraph = func_name
-        last_cmd_display = False
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
     elif verb == COBOL_VERB_EVALUATE:
-        is_first_when = True
+        context.is_first_when = True
         long_evaluate_compare = EMPTY_STRING
         for x in range (2,len(tokens)):
             long_evaluate_compare = long_evaluate_compare + tokens[x] + SPACE
 
-        evaluate_compare = tokens[1]
-        evaluate_compare_stack.append([evaluate_compare, long_evaluate_compare])
+        context.evaluate_compare = tokens[1]
+        context.evaluate_compare_stack.append([context.evaluate_compare, long_evaluate_compare])
         level = level + 1
     elif verb == COBOL_VERB_WHEN:
         if tokens[1] == WHEN_OTHER_KEYWORD:
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + ELSE + COLON + NEWLINE)
+            writer.write( writer.indent(level - 1) + ELSE + COLON + NEWLINE)
         else:
             level = level - 1
-            process_evaluate_verb(tokens, name, level, current_line)  
+            process_evaluate_verb(tokens, name, level, current_line, writer, context)
             level = level + 1
     elif verb == COBOL_VERB_INSPECT:
-        process_inspect_verb(tokens, name, level) 
+        process_inspect_verb(tokens, name, level, writer) 
     elif verb == COBOL_VERB_CONTINUE:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "x = 0" + NEWLINE)
+        writer.write( writer.indent(level) + "x = 0" + NEWLINE)
     elif verb == COBOL_VERB_OPEN:
-        process_open_verb(name, tokens, level)
+        process_open_verb(name, tokens, level, writer)
     elif verb == COBOL_VERB_CLOSE:
-        process_close_verb(name, tokens, level)
+        process_close_verb(name, tokens, level, writer)
     elif verb == COBOL_VERB_READ:
         at_end_clause = EMPTY_STRING
         into_rec = EMPTY_STRING
@@ -175,25 +198,25 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             into_index = tokens.index(INTO_KEYWORD)
             into_rec = tokens[into_index + 1]
         
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + into_rec + "','" + at_end_clause + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
+        writer.write( writer.indent(level) + "read_result = Read_File(" + SELF_REFERENCE + name + MEMORY + ",self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "','" + into_rec + "','" + at_end_clause + "')" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = read_result[1]" + NEWLINE)
         if len(tokens) > 3 + into_index:
             if tokens[into_index + 2] == AT_KEYWORD and tokens[into_index + 3] == END_KEYWORD:
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if read_result[0] == True:" + NEWLINE)
-                process_move_verb(tokens[into_index + 4:], name, True, level + 1)
+                writer.write( writer.indent(level) + "if read_result[0] == True:" + NEWLINE)
+                process_move_verb(tokens[into_index + 4:], name, True, level + 1, writer)
     elif verb == COBOL_VERB_WRITE:
-        process_write_verb(name, level, tokens)
+        process_write_verb(name, level, tokens, writer)
     elif verb == COBOL_VERB_CALL:
-        process_call_verb(tokens, name, indent, level, args, current_line)
+        process_call_verb(tokens, name, indent, level, args, current_line, writer)
     elif verb == COBOL_VERB_INITIALIZE:
-        process_move_verb([COBOL_VERB_MOVE, INIT_VALUE, TO_KEYWORD, tokens[1]], name, indent, level)
+        process_move_verb([COBOL_VERB_MOVE, INIT_VALUE, TO_KEYWORD, tokens[1]], name, indent, level, writer)
     elif verb == COBOL_VERB_SEARCH:
-        last_cmd_display = False
+        context.last_cmd_display = False
         current_line.last_cmd_display = False
-        process_search_verb(tokens, name, indent, level, args, current_line)
+        process_search_verb(tokens, name, indent, level, args, current_line, writer)
         level = level + 1
     elif verb == COBOL_VERB_COMPUTE:
-        process_compute_verb(tokens, name, indent, level, args, current_line)
+        process_compute_verb(tokens, name, indent, level, args, current_line, writer)
     elif verb == COBOL_VERB_ACCEPT:
         accept_value = UNDERSCORE + UNDERSCORE + COBOL_VERB_ACCEPT + SPACE
         if len(tokens) > 2:
@@ -204,57 +227,57 @@ def process_verb(tokens, name: str, indent: bool, level: int, args, current_line
             else:
                 x = 0
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + accept_value + "','" + tokens[1] + "')[1]" + NEWLINE)
     elif verb == CICS_VERB_ASKTIME:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBTIME',get_current_time(),'EIBTIME')[1]" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBDATE',format_date_cyyddd(),'EIBDATE')[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBTIME',get_current_time(),'EIBTIME')[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'EIBDATE',format_date_cyyddd(),'EIBDATE')[1]" + NEWLINE)
         if len(tokens) > 3:
             if tokens[3].startswith("ABSTIME"):
                 s = tokens[3].split(OPEN_PARENS)
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "',milliseconds_since_1900(),'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "')[1]" + NEWLINE)
+                writer.write( writer.indent(level) + SELF_REFERENCE + EIB_MEMORY + " = Set_Variable(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "',milliseconds_since_1900(),'" + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + "')[1]" + NEWLINE)
     elif verb == CICS_VERB_LINK or verb == CICS_VERB_XCTL:
-        process_cics_link(tokens, name, indent, level, args, current_line)
+        process_cics_link(tokens, name, indent, level, args, current_line, writer)
         if verb == CICS_VERB_XCTL:
             # add a program quit here because XCTL doesn't return control to the calling program.
             # we will emulate this behavior by quitting the program on return
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit(0)" + NEWLINE)
+            writer.write( writer.indent(level) + "sys.exit(0)" + NEWLINE)
     elif verb == CICS_VERB_HANDLE_ABEND:
         for token in tokens:
             if token.startswith(LABEL_KEYWORD):
                 s = token.split(OPEN_PARENS)
 
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
+                writer.write( writer.indent(level) + SELF_REFERENCE + CLASS_ERROR_FUNCTION_MEMBER + EQUALS + SELF_REFERENCE + UNDERSCORE + format(s[1].replace(CLOSE_PARENS, EMPTY_STRING)) + NEWLINE)
     elif verb == CICS_VERB_SEND:
-        process_send_map(tokens, level, name)
+        process_send_map(tokens, level, name, writer)
     elif verb == CICS_VERB_RECEIVE:
-        process_receive_map(tokens, level, name)
+        process_receive_map(tokens, level, name, writer)
     elif verb == COBOL_VERB_NEXT:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
+        writer.write( writer.indent(level) + "x = 0" + NEWLINE)
     elif verb == CICS_VERB_RETURN:
-        process_cics_return(level, name, tokens, current_line)
+        process_cics_return(level, name, tokens, current_line, writer)
     elif verb == CICS_VERB_READQ:
-        process_readq_verb(level, name, tokens, current_line, args)
+        process_readq_verb(level, name, tokens, current_line, args, writer)
     elif verb == CICS_VERB_WRITEQ:
-        process_writeq_verb(level, name, tokens, current_line, args)
+        process_writeq_verb(level, name, tokens, current_line, args, writer)
     elif verb == COBOL_VERB_STRING:
-        process_string_verb(tokens, level, name, current_line)
+        process_string_verb(tokens, level, name, current_line, writer)
     elif verb == COBOL_VERB_SORT:
-        process_sort_verb(tokens, level, name, current_line, args)
+        process_sort_verb(tokens, level, name, current_line, args, writer, context)
     elif verb == COBOL_VERB_RELEASE:
-        process_release_verb(tokens, level, name, current_line)
+        process_release_verb(tokens, level, name, current_line, writer)
     elif verb == END_RETURN_KEYWORD or verb == NOT_KEYWORD:
         x = 0
     elif verb == ASSEMBLER_FAKE_VERB_GET_DD:
-        process_get_dd(tokens, level, name, current_line)
+        process_get_dd(tokens, level, name, current_line, writer)
     else:
-        append_file(name + PYTHON_EXT, "# unknown verb " + str(tokens) + NEWLINE)
+        writer.write( "# unknown verb " + str(tokens) + NEWLINE)
         current_line.unknown_cobol_verbs = current_line.unknown_cobol_verbs + 1
     
-    current_line.is_evaluating = is_evaluating
+    current_line.is_evaluating = context.is_evaluating
     
     return level
 
-def process_open_verb(name: str, tokens: list, level: int):
+def process_open_verb(name: str, tokens: list, level: int, writer: CodeWriter):
     current_open_type = tokens[1]
     for x in range(2,len(tokens)):
         if tokens[x] in COBOL_OPEN_KEYWORDS:
@@ -266,9 +289,9 @@ def process_open_verb(name: str, tokens: list, level: int):
         if tokens[x].endswith(PERIOD):
             tokens[x] = tokens[x][0:len(tokens) - 1]
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[x] + "','" + current_open_type + "')" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Open_File(" + SELF_REFERENCE + name + MEMORY +"," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", self._FILE_CONTROLVars, '" + tokens[x] + "','" + current_open_type + "')" + NEWLINE)
 
-def process_close_verb(name: str, tokens: list, level: int):
+def process_close_verb(name: str, tokens: list, level: int, writer: CodeWriter):
     current_open_type = tokens[1]
     for x in range(1,len(tokens)):
         if tokens[x] == PERIOD:
@@ -279,9 +302,9 @@ def process_close_verb(name: str, tokens: list, level: int):
         if tokens[x].endswith(PERIOD):
             tokens[x] = tokens[x][0:len(tokens) - 1]
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Close_File(self._FILE_CONTROLVars, '" + tokens[x] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "Close_File(self._FILE_CONTROLVars, '" + tokens[x] + "')" + NEWLINE)
 
-def process_cics_return(level: int, name: str, tokens: list, current_line: LexicalInfo):
+def process_cics_return(level: int, name: str, tokens: list, current_line: LexicalInfo, writer: CodeWriter):
     func_params = "(True)"
     trans_id = SINGLE_QUOTE + EMPTY_STRING + SINGLE_QUOTE
     for t in tokens:
@@ -291,11 +314,11 @@ def process_cics_return(level: int, name: str, tokens: list, current_line: Lexic
             if not trans_id.startswith(SINGLE_QUOTE):
                 trans_id = "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + t1[1] + COMMA + t1[1] + CLOSE_PARENS + NEWLINE
             func_params = "(False, " + trans_id  + ")"
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sys.exit(0)" + NEWLINE)
+    writer.write( writer.indent(level) + SELF_REFERENCE + CALLING_MODULE_MEMBER + PERIOD + RETURN_CONTROL_METHOD + func_params + NEWLINE)
+    writer.write( writer.indent(level) + "sys.exit(0)" + NEWLINE)
     #process_exit_verbs(level, name, [COBOL_VERB_GOBACK], current_line, args)
 
-def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
+def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args, writer: CodeWriter):
     queue = EMPTY_STRING
     data = EMPTY_STRING
     resp = EMPTY_STRING
@@ -314,14 +337,14 @@ def process_writeq_verb(level: int, name: str, tokens, current_line: LexicalInfo
             t = token.split(OPEN_PARENS)
             resp = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "r = self.calling_module.writeq(" + queue + COMMA + data + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "r = self.calling_module.writeq(" + queue + COMMA + data + CLOSE_PARENS + NEWLINE)
     
     if resp != EMPTY_STRING:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
 
     return
 
-def process_readq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args):
+def process_readq_verb(level: int, name: str, tokens, current_line: LexicalInfo, args, writer: CodeWriter):
     queue = EMPTY_STRING
     item = "1"
     into = EMPTY_STRING
@@ -345,37 +368,37 @@ def process_readq_verb(level: int, name: str, tokens, current_line: LexicalInfo,
             t = token.split(OPEN_PARENS)
             resp = t[1].replace(CLOSE_PARENS, EMPTY_STRING)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "r = self.calling_module.readq(" + queue + COMMA + item + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "r = self.calling_module.readq(" + queue + COMMA + item + CLOSE_PARENS + NEWLINE)
 
     if into != EMPTY_STRING:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + into + SINGLE_QUOTE + COMMA + "r[0],'" + into + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + into + SINGLE_QUOTE + COMMA + "r[0],'" + into + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
     
     if resp != EMPTY_STRING:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + resp + SINGLE_QUOTE + COMMA + "r[1],'" + resp + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
     
     return
 
-def process_get_dd(tokens, level: int, name: str, current_line: LexicalInfo):
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "result = self.calling_module.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)
-    process_move_verb([COBOL_VERB_MOVE, '1', TO_KEYWORD, tokens[3]], name, True, level)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + "Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA \
+def process_get_dd(tokens, level: int, name: str, current_line: LexicalInfo, writer: CodeWriter):
+    writer.write( writer.indent(level) + "result = self.calling_module.get_dd_value(Get_Variable_Value(self.GETDSNSMemory,self.variables_list,'" + tokens[1] + "','" + tokens[1] + "'))" + NEWLINE)
+    process_move_verb([COBOL_VERB_MOVE, '1', TO_KEYWORD, tokens[3]], name, True, level, writer)
+    writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + EQUALS + "Set_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA \
                 + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[2] + OPEN_PARENS + tokens[3] + CLOSE_PARENS + SINGLE_QUOTE + COMMA + "result" \
                 + COMMA + SINGLE_QUOTE + tokens[2] + OPEN_PARENS + tokens[3] + CLOSE_PARENS  + SINGLE_QUOTE + CLOSE_PARENS + OPEN_BRACKET + '1' + CLOSE_BRACKET + NEWLINE) 
     return
 
-def process_write_verb(name, level, tokens):
+def process_write_verb(name, level, tokens, writer: CodeWriter):
     if FROM_KEYWORD not in tokens:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
     else:
         idx = tokens.index(FROM_KEYWORD)
-        process_move_verb([COBOL_VERB_MOVE, tokens[idx + 1], TO_KEYWORD, tokens[1]], name, True, level)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
+        process_move_verb([COBOL_VERB_MOVE, tokens[idx + 1], TO_KEYWORD, tokens[1]], name, True, level, writer)
+        writer.write( writer.indent(level) + "Write_File(self._FILE_CONTROLVars," + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + " '" + tokens[1] + "')" + NEWLINE)
 
-def process_release_verb(tokens, level: int, name: str, current_line: LexicalInfo):
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Append_Data_To_File(self._FILE_CONTROLVars, '" + tokens[1] + "', Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
+def process_release_verb(tokens, level: int, name: str, current_line: LexicalInfo, writer: CodeWriter):
+    writer.write( writer.indent(level) + "Append_Data_To_File(self._FILE_CONTROLVars, '" + tokens[1] + "', Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
     return
 
-def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, args):
+def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, args, writer: CodeWriter, context: TranslationContext):
     input_index = 0
     output_index = 0
     end_of_key_index = 0
@@ -409,17 +432,17 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, 
 
         perform_tokens.extend(thru_tokens)
 
-        process_perform_verb(perform_tokens, name, level, current_line, [], args)
+        process_perform_verb(perform_tokens, name, level, current_line, [], args, False, writer, context)
 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "# sort the records\n")
+        writer.write( writer.indent(level) + "# sort the records\n")
         key_fields = OPEN_BRACKET
         for x in range(3,end_of_key_index):
             if x > 3:
                 key_fields = key_fields + COMMA
             key_fields = key_fields + SINGLE_QUOTE + tokens[x] + SINGLE_QUOTE
         key_fields = key_fields + CLOSE_BRACKET
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "key_fields = " + key_fields + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + ",'" + tokens[1] + SINGLE_QUOTE + COMMA + "key_fields)\n")
+        writer.write( writer.indent(level) + "key_fields = " + key_fields + NEWLINE)
+        writer.write( writer.indent(level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + ",'" + tokens[1] + SINGLE_QUOTE + COMMA + "key_fields)\n")
 
 
         if OUTPUT_KEYWORD in tokens:
@@ -439,34 +462,34 @@ def process_sort_verb(tokens, level: int, name: str, current_line: LexicalInfo, 
 
             perform_tokens.extend(thru_tokens)
 
-            process_perform_verb(perform_tokens, name, level, current_line, [], args)
+            process_perform_verb(perform_tokens, name, level, current_line, [], args, False, writer, context)
     elif USING_KEYWORD in tokens:
         using_index = tokens.index(USING_KEYWORD)
         giving_index = tokens.index(GIVING_KEYWORD)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "','INPUT')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "','OUTPUT')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[using_index + 1] + "')\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "out_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sort_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[1] + "')\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "seof = False\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while not seof:" + NEWLINE) 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "r_res = Read_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars" + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[using_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "seof = r_res[0]\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "if seof:\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "break\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self." + name + MEMORY + "= r_res[1]\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Append_Data_To_File(self._FILE_CONTROLVars,sort_rec,Get_Variable_Value(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",work_rec,work_rec))\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[3] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "sort_array = Get_Sort_Array(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "for rec in sort_array:\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self." + name + MEMORY + " = Set_Variable(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ", out_rec, rec, out_rec)[1]\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "Write_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY  + ",out_rec)\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "','INPUT')" + NEWLINE)
+        writer.write( writer.indent(level) + "Open_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "','OUTPUT')" + NEWLINE)
+        writer.write( writer.indent(level) + "work_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[using_index + 1] + "')\n")
+        writer.write( writer.indent(level) + "out_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')\n")
+        writer.write( writer.indent(level) + "sort_rec = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[1] + "')\n")
+        writer.write( writer.indent(level) + "seof = False\n")
+        writer.write( writer.indent(level) + "while not seof:" + NEWLINE) 
+        writer.write( writer.indent(level + 1) + "r_res = Read_File(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + "_FILE_CONTROLVars" + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[using_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level + 1) + "seof = r_res[0]\n")
+        writer.write( writer.indent(level + 1) + "if seof:\n")
+        writer.write( writer.indent(level + 2) + "break\n")
+        writer.write( writer.indent(level + 1) + "self." + name + MEMORY + "= r_res[1]\n")
+        writer.write( writer.indent(level + 1) + "Append_Data_To_File(self._FILE_CONTROLVars,sort_rec,Get_Variable_Value(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",work_rec,work_rec))\n")
+        writer.write( writer.indent(level) + "Sort_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + tokens[1] + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + tokens[3] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "sort_array = Get_Sort_Array(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "for rec in sort_array:\n")
+        writer.write( writer.indent(level + 1) + "self." + name + MEMORY + " = Set_Variable(self." + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ", out_rec, rec, out_rec)[1]\n")
+        writer.write( writer.indent(level + 1) + "Write_File(self._FILE_CONTROLVars,self." + VARIABLES_LIST_NAME + COMMA + SELF_REFERENCE + name + MEMORY  + ",out_rec)\n")
+        writer.write( writer.indent(level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[using_index + 1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "Close_File(" + SELF_REFERENCE + "_FILE_CONTROLVars,'" + tokens[giving_index + 1] + "')" + NEWLINE)
 
     return 
 
-def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo):
+def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo, writer: CodeWriter):
 
     into_index = tokens.index(INTO_KEYWORD)
 
@@ -494,51 +517,51 @@ def process_string_verb(tokens, level: int, name: str, current_line: LexicalInfo
 
     build_string_func = "Build_String(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA \
         + DOUBLE_QUOTE + target + DOUBLE_QUOTE + COMMA + OPEN_BRACKET + string_list + CLOSE_BRACKET + CLOSE_PARENS
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + build_string_func + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "x = 0" + NEWLINE)
+    writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + build_string_func + NEWLINE)
+    writer.write( writer.indent(level) + "x = 0" + NEWLINE)
     return
 
-def process_exit_verbs(level:int, name: str, tokens, current_line: LexicalInfo, args, skip_except_block = False):
+def process_exit_verbs(level: int, name: str, tokens, current_line: LexicalInfo, args, skip_except_block=False, writer: CodeWriter = None):
     if tokens[0] == P2C_TERMINATE or (len(tokens) > 1 and tokens[0] == STOP_KEYWORD + SPACE + RUN_KEYWORD):
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "#inform calling module that termination has happened" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
+        writer.write( writer.indent(level) + "#inform calling module that termination has happened" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
 
     t_level = level
     if current_line.last_known_paragraph != EMPTY_STRING:
         t_level = t_level + 1
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if fallthru:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "self.fallthrough('" + current_line.last_known_paragraph + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "else:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * t_level) + "return")
+        writer.write( writer.indent(level) + "if fallthru:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "self.fallthrough('" + current_line.last_known_paragraph + SINGLE_QUOTE + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "else:" + NEWLINE)
+    writer.write( writer.indent(t_level) + "return")
 
     if tokens[0] == COBOL_VERB_GOBACK or tokens[0] == COBOL_VERB_STOPRUN or tokens[0] == P2C_TERMINATE:
         level = BASE_LEVEL
-        append_file(name + PYTHON_EXT, SPACE + OPEN_BRACKET)
+        writer.write( SPACE + OPEN_BRACKET)
         c = 0
         for a in args:
             if c > 3:
-                append_file(name + PYTHON_EXT, COMMA + SPACE)               
+                writer.write( COMMA + SPACE)               
             if c > 2:
                 memory_area = SELF_REFERENCE + name + MEMORY
                 if a in EIB_VARIABLES:
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 elif a in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-                append_file(name + PYTHON_EXT, "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
+                writer.write( "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + a + "','" + a + "')")
             c = c + 1
 
-        append_file(name + PYTHON_EXT, CLOSE_BRACKET)
+        writer.write( CLOSE_BRACKET)
 
-    append_file(name + PYTHON_EXT, NEWLINE)
+    writer.write( NEWLINE)
 
     if not skip_except_block:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level - 1)) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level - 1) + PYTHON_EXCEPT_STATEMENT + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + MAIN_ERROR_FUNCTION + OPEN_PARENS + "e" + CLOSE_PARENS + NEWLINE)
         current_line.needs_except_block = False
 
     return
 
-def process_receive_map(tokens, level: int, name: str):
+def process_receive_map(tokens, level: int, name: str, writer: CodeWriter):
     set_result_statements = EMPTY_STRING
     map_name = EMPTY_STRING
     map_name_get = EMPTY_STRING
@@ -575,17 +598,17 @@ def process_receive_map(tokens, level: int, name: str):
             elif response_name in SPECIAL_REGISTERS_VARIABLES:
                 memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
             set_result_statements = memory_area + " = Set_Variable(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + response_name + "', result ,'" + response_name + "')[1]" + NEWLINE
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "Get_All_Variables(self, " + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name_get + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
+    writer.write( writer.indent(level + 1) + SELF_REFERENCE + name + MEMORY + SPACE + EQUALS + SPACE + "Get_All_Variables(self, " + SELF_REFERENCE + CALLING_MODULE_MEMBER + COMMA + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + map_name_get + CLOSE_PARENS + NEWLINE)
     if set_result_statements != EMPTY_STRING:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "result = 0" + NEWLINE) 
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + set_result_statements)     
+        writer.write( writer.indent(level + 1) + "result = 0" + NEWLINE) 
+        writer.write( writer.indent(level + 1) + set_result_statements)     
     if into_statement != EMPTY_STRING:
-           append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + into_statement)  
+           writer.write( writer.indent(level + 1) + into_statement)  
     return
     
 
-def process_send_map(tokens, level: int, name: str):
+def process_send_map(tokens, level: int, name: str, writer: CodeWriter):
     map_name = EMPTY_STRING
     map_only = 'False'
     data_only = 'False'
@@ -626,13 +649,13 @@ def process_send_map(tokens, level: int, name: str):
                 memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
             data = "Get_Variable_Value(" + memory_area+ COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + COMMA + SINGLE_QUOTE + s[1].replace(CLOSE_PARENS, EMPTY_STRING) + SINGLE_QUOTE + CLOSE_PARENS
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "result = " + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(self," + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "if " + SELF_REFERENCE + CALLING_MODULE_MEMBER + " != None:" + NEWLINE)
+    writer.write( writer.indent(level + 1) + "result = " + SELF_REFERENCE + CALLING_MODULE_MEMBER +".build_map(self," + map_name + COMMA + data + COMMA + map_only + COMMA + data_only + CLOSE_PARENS + NEWLINE)
     if set_result_statements != EMPTY_STRING:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + set_result_statements)
+        writer.write( writer.indent(level + 1) + set_result_statements)
     return
 
-def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+def process_compute_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, writer: CodeWriter):
     count = 0
 
     temp_tokens = []
@@ -733,11 +756,11 @@ def process_compute_verb(tokens, name: str, indent: bool, level: int, args, curr
         count = count + 1
 
     for x in range(1,equals_pos):
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')[1]" + NEWLINE) 
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[x] + "',str(eval('" + ''.join(tokens[equals_pos:end_len]) + "')),'" + tokens[x] + "')[1]" + NEWLINE) 
     
     return
 
-def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+def process_search_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, writer: CodeWriter):
     
     temp_tokens = []
     orig_tokens = tokens
@@ -821,20 +844,20 @@ def process_search_verb(tokens, name: str, indent: bool, level: int, args, curre
 
         condition_index = condition_index + 4
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME \
+    writer.write( writer.indent(level) + "search_result = Search_Variable_Array(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME \
         + COMMA + SINGLE_QUOTE + tokens[1 + all_offset] + "',[" + operand1_list \
         + "],[" + operator_list + "],[" + operand2_list + "]," + str(all_offset) + COMMA + at_end_func + COMMA + "self" + COMMA + OPEN_BRACKET + boolean_list + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "is_found = search_result[0]" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if is_found == False:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "x = 0" + NEWLINE)
+    writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + EQUALS + " search_result[1]" + NEWLINE)
+    writer.write( writer.indent(level) + "is_found = search_result[0]" + NEWLINE)
+    writer.write( writer.indent(level) + "if is_found == False:" + NEWLINE)
+    writer.write( writer.indent(level + 1) + "x = 0" + NEWLINE)
     if at_end_func != "None":
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + at_end_func + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + at_end_func + OPEN_PARENS + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "else:" + NEWLINE)
 
     return
 
-def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo):
+def process_call_verb(tokens, name: str, indent: bool, level: int, args, current_line: LexicalInfo, writer: CodeWriter):
     if tokens[len(tokens) - 1] != PERIOD:
         tokens.append(PERIOD)
     using_args = EMPTY_STRING
@@ -875,31 +898,31 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
 
     called_program = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "call_result = None" + NEWLINE)
+    writer.write( writer.indent(level) + "call_result = None" + NEWLINE)
     
     if tokens[1].startswith(SINGLE_QUOTE):   
         mod_name = tokens[1].replace(SINGLE_QUOTE, EMPTY_STRING)
         if mod_name not in current_line.import_statement:     
             current_line.import_statement.append(mod_name)
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + \
+        writer.write( writer.indent(level) + called_program + "_obj = " + called_program + "Class()" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + SINGLE_QUOTE + \
             called_program + SINGLE_QUOTE + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
                 SELF_REFERENCE + EIB_MEMORY + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + \
                 COMMA + "'EIBTERM'" + COMMA + "'EIBTERM'" + CLOSE_PARENS + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + \
                 VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "sig_args = inspect.signature(" + called_program + "_obj.main)" + NEWLINE)
+        writer.write( writer.indent(level) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         if using_args == EMPTY_STRING:
             using_args = "None"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if self.terminate:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "return" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "if cargs != '':" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "else:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "call_result = " + called_program + "_obj.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "if self.terminate:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + SELF_REFERENCE + "calling_module.terminate_on_callback()" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "return" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
     else:
         comm_area_args = comm_area_args + CLOSE_BRACKET + COMMA + "module_name"
         memory_area = SELF_REFERENCE + name + MEMORY
@@ -907,37 +930,37 @@ def process_call_verb(tokens, name: str, indent: bool, level: int, args, current
             memory_area = SELF_REFERENCE + EIB_MEMORY
         elif tokens[1] in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_name = Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + \
+        writer.write( writer.indent(level) + "module_name = Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[1] + "','" + tokens[1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + EIB_MEMORY + " = Build_Comm_Area" + OPEN_PARENS + \
             "Get_Variable_Value(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE \
                 + COMMA + SINGLE_QUOTE + called_program + SINGLE_QUOTE + CLOSE_PARENS + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + COMMA + \
                 SELF_REFERENCE + EIB_MEMORY + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + \
                 COMMA + "'EIBTERM'" + COMMA + "'EIBTERM'" + CLOSE_PARENS + COMMA + "Get_Variable_Value(" + SELF_REFERENCE + EIB_MEMORY + COMMA + SELF_REFERENCE + \
                 VARIABLES_LIST_NAME + COMMA + "'EIBTRANS'" + COMMA + "'EIBTRANS'" + CLOSE_PARENS + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module = importlib.import_module(module_name)" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_class = getattr(module, module_name + 'Class')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "module_instance = module_class()" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "sig_args = inspect.signature(module_instance.main)" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "module = importlib.import_module(module_name)" + NEWLINE)
+        writer.write( writer.indent(level) + "module_class = getattr(module, module_name + 'Class')" + NEWLINE)
+        writer.write( writer.indent(level) + "module_instance = module_class()" + NEWLINE)
+        writer.write( writer.indent(level) + "sig_args = inspect.signature(module_instance.main)" + NEWLINE)
+        writer.write( writer.indent(level) + "cargs = Translate_Arguments" + OPEN_PARENS + "str(sig_args)" + COMMA + OPEN_BRACKET + using_args + CLOSE_BRACKET + CLOSE_PARENS + NEWLINE)
         if using_args == EMPTY_STRING:
             using_args = "None"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if cargs != '':" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "else:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "call_result = module_instance.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if self.terminate:" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "return" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level)) + "if call_result != None and str(sig_args) != '()':" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + "for cr in call_result:" + NEWLINE)
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "x = 0" + NEWLINE)
+        writer.write( writer.indent(level) + "if cargs != '':" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "call_result = module_instance.main" + OPEN_PARENS + "self," + using_args + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "else:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "call_result = module_instance.main" + OPEN_PARENS + "self" + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + "if self.terminate:" + NEWLINE)
+        writer.write( writer.indent(level + 1) + "return" + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Retrieve_Comm_Area" + OPEN_PARENS + comm_area_args + CLOSE_PARENS + NEWLINE)
+    writer.write( writer.indent(level) + "if call_result != None and str(sig_args) != '()':" + NEWLINE)
+    writer.write( writer.indent(level + 1) + "for cr in call_result:" + NEWLINE)
+    writer.write( writer.indent(level + 2) + "x = 0" + NEWLINE)
     if not pass_by_content:
         for param in params:
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 2)) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
+            writer.write( writer.indent(level + 2) + "result = Set_Variable(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + param + "', cr ,'" + param + "')" + NEWLINE)
+            writer.write( writer.indent(level + 2) + SELF_REFERENCE + name + MEMORY + " = result[1]" + NEWLINE)
     return
 
-def process_cics_link(tokens, name, indent, level, args, current_line):
+def process_cics_link(tokens, name, indent, level, args, current_line, writer: CodeWriter):
     new_tokens = [COBOL_VERB_CALL, '', USING_KEYWORD, '', PERIOD]
     count = 0
     for token in tokens:
@@ -952,14 +975,14 @@ def process_cics_link(tokens, name, indent, level, args, current_line):
 
         count = count + 1
     
-    process_call_verb(new_tokens, name, indent, level, args, current_line)
+    process_call_verb(new_tokens, name, indent, level, args, current_line, writer)
 
     return
 
-def process_inspect_verb(tokens, name: str, level: int):
+def process_inspect_verb(tokens, name: str, level: int, writer: CodeWriter):
     if tokens[2] == CONVERTING_KEYWORD:
         func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3] + COMMA + tokens[5] + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
+        writer.write( writer.indent(level) + func + NEWLINE)
     elif tokens[2] == REPLACING_KEYWORD:
         only_first = "False"
         offset = 0
@@ -967,52 +990,48 @@ def process_inspect_verb(tokens, name: str, level: int):
             only_first = "True"
             offset = 1
         func = SELF_REFERENCE + name + MEMORY +  " = Replace_Variable_Value(" + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ", '" + tokens[1] + "'," + tokens[3 + offset] + COMMA + tokens[5 + offset] + COMMA + only_first + CLOSE_PARENS + OPEN_BRACKET + "1" + CLOSE_BRACKET
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + func + NEWLINE)
+        writer.write( writer.indent(level) + func + NEWLINE)
 
 
     return
 
-def close_out_evaluate(verb: str, name: str, level: int):
-    global is_evaluating
+def close_out_evaluate(verb: str, name: str, level: int, writer: CodeWriter, context: TranslationContext):
     if verb == COBOL_VERB_WHEN:
         return level
 
-    if is_evaluating:
-        append_file(name + PYTHON_EXT, COLON + NEWLINE)
+    if context.is_evaluating:
+        writer.write(COLON + NEWLINE)
 
-    is_evaluating = False
+    context.is_evaluating = False
 
     return level
 
-def close_out_perform_loop(verb: str, name: str, level: int, current_line: LexicalInfo):
-    global is_perform_looping
+def close_out_perform_loop(verb: str, name: str, level: int, current_line: LexicalInfo, writer: CodeWriter, context: TranslationContext):
     if verb != COBOL_VERB_PERFORM_END:
         return level
 
-    if is_perform_looping:
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + current_line.loop_modifier[len(current_line.loop_modifier) - 1])
+    if context.is_perform_looping:
+        writer.write(writer.indent(level) + current_line.loop_modifier[len(current_line.loop_modifier) - 1])
         current_line.loop_modifier.pop()
 
     if len(current_line.loop_modifier) == 0:
-        is_perform_looping = False
+        context.is_perform_looping = False
 
     return level - 1
     
-def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo):
-    global evaluate_compare, is_evaluating, evaluate_compare_stack, nested_above_evaluate_compare, is_first_when
-
+def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalInfo, writer: CodeWriter, context: TranslationContext):
     if current_line.current_line_number == "1419":
         x = 0
 
     if AND_KEYWORD in tokens:
-        is_elif = not is_first_when
-        is_first_when = False
-        return process_if_verb(tokens, name, level, is_elif, current_line)
+        is_elif = not context.is_first_when
+        context.is_first_when = False
+        return process_if_verb(tokens, name, level, is_elif, current_line, writer)
 
     if len(tokens) >= 3 and comparison_operator_exists_in_list(tokens) == False and tokens[2] != NOT_KEYWORD and tokens[2] != NUMERIC_KEYWORD:
         tokens.insert(2, IN_KEYWORD)
 
-    temp_evaluate_compare = evaluate_compare
+    temp_evaluate_compare = context.evaluate_compare
     reset_evaluate_compare = False
     operator = EQUALS
     operator_offset = 0
@@ -1026,11 +1045,11 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
     if len(tokens) > 3:
         operand2 = tokens[3]
         
-    if evaluate_compare == EMPTY_STRING:
-        if len(evaluate_compare_stack) > 0:
-            evaluate_compare_stack[len(evaluate_compare_stack) - 1] = [evaluate_compare, tokens[1]]
-            nested_above_evaluate_compare = tokens[1]
-            evaluate_compare = tokens[1]
+    if context.evaluate_compare == EMPTY_STRING:
+        if len(context.evaluate_compare_stack) > 0:
+            context.evaluate_compare_stack[len(context.evaluate_compare_stack) - 1] = [context.evaluate_compare, tokens[1]]
+            context.nested_above_evaluate_compare = tokens[1]
+            context.evaluate_compare = tokens[1]
             reset_evaluate_compare = True
             if len(tokens) > operator_offset + 3:
                 operand2 = tokens[operator_offset + 3]
@@ -1053,7 +1072,7 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
                     operand2 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "')"
                 operator = SPACE + IN_KEYWORD + SPACE
         else:
-            evaluate_compare = tokens[1]
+            context.evaluate_compare = tokens[1]
             if operand2.startswith(SINGLE_QUOTE) == False and operand2.isnumeric() == False:
                 memory_area = SELF_REFERENCE + name + MEMORY
                 if operand2 in EIB_VARIABLES:
@@ -1061,24 +1080,24 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
                 elif operand2 in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
                 operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif (evaluate_compare == TRUE_KEYWORD or evaluate_compare == FALSE_KEYWORD) and operand2 != NUMERIC_KEYWORD and operator == IN_KEYWORD:
+    elif (context.evaluate_compare == TRUE_KEYWORD or context.evaluate_compare == FALSE_KEYWORD) and operand2 != NUMERIC_KEYWORD and operator == IN_KEYWORD:
         memory_area = SELF_REFERENCE + name + MEMORY
         if operand2 in EIB_VARIABLES:
             memory_area = SELF_REFERENCE + EIB_MEMORY
         elif operand2 in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
         operand2 = "Get_Variable_Value(" + memory_area + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "')"
-    elif evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD and operator != NUMERIC_KEYWORD and operator not in COBOL_COMPARISON_OPERATORS:
+    elif context.evaluate_compare == TRUE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD and operator != NUMERIC_KEYWORD and operator not in COBOL_COMPARISON_OPERATORS:
         operand2 = 'True'
-    elif evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
+    elif context.evaluate_compare == FALSE_KEYWORD and operand2 != NUMERIC_KEYWORD and operator != IN_KEYWORD:
         operand2 = 'False'
     elif operator == NUMERIC_KEYWORD:
         operand2 = NUMERIC_KEYWORD
     else:
-        if len(evaluate_compare_stack) > 0:
-            if evaluate_compare_stack[len(evaluate_compare_stack) - 1][1] != EMPTY_STRING:
+        if len(context.evaluate_compare_stack) > 0:
+            if context.evaluate_compare_stack[len(context.evaluate_compare_stack) - 1][1] != EMPTY_STRING:
                 operand2 = EMPTY_STRING
-                et = evaluate_compare_stack[len(evaluate_compare_stack) - 1][1].split(SPACE)
+                et = context.evaluate_compare_stack[len(context.evaluate_compare_stack) - 1][1].split(SPACE)
                 if tokens[1] == TRUE_KEYWORD:
                     operand2 = operand2 + convert_operator(et[0]) + SPACE + et[1]
                 else:
@@ -1102,23 +1121,23 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
                         operand2 = operand2 + convert_operator_opposite(et[4]) + SPACE + et[5]
 
                 operator = EMPTY_STRING
-            elif evaluate_compare == TRUE_KEYWORD:
-                evaluate_compare = tokens[1]
+            elif context.evaluate_compare == TRUE_KEYWORD:
+                context.evaluate_compare = tokens[1]
 
     prefix = "if "
-    if is_first_when == False:
+    if context.is_first_when == False:
         prefix = "elif "
     else:
-        is_first_when = False
+        context.is_first_when = False
     indent_len = len(INDENT) * level
 
-    if is_evaluating:
+    if context.is_evaluating:
         prefix = " or "
         indent_len = 0
     else:
-        is_evaluating = True
+        context.is_evaluating = True
 
-    operand1_name = evaluate_compare
+    operand1_name = context.evaluate_compare
 
     if operand2 == 'True' or operand2 == 'False' or operand2 == NUMERIC_KEYWORD or operand2.startswith("Get_Variable_Value("):
         operand1_name = tokens[1]
@@ -1135,9 +1154,9 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
         operand1 = "Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand1_name + "','" + operand1_name + "') "
     if operand2 == NUMERIC_KEYWORD:
         operand1 = "Check_Value_Numeric(" + operand1 + CLOSE_PARENS + SPACE
-        if evaluate_compare == TRUE_KEYWORD or temp_evaluate_compare == TRUE_KEYWORD:
+        if context.evaluate_compare == TRUE_KEYWORD or temp_evaluate_compare == TRUE_KEYWORD:
             operand2 = 'True'
-        elif evaluate_compare == FALSE_KEYWORD or temp_evaluate_compare == FALSE_KEYWORD:
+        elif context.evaluate_compare == FALSE_KEYWORD or temp_evaluate_compare == FALSE_KEYWORD:
             operand2 = "False"
     if operand2.startswith(SINGLE_QUOTE) and len(operand2.replace(SINGLE_QUOTE, EMPTY_STRING)) == 1:
         operand2 = 'find_hex_value_by_ascii(' + operand2 + CLOSE_PARENS + PERIOD + "EBCDIC_value "
@@ -1149,16 +1168,16 @@ def process_evaluate_verb(tokens, name: str, level: int, current_line: LexicalIn
     else:
         line = prefix + operand1 + convert_operator(operator) + SPACE + operand2 + SPACE
 
-    append_file(name + PYTHON_EXT, pad(indent_len) + line)
+    writer.write( pad(indent_len) + line)
 
-    evaluate_compare = temp_evaluate_compare
+    context.evaluate_compare = temp_evaluate_compare
 
     if reset_evaluate_compare:
-        evaluate_compare = EMPTY_STRING
+        context.evaluate_compare = EMPTY_STRING
 
     return level
 
-def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: LexicalInfo):
+def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: LexicalInfo, writer: CodeWriter):
     line = "if "
     if is_elif:
         line = "elif "
@@ -1407,41 +1426,40 @@ def process_if_verb(tokens, name: str, level: int, is_elif: bool, current_line: 
 
     line = line + COLON + NEWLINE
 
-    append_file(name + PYTHON_EXT, pad(num_spaces) + line)
+    writer.write( pad(num_spaces) + line)
 
     return level + 1
 
-def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines, args, fallthrough = False):
-    global is_perform_looping
+def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInfo, next_few_lines, args, fallthrough=False, writer: CodeWriter = None, context: TranslationContext = None):
     if VARYING_KEYWORD in tokens:
-        is_perform_looping = True
-        process_varying_loop(tokens, name, level, current_line)
+        context.is_perform_looping = True
+        process_varying_loop(tokens, name, level, current_line, writer, context)
         level = level + 1
     elif len(tokens) == 3 or THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
         func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
         if THROUGH_KEYWORD in tokens or THRU_KEYWORD in tokens:
             func_name = UNDERSCORE + tokens[3].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
+            writer.write( writer.indent(level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
     elif COBOL_RETURN_KEYWORD in tokens:
         if tokens[len(tokens) - 1] != PERIOD:
             tokens.append(PERIOD)
         return_index = tokens.index(COBOL_RETURN_KEYWORD)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_array = Get_Sort_Array(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "rec_name = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_counter = 0\n")
-        level = build_perform_while_statement(level, name, tokens, return_index - 1)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(self." + name + MEMORY + ",self." + VARIABLES_LIST_NAME + ",rec_name,work_array[work_counter],rec_name)[1]" + NEWLINE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "work_counter = work_counter + 1\n")
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "if work_counter >= len(work_array):\n")
+        writer.write( writer.indent(level) + "work_array = Get_Sort_Array(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')\n")
+        writer.write( writer.indent(level) + "rec_name = Get_Sort_Record_Name(self._FILE_CONTROLVars,'" + tokens[return_index + 1] + "')" + NEWLINE)
+        writer.write( writer.indent(level) + "work_counter = 0\n")
+        level = build_perform_while_statement(level, name, tokens, return_index - 1, writer, context)
+        writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Set_Variable(self." + name + MEMORY + ",self." + VARIABLES_LIST_NAME + ",rec_name,work_array[work_counter],rec_name)[1]" + NEWLINE)
+        writer.write( writer.indent(level) + "work_counter = work_counter + 1\n")
+        writer.write( writer.indent(level) + "if work_counter >= len(work_array):\n")
         end_index = tokens.index("END")
         end_index_2 = len(tokens)
         if NOT_KEYWORD in tokens[end_index:]:
             end_index_2 = tokens.index(NOT_KEYWORD, end_index)
-        process_verb(tokens[end_index + 1: end_index_2], name, True, level + 1, args, current_line, [])
+        process_verb(tokens[end_index + 1: end_index_2], name, True, level + 1, args, current_line, [], writer, context)
     elif len(tokens) == 2:
         func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
+        writer.write( writer.indent(level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)
     else:
         if tokens[1] == UNTIL_KEYWORD:
             if len(tokens) > 4:
@@ -1462,7 +1480,7 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 elif tokens[2] in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
+                writer.write( writer.indent(level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
                     + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
                 level = level + 1
             else:
@@ -1477,16 +1495,16 @@ def process_perform_verb(tokens, name: str, level: int, current_line: LexicalInf
                     memory_area = SELF_REFERENCE + EIB_MEMORY
                 elif operand2 in SPECIAL_REGISTERS_VARIABLES:
                     memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-                append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
+                writer.write( writer.indent(level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
                     + COLON + NEWLINE)
                 level = level + 1  
         else:
             func_name = UNDERSCORE + tokens[1].replace(PERIOD, EMPTY_STRING).replace(DASH, UNDERSCORE)
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)            
+            writer.write( writer.indent(level) + SELF_REFERENCE + func_name + OPEN_PARENS + str(fallthrough) + CLOSE_PARENS + NEWLINE)            
 
     return level
 
-def build_perform_while_statement(level: int, name: str, tokens, operand2_location: int):
+def build_perform_while_statement(level: int, name: str, tokens, operand2_location: int, writer: CodeWriter, context: TranslationContext):
     if len(tokens) > operand2_location and operand2_location > 2:
         operand2 = tokens[operand2_location]
         if tokens[operand2_location].startswith(PLUS_SIGN):
@@ -1505,7 +1523,7 @@ def build_perform_while_statement(level: int, name: str, tokens, operand2_locati
             memory_area = SELF_REFERENCE + EIB_MEMORY
         elif tokens[2] in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
+        writer.write( writer.indent(level) + "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[2] + "','" + tokens[2] + "') " \
             + convert_operator_opposite(tokens[3]) + operand2 + COLON + NEWLINE)
         level = level + 1
     else:
@@ -1522,20 +1540,20 @@ def build_perform_while_statement(level: int, name: str, tokens, operand2_locati
             memory_area = SELF_REFERENCE + EIB_MEMORY
         elif operand2 in SPECIAL_REGISTERS_VARIABLES:
             memory_area = SELF_REFERENCE + "SPECIALREGISTERSMemory"
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
+        writer.write( writer.indent(level) + "while" + not_op + " Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + operand2 + "','" + operand2 + "') " \
             + COLON + NEWLINE)
         level = level + 1
 
     return level
 
-def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInfo):
+def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInfo, writer: CodeWriter, context: TranslationContext):
     from_index = tokens.index(FROM_KEYWORD)
     varying_index = tokens.index(VARYING_KEYWORD)
     until_index = tokens.index(UNTIL_KEYWORD)
     by_index = tokens.index(BY_KEYWORD)
     or_indices = get_all_indices(tokens, OR_KEYWORD)
 
-    process_move_verb([COBOL_VERB_MOVE, tokens[from_index + 1], TO_KEYWORD, tokens[varying_index + 1]], name, True, level)
+    process_move_verb([COBOL_VERB_MOVE, tokens[from_index + 1], TO_KEYWORD, tokens[varying_index + 1]], name, True, level, writer)
     memory_area = SELF_REFERENCE + name + MEMORY
     if tokens[varying_index + 1] in EIB_VARIABLES:
         memory_area = SELF_REFERENCE + EIB_MEMORY
@@ -1554,7 +1572,7 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
     line = "while Get_Variable_Value(" + memory_area + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + tokens[until_index + 1] + "','" + tokens[until_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + strip_logic + SPACE \
         + convert_operator_opposite(tokens[until_index + 2]) + SPACE + operand2
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + line)
+    writer.write( writer.indent(level) + line)
     for or_index in or_indices:
         # convert the 'or' to 'and' because we used the opposite operator above
         operand1 = tokens[or_index + 1]
@@ -1612,15 +1630,15 @@ def process_varying_loop(tokens, name: str, level: int, current_line: LexicalInf
         if (or_index + offset + 2) < len(tokens):
             if tokens[or_index + offset + 1] not in COBOL_VERB_LIST and tokens[or_index + offset + 1] != PERIOD:
                 line = line + tokens[or_index + offset + 1]
-        append_file(name + PYTHON_EXT, pad(len(INDENT) * (level + 1)) + line)
-    append_file(name + PYTHON_EXT, COLON + NEWLINE)
+        writer.write( writer.indent(level + 1) + line)
+    writer.write( COLON + NEWLINE)
     current_line.loop_modifier.append(SELF_REFERENCE + name + "Memory = Update_Variable(" + SELF_REFERENCE  + name + MEMORY + "," + SELF_REFERENCE  + VARIABLES_LIST_NAME + ",'" \
         + tokens[by_index + 1] + "','" + tokens[varying_index + 1] + "','" + tokens[varying_index + 1] + SINGLE_QUOTE + CLOSE_PARENS + "[1]" + NEWLINE)
 
     return
 
-def process_move_verb(tokens, name: str, indent: bool, level: int):
-    do_indent = pad(len(INDENT) * level)
+def process_move_verb(tokens, name: str, indent: bool, level: int, writer: CodeWriter):
+    do_indent = writer.indent(level)
 
     if not indent:
         do_indent = EMPTY_STRING
@@ -1725,18 +1743,18 @@ def process_move_verb(tokens, name: str, indent: bool, level: int):
     if value.startswith(MAIN_ARG_VARIABLE_PREFIX):
         suffix = ",0, self.calling_module"
 
-    append_file(name + PYTHON_EXT, do_indent + SELF_REFERENCE + name + MEMORY + " = " + set_func_name + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "'" + suffix + ")[1]" + NEWLINE)
+    writer.write( do_indent + SELF_REFERENCE + name + MEMORY + " = " + set_func_name + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + target + "', " + value + ",'" + target + "'" + suffix + ")[1]" + NEWLINE)
 
     if len(tokens) > 1 + target_offset and tokens[1 + target_offset] != PERIOD and tokens[1 + target_offset] != NEG_ONE and tokens[1 + target_offset] not in COBOL_END_BLOCK_VERBS and tokens[1 + target_offset] not in COBOL_VERB_LIST:
         limit = len(tokens)
         for x in range(4, limit):
             tokens[x - 1] = tokens[x]
         tokens.pop()
-        process_move_verb(tokens, name, indent, level)
+        process_move_verb(tokens, name, indent, level, writer)
 
     return
 
-def process_display_verb(tokens, name: str, level: int):
+def process_display_verb(tokens, name: str, level: int, writer: CodeWriter):
     count = 0
     skip_the_rest = False
     skip_next = False
@@ -1786,12 +1804,12 @@ def process_display_verb(tokens, name: str, level: int):
                 if tokens[count + 1] == OF_KEYWORD:
                     t = 'len_' + tokens[count + 2]
                     parent = tokens[count + 2]
-            append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
+            writer.write( writer.indent(level) + "Display_Variable(self.calling_module, " + SELF_REFERENCE + name + MEMORY + "," + SELF_REFERENCE + VARIABLES_LIST_NAME + ",'" + t + "','" + parent + "'," + str(is_literal) + ",False)" + NEWLINE)
         count = count + 1
 
     return
 
-def process_math_verb(tokens, name: str, level: int):
+def process_math_verb(tokens, name: str, level: int, writer: CodeWriter):
     giving = tokens[3]
     is_into = False
     if GIVING_KEYWORD in tokens:
@@ -1845,7 +1863,7 @@ def process_math_verb(tokens, name: str, level: int):
             i = tokens.index(REMAINDER_KEYWORD)
             remainder_var = tokens[i + 1]
 
-    append_file(name + PYTHON_EXT, pad(len(INDENT) * level) + SELF_REFERENCE + name + MEMORY + " = Update_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')[1]" + NEWLINE)
+    writer.write( writer.indent(level) + SELF_REFERENCE + name + MEMORY + " = Update_Variable(" + SELF_REFERENCE + name + MEMORY + COMMA + SELF_REFERENCE + VARIABLES_LIST_NAME + "," + mod + ", '" + target + "', '" + giving + "','" + modifier + "','" + remainder_var + "')[1]" + NEWLINE)
     
     return
 
