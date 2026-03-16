@@ -1,49 +1,20 @@
+"""
+File I/O and general utilities. Re-exports translation model and string helpers
+for backward compatibility with JCL/Krait and other scripts.
+"""
 import os
-import random
-import shutil
-import string
 from datetime import datetime
 from os.path import exists
 
-class LexicalInfo:
-    def __init__(self):
-        self.current_section = ""
-        self.highest_ws_level = 0
-        self.first_line_section = False
-        self.highest_var_name = ""
-        self.highest_var_name_subs = 0
-        self.level = 1
-        self.import_statement = []
-        self.redefines = ""
-        self.redefines_level = "01"
-        self.lambda_functions = []
-        self.skip_the_next_lines = 0
-        self.loop_modifier = []
-        self.cascade_data_type = ""
-        self.cascade_init_value = ""
-        self.needs_except_block = False
-        self.in_else_block = False
-        self.nested_level = 0
-        self.last_known_index = 0
-        self.end_of_search_criteria = False
-        self.source_filename = "unknown"
-        self.is_evaluating = False
-        self.index_variables = []
-        self.sections_list = []
-        self.total_copybooks_inserted = 0
-        self.unknown_cobol_verbs = 0
-        self.next_available_line = ""
-        self.paragraph_list = []
-        self.last_known_paragraph = ""
-        self.last_cmd_display = False
-        self.is_cics = False
+# Re-export for backward compatibility
+from translation_model import LexicalInfo, Replacement
+from string_util import (
+    parse_line_tokens, pad, pad_char, format,
+    get_all_indices, find, find_pos_last_letter, count_chars, gen_rand,
+)
 
-class Replacement:
-    def __init__(self) -> None:
-        self.old_value = ""
-        self.new_value = ""
 
-def read_file(file: str, should_strip = False):
+def read_file(file: str, should_strip=False):
     result = ""
     with open(file) as file:
         for line in file:
@@ -52,65 +23,77 @@ def read_file(file: str, should_strip = False):
             result = result + line
     return result
 
+
 def read_raw_file_lines(file: str, skip: str):
     result = []
     count = 0
     with open(file) as file:
-        
         for line in file:
             if count >= skip:
                 result.append(line)
             count = count + 1
     return result
 
+
 def get_last_line_of_file(file: str):
     with open(file, 'rb') as f:
-        try:  # catch OSError in case of a one line file 
+        try:
             f.seek(-2, os.SEEK_END)
             while f.read(1) != b'\n':
                 f.seek(-2, os.SEEK_CUR)
         except OSError:
             f.seek(0)
         last_line = f.readline().decode()
-
     return last_line
 
+
 def write_file(file: str, data: str):
-    _write_file_data(file,data,"w")
+    _write_file_data(file, data, "w")
+
 
 def _write_file_data(file: str, data: str, method: str):
-    f = open(file,method)
+    f = open(file, method)
     f.write(data)
     f.close()
 
+
 def append_file(file: str, data: str):
-    _write_file_data(file,data,"a")
+    _write_file_data(file, data, "a")
+
 
 def delete_file(file: str):
     if exists(file):
         os.remove(file)
 
+
 def file_exists(file: str):
     return exists(file)
 
-def insert_beginning_of_file(originalfile,string):
-    with open(originalfile,'r') as f:
-        with open('newfile.txt','w') as f2: 
+
+def insert_beginning_of_file(originalfile, string):
+    with open(originalfile, 'r') as f:
+        with open('newfile.txt', 'w') as f2:
             f2.write(string)
             f2.write(f.read())
     os.remove(originalfile)
-    os.rename('newfile.txt',originalfile)
+    os.rename('newfile.txt', originalfile)
+
 
 def move_file(source: str, target: str):
+    import shutil
     shutil.move(source, target)
 
+
 def copy_file(source: str, target: str):
+    import shutil
     shutil.copyfile(source, target)
+
 
 def days_between(d1, d2):
     d1 = datetime.strptime(d1, "%Y-%m-%d")
     d2 = datetime.strptime(d2, "%Y-%m-%d")
     return abs((d2 - d1).days)
+
 
 def has_key(array, key: str):
     count = -1
@@ -118,119 +101,23 @@ def has_key(array, key: str):
         count = count + 1
         if item.key == key:
             return count
-
     return -1
+
 
 def get_time():
     now = datetime.now()
-
     current_time = now.strftime("%H:%M:%S")
     return "Current Time = " + current_time
+
 
 def sort_array(array):
     if hasattr(array, "sortOrder"):
         return array.sortOrder
-
     return array.key
 
-def get_value_safe(dict,key: str, default: str):
+
+def get_value_safe(dict, key: str, default: str):
     if key in dict.keys():
         return str(dict[key])
     else:
         return default
-
-def parse_line_tokens(line: str, split_on: str, ignore_value: str, keep_period: bool):
-    line = line.replace("'''", "'")
-    t_elements = line.split(split_on)
-    line_elements = []
-    literal = ""
-    in_literal = False
-    has_period = False
-    skip_next = False
-    count = 0
-    if t_elements[len(t_elements) - 1].endswith("."):
-        has_period = keep_period
-        t_elements[len(t_elements) - 1] = t_elements[len(t_elements) - 1].replace(".", "")
-    for e in t_elements:
-        if skip_next:
-            skip_next = False
-            continue
-
-        t = e.strip()
-        if ((t.startswith("'") or t.startswith("X'") or t.startswith("INITIAL='")) and not in_literal):
-            literal = literal + t
-            in_literal = True
-            if (t.endswith("'") and t != "'"):
-                in_literal = False
-                literal = ''
-        elif (t.endswith("'")):
-            literal = literal + " " + t
-            t = literal
-            in_literal = False
-            literal = ""
-        elif in_literal:
-            literal = literal + " " + t
-        elif count + 1 < len(t_elements):
-            if count == 0:
-                x = 0
-            elif t_elements[count + 1].startswith("(") and t_elements[count + 1].endswith(")") and ":" in t_elements[count + 1]:
-                skip_next = True
-                t = t + t_elements[count + 1]
-            elif t_elements[count + 1].startswith("("):
-                if t_elements[count + 1][1:2] == "'" and t_elements[count + 2] == "'":
-                    t_elements.pop(count + 2)
-                    t_elements[count + 1] = t_elements[count + 1] + "'"
-
-        if t != ignore_value and not in_literal:
-            line_elements.append(t)
-            t = ''
-
-        count = count + 1
-
-    if in_literal:
-        line_elements.append(literal)
-    if has_period:
-        line_elements.append(".")
-    return line_elements
-
-def format(s: str):
-    return s.replace(".", "").replace(" ", "_").replace("-", "_").strip()
-
-def get_all_indices(list, search: str):
-    indices = [i for i, x in enumerate(list) if x == search]
-
-    return indices
-
-def pad(l: int):
-    return pad_char(l, " ")
-
-def pad_char(l: int, c: str):
-    result = ""
-    for x in range(l):
-        result = result + c
-
-    return result
-
-def find(s: str, ch: str):
-    return [i for i, ltr in enumerate(s) if ltr == ch]
-
-def find_pos_last_letter(s: str):
-    count = 1
-    for r in s:
-        if not r.isnumeric():
-            break
-        count = count + 1
-
-    return count
-
-def gen_rand(length: int):
-    return ''.join(random.choices(string.ascii_lowercase, k=length))
-
-def count_chars(s: str, char: str):
-    count = 0
-
-    for c in s:
-        if c == char:
-            count += 1
-
-    return count

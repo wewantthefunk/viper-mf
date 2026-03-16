@@ -161,6 +161,22 @@ Converted Python files are put in the converted/ folder. The cobol_variable.py f
 
 For unit tests of all examples in this repository, navigate to the unittest folder and execute the test_all.sh script. This will delete ALL python files from the converted folder and convert all of the .cbl files in the examples folder and execute each of the converted files.
 
+### Regression tests (Cobra translator)
+
+The `tests/` directory contains regression tests for the Cobra translator. They run the converter on fixed example programs and assert the generated Python has the expected structure and (for one example) that it runs and produces the expected output. Run from the project root:
+
+```bash
+python tests/test_cobra_regression.py
+```
+
+Or with unittest discovery:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+If you have pytest installed: `pytest tests/ -v`
+
 ## Challenges
 
 * Hierarchical variable structure of COBOL. Some variables aren't real variables, they are concatenations of other (sub) variables. This presented a challenge.
